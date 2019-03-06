@@ -6,11 +6,9 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.regex.Pattern;
 
 import javax.xml.bind.JAXBElement;
 import javax.xml.datatype.DatatypeConfigurationException;
-import javax.xml.namespace.NamespaceContext;
 
 import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryExecution;
@@ -19,17 +17,12 @@ import org.apache.jena.query.QueryFactory;
 import org.apache.jena.query.ResultSet;
 import org.apache.jena.query.ResultSetFormatter;
 import org.apache.jena.rdf.model.Model;
-import org.apache.jena.rdf.model.RDFReader;
-import org.apache.jena.rdf.model.ResIterator;
-import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.sparql.resultset.ResultsFormat;
 import org.apache.jena.util.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.w3c.dom.Document;
 
-import com.gitb.core.AnyContent;
-import com.gitb.core.ValueEmbeddingEnumeration;
 import com.gitb.tr.BAR;
 import com.gitb.tr.ObjectFactory;
 import com.gitb.tr.TAR;
@@ -40,20 +33,12 @@ import com.gitb.tr.TestResultType;
 import eu.europa.ec.itb.shacl.util.Utils;
 
 public class SHACLValidationReport {
-    private static Pattern ARRAY_PATTERN = Pattern.compile("\\[\\d+\\]");
-    private static Pattern DEFAULTNS_PATTERN = Pattern.compile("\\/[\\w]+:?");
     private static final Logger logger = LoggerFactory.getLogger(SHACLValidationReport.class);
-    private Document node;
     private List<ValidationResult> validationResult;
-    private NamespaceContext namespaceContext;
-    private Boolean hasDefaultNamespace;
-    private boolean convertXPathExpressions;
-    private boolean includeTest;
-    private boolean reportsOrdered;
     private TAR report;
     private ObjectFactory objectFactory = new ObjectFactory();
     
-    public SHACLValidationReport(List<ValidationResult> shacl, boolean convertXPathExpressions, boolean includeTest, boolean reportsOrdered) {
+    public SHACLValidationReport(List<ValidationResult> shacl) {
         this.validationResult = shacl;
         report = new TAR();
         report.setResult(TestResultType.SUCCESS);
@@ -64,24 +49,6 @@ public class SHACLValidationReport {
         }
         this.report.setName("Schematron Validation");
         this.report.setReports(new TestAssertionGroupReportsType());
-        AnyContent attachment = new AnyContent();
-        attachment.setType("map");
-        AnyContent xmlAttachment = new AnyContent();
-        xmlAttachment.setName("XML");
-        xmlAttachment.setType("object");
-        xmlAttachment.setEmbeddingMethod(ValueEmbeddingEnumeration.STRING);
-        //xmlAttachment.setValue(new String(Utils.serialize(xml)));
-        attachment.getItem().add(xmlAttachment);
-        AnyContent schemaAttachment = new AnyContent();
-        schemaAttachment.setName("SHACL");
-        schemaAttachment.setType("schema");
-        schemaAttachment.setEmbeddingMethod(ValueEmbeddingEnumeration.STRING);
-        //schemaAttachment.setValue(new String(Utils.serialize(sch)));
-        attachment.getItem().add(schemaAttachment);
-        this.report.setContext(attachment);
-        this.convertXPathExpressions = convertXPathExpressions;
-        this.includeTest = includeTest;
-        this.reportsOrdered = reportsOrdered;
     }
     
 	/**
@@ -214,5 +181,26 @@ public class SHACLValidationReport {
         }
         
         return report;
+    }
+    
+    /**
+     * Returns a single Model from a list of models
+     * @param shaclReports
+     * 				List of SHACL reports defined as Models
+     * @return Model
+     */
+    public static Model mergeShaclReport(List<Model> shaclReports) {
+    	Model mergedReport = ModelFactory.createDefaultModel();
+    	
+        if (shaclReports.size() > 1) {
+            for (int i=0; i < shaclReports.size(); i++) {
+                Model report = shaclReports.get(i);
+                if (report != null) {
+                	mergedReport.add(report);
+                }
+            }
+        }
+        
+        return mergedReport;
     }
 }

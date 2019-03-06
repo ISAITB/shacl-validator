@@ -92,8 +92,6 @@ public class DomainConfigCache {
                 domainConfig.setTypeLabel(parseMap("validator.typeLabel", config, domainConfig.getType()));
                 domainConfig.setWebServiceDescription(parseMap("validator.webServiceDescription", config, Arrays.asList("xml", "type")));
                 domainConfig.setShaclFile(parseMap("validator.shaclFile", config, domainConfig.getType()));
-                //domainConfig.setSchemaFile(parseMap("validator.schemaFile", config, domainConfig.getType()));
-                //domainConfig.setSchematronFile(parseMap("validator.schematronFile", config, domainConfig.getType()));
                 domainConfig.setIncludeTestDefinition(config.getBoolean("validator.includeTestDefinition", true));
                 domainConfig.setReportsOrdered(config.getBoolean("validator.reportsOrdered", false));
                 domainConfig.setShowAbout(config.getBoolean("validator.showAbout", true));

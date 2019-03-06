@@ -9,10 +9,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.xml.bind.JAXBContext;
-
 import org.apache.commons.io.FilenameUtils;
-import org.apache.jena.atlas.web.ContentType;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.riot.RDFLanguages;
@@ -25,11 +22,7 @@ import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 import org.topbraid.jenax.util.JenaUtil;
-import org.topbraid.shacl.util.ModelPrinter;
 import org.topbraid.shacl.validation.ValidationUtil;
-
-import com.gitb.tr.ObjectFactory;
-import com.gitb.tr.TAR;
 
 import eu.europa.ec.itb.shacl.ApplicationConfig;
 import eu.europa.ec.itb.shacl.DomainConfig;
@@ -45,7 +38,6 @@ import eu.europa.ec.itb.shacl.util.Utils;
 public class SHACLValidator implements ApplicationContextAware {
 
     private static final Logger logger = LoggerFactory.getLogger(SHACLValidator.class);
-    private static JAXBContext VALIDATION_REPORT_JAXB_CONTEXT;
 
     @Autowired
     private ApplicationConfig config;
@@ -55,16 +47,6 @@ public class SHACLValidator implements ApplicationContextAware {
     private ApplicationContext ctx;
     private final DomainConfig domainConfig;
     private String validationType;
-    private ObjectFactory gitbTRObjectFactory = new ObjectFactory();
-
-    static {
-    	//TODO: SHACLOutputType.java
-        /*try {
-        	VALIDATION_REPORT_JAXB_CONTEXT = JAXBContext.newInstance(SHACLOutputType.class);
-        } catch (JAXBException e) {
-            throw new IllegalStateException("Unable to create JAXB content for SHACLOutputType", e);
-        }*/
-    }
 
     public SHACLValidator(File inputFileToValidate, String validationType, DomainConfig domainConfig) {
     	this.inputFileToValidate = inputFileToValidate;
@@ -80,10 +62,10 @@ public class SHACLValidator implements ApplicationContextAware {
         }
     }
     
-    public TAR validateAll() {
+    public Model validateAll() {
     	logger.info("Starting validation..");
-    	//For the moment, we just validate SHACL commited in Bitbucket.
-        TAR overallResult = null;
+    	
+        Model overallResult = null;
 		try {
 			overallResult = validateAgainstSHACL();
 		} catch (FileNotFoundException e) {
@@ -93,16 +75,16 @@ public class SHACLValidator implements ApplicationContextAware {
         return overallResult;
     }
     
-    public TAR validateAgainstSHACL() throws FileNotFoundException {
+    public Model validateAgainstSHACL() throws FileNotFoundException {
         File shaclFile = getSHACLFile();
-        List<TAR> reports = new ArrayList<TAR>();
+        List<Model> shaclReports = new ArrayList<Model>();
         List<File> shaclFiles = new ArrayList<>();
         if (shaclFile != null && shaclFile.exists()) {
             if (shaclFile.isFile()) {
                 // We are pointing to a single master SHACL file.
             	shaclFiles.add(shaclFile);
             } else {
-                // All SHACL are to be processed.
+                // All SHACL are processed.
                 File[] files = shaclFile.listFiles();
                 if (files != null) {
                     for (File aSHACLFile: files) {
@@ -119,21 +101,18 @@ public class SHACLValidator implements ApplicationContextAware {
         } else {
             for (File aSHACLFile: shaclFiles) {
                 logger.info("Validating against ["+aSHACLFile.getName()+"]");
-                TAR report = validateSHACL(Utils.getInputStreamForValidation(inputToValidate), aSHACLFile);
-                TARReport.logReport(report, aSHACLFile.getName());
-                reports.add(report);
+                Model shaclReport = validateSHACL(Utils.getInputStreamForValidation(inputToValidate), aSHACLFile);                
+                shaclReports.add(shaclReport);
                 logger.info("Validated against ["+aSHACLFile.getName()+"]");
             }
-            TAR report = TARReport.mergeReports(reports.toArray(new TAR[reports.size()]));
-            report = TARReport.completeReport(report, inputToValidate);
+            Model report = SHACLValidationReport.mergeShaclReport(shaclReports);
             
             return report;
         }
     }
     
-    private TAR validateSHACL(InputStream inputSource, File shaclFile){
-    	TAR report = new TAR();
-        boolean convertXPathExpressions = false;
+    private Model validateSHACL(InputStream inputSource, File shaclFile){
+    	Model reportModel = null;
     	
     	try {
 			// Get data to validate from file
@@ -142,27 +121,15 @@ public class SHACLValidator implements ApplicationContextAware {
 	        
 			// Perform the validation of data, using the shapes model. Do not validate any shapes inside the data model.
 			Resource resource = ValidationUtil.validateModel(dataModel, shaclModel, false);		
-			Model reportModel = resource.getModel();
+			reportModel = resource.getModel();
 			reportModel.setNsPrefix("sh", "http://www.w3.org/ns/shacl#");
 	
-			String ttlResult = ModelPrinter.get().print(reportModel);
-			
-			// Get the ttl Result and Table Result		
-			List<ValidationResult> validationResultsList = SHACLValidationReport.formatOutput(reportModel);
-			//String ttlResult = ModelPrinter.get().print(reportModel);
-			
-			// Get the data and SHACL as string from their models
-			//String data = getStringFromModel(dataModel);
-			//String shapes = getStringFromModel(shaclModel);
-			
-			SHACLValidationReport handler = new SHACLValidationReport(validationResultsList, convertXPathExpressions, false, false);
-			report = handler.createReport();
-			
+			//String ttlResult = ModelPrinter.get().print(reportModel);			
     	}catch(Exception e){
     		logger.error("Error during the SHACL validation. " + e.getMessage());
     	}
     	
-    	return report;
+    	return reportModel;
     }
     
     private File getSHACLFile() {  	

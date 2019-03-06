@@ -4,6 +4,7 @@ import com.gitb.tr.ObjectFactory;
 import com.gitb.tr.TAR;
 import eu.europa.ec.itb.shacl.ApplicationConfig;
 import org.apache.commons.io.FileUtils;
+import org.apache.jena.rdf.model.Model;
 import org.apache.tika.Tika;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,6 +70,27 @@ public class FileManager {
     public void saveReport(TAR report, String xmlID) {
         File outputFile = new File(config.getReportFolder(), getReportFileNameXml(xmlID));
         saveReport(report, outputFile);
+    }
+    
+    public void saveReport(Model report, File outputFile, String lang) { 
+    	FileWriter out = null;   	
+    	try {
+        	out = new FileWriter(outputFile);   	
+    	    report.write(out, lang);
+    	    
+    	} catch (IOException e) {
+			logger.error("Error when saving the report: "+e.getMessage());
+			e.printStackTrace();
+		}
+    	finally {
+    	   try {
+    	       out.close();
+    	   }
+    	   catch (IOException closeException) {
+   			logger.error("Error when saving the report: "+closeException.getMessage());
+    	   }
+    	}
+    	
     }
 
     public void saveReport(TAR report, File outputFile) {
