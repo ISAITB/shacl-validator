@@ -38,6 +38,7 @@ public class ApplicationConfig {
     private Set<String> acceptedMimeTypes;
     private Set<String> acceptedInputExtensions;
     private Set<String> acceptedSHACLExtensions;
+    private Set<String> acceptedEmbeddingMethod;
     private Set<String> domain;
     private String startupTimestamp;
     private String resourceUpdateTimestamp;
@@ -120,6 +121,14 @@ public class ApplicationConfig {
 
     public void setAcceptedSHACLExtensions(Set<String> acceptedSHACLExtensions) {
         this.acceptedSHACLExtensions = acceptedSHACLExtensions;
+    }
+    
+    public Set<String> getAcceptedEmbeddingMethod() {
+        return acceptedEmbeddingMethod;
+    }
+
+    public void setAcceptedEmbeddingMethod(Set<String> acceptedEmbeddingMethod) {
+        this.acceptedEmbeddingMethod = acceptedEmbeddingMethod;
     }
 
     public Set<String> getDomain() {

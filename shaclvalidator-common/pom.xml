@@ -12,14 +12,6 @@
     <artifactId>shaclvalidator-common</artifactId>
 
     <dependencies>
-        <!-- dependency>
-            <groupId>xerces</groupId>
-            <artifactId>xercesImpl</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>net.sf.saxon</groupId>
-            <artifactId>Saxon-HE</artifactId>
-        </dependency-->
         <dependency>
             <groupId>org.apache.tika</groupId>
             <artifactId>tika-core</artifactId>
@@ -28,10 +20,6 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
         </dependency>
-        <!-- dependency>
-            <groupId>com.helger</groupId>
-            <artifactId>ph-schematron</artifactId>
-        </dependency-->
         <!-- https://mvnrepository.com/artifact/org.topbraid/shacl -->
 		<dependency>
 		    <groupId>org.topbraid</groupId>
