@@ -31,6 +31,7 @@ public class ApplicationConfig {
     private boolean standalone = false;
     private String resourceRoot;
     private File reportFolder;
+    private String tmpFolder;
     private String inputFilePrefix = "ITB-";
     private long minimumCachedInputFileAge = 600000L;
     private long minimumCachedReportFileAge = 600000L;
@@ -49,6 +50,14 @@ public class ApplicationConfig {
 
     public void setReportFolder(File reportFolder) {
         this.reportFolder = reportFolder;
+    }
+    
+    public String getTmpFolder() {
+        return tmpFolder;
+    }
+
+    public void setTmpFolder(String tmpFolder) {
+        this.tmpFolder = tmpFolder;
     }
 
     public String getInputFilePrefix() {

@@ -12,6 +12,7 @@ import java.util.List;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFLanguages;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,8 +48,10 @@ public class SHACLValidator implements ApplicationContextAware {
     private ApplicationContext ctx;
     private final DomainConfig domainConfig;
     private String validationType;
+    private String contentSyntax;
 
-    public SHACLValidator(File inputFileToValidate, String validationType, DomainConfig domainConfig) {
+    public SHACLValidator(File inputFileToValidate, String validationType, String contentSyntax, DomainConfig domainConfig) {
+    	this.contentSyntax = contentSyntax;
     	this.inputFileToValidate = inputFileToValidate;
 		try {
 			this.inputToValidate = new FileInputStream(inputFileToValidate);
@@ -127,6 +130,7 @@ public class SHACLValidator implements ApplicationContextAware {
 			//String ttlResult = ModelPrinter.get().print(reportModel);			
     	}catch(Exception e){
     		logger.error("Error during the SHACL validation. " + e.getMessage());
+            throw new IllegalStateException(e);
     	}
     	
     	return reportModel;
@@ -146,6 +150,7 @@ public class SHACLValidator implements ApplicationContextAware {
      */
     private Model getDataModel(File dataFile, Model shapesModel) throws FileNotFoundException {    	
     	String extension = FilenameUtils.getExtension(dataFile.getName());
+    	Lang lang = null;
 		InputStream dataStream = new FileInputStream(dataFile);
             	
 		// Upload the data in the Model. First set the prefixes of the model to those of the shapes model to avoid mismatches.
@@ -155,8 +160,28 @@ public class SHACLValidator implements ApplicationContextAware {
 			dataModel.setNsPrefixes(shapesModel.getNsPrefixMap());
 		}
 		
-		dataModel.read(dataStream, null, RDFLanguages.fileExtToLang(extension).getName());
+		if(shapesModel!=null && this.contentSyntax!=null) {
+			lang = RDFLanguages.shortnameToLang(this.contentSyntax);
+			if(lang==null) RDFLanguages.fileExtToLang(extension);
+		}else {
+			lang = RDFLanguages.fileExtToLang(extension);
+		}
+		if(lang==null) {
+			try {
+				dataStream.close();
+			} catch (IOException e) {
+				throw new IllegalStateException(e);
+			}
+			throw new IllegalStateException("RDF Language does not exist.");
+		}
+		dataModel.read(dataStream, null, lang.getName());
 
+		try {
+			dataStream.close();
+		} catch (IOException e) {
+			throw new IllegalStateException(e);
+		}
+		
 		return dataModel;
 	}
 

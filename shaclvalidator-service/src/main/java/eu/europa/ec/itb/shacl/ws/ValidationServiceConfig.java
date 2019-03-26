@@ -41,13 +41,10 @@ public class ValidationServiceConfig {
         return srb;
     }
     
-    /**
-     * The CXF endpoint(s) that will serve service calls.
-     */
     @PostConstruct
     public void publishValidationServices() {
     	for (DomainConfig domainConfig: domainConfigCache.getAllDomainConfigurations()) {
-            if (domainConfig.getChannels().contains(ValidatorChannel.WEB_SERVICE)) {
+            if (domainConfig.getChannels().contains(ValidatorChannel.REST_API)) {
             	EndpointImpl endpoint = new EndpointImpl(cxfBus, applicationContext.getBean(ShaclController.class, domainConfig));
             	endpoint.setEndpointName(new QName("http://www.gitb.com/vs/v1/", "ValidationServicePort"));
                 endpoint.setServiceName(new QName("http://www.gitb.com/vs/v1/", "ValidationService"));

@@ -75,7 +75,7 @@ public class DomainConfigCache {
                 domainConfig.setDomain(domain);
                 domainConfig.setUploadTitle(config.getString("validator.uploadTitle", "Validator"));
                 domainConfig.setType(Arrays.stream(StringUtils.split(config.getString("validator.type"), ',')).map(String::trim).collect(Collectors.toList()));
-                domainConfig.setChannels(Arrays.stream(StringUtils.split(config.getString("validator.channels", ValidatorChannel.FORM.getName()+","+ValidatorChannel.WEB_SERVICE.getName()), ',')).map(String::trim).map(ValidatorChannel::byName).collect(Collectors.toSet()));
+                domainConfig.setChannels(Arrays.stream(StringUtils.split(config.getString("validator.channels", ValidatorChannel.FORM.getName()+","+ValidatorChannel.REST_API.getName()+","+ValidatorChannel.SOAP_API.getName()), ',')).map(String::trim).map(ValidatorChannel::byName).collect(Collectors.toSet()));
                 domainConfig.setReportTitle(config.getString("validator.reportTitle", "Validation report"));
                 domainConfig.setWebServiceId(config.getString("validator.webServiceId", "ValidatorService"));
                 domainConfig.setMailFrom(config.getString("validator.mailFrom", null));

@@ -3,6 +3,8 @@ package eu.europa.ec.itb.shacl.ws;
 import java.util.List;
 
 public class InputData {
+    public static final String embeddingMethod_URL     = "URL" ;
+    
 	protected List<InputContent> input;
 
 	public List<InputContent> getInput() { return this.input; }
@@ -14,6 +16,7 @@ public class InputData {
 		protected String embeddingMethod;
 		protected String validationType;
 		protected String reportSyntax;
+		protected String contentSyntax;
 		protected List<ExternalRules> externalRules;
 
 		public String getContentToValidate() { return this.contentToValidate; }
@@ -23,6 +26,8 @@ public class InputData {
 		public String getValidationType() { return this.validationType; }
 		
 		public String getReportSyntax() { return this.reportSyntax; }
+		
+		public String getContentSyntax() { return this.contentSyntax; }
 		
 		public List<ExternalRules> getExternalRules(){ return this.externalRules; }
 		
