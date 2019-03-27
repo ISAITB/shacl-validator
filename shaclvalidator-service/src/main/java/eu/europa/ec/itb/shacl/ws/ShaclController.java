@@ -40,6 +40,8 @@ import eu.europa.ec.itb.shacl.DomainConfigCache;
 import eu.europa.ec.itb.shacl.ValidatorChannel;
 import eu.europa.ec.itb.shacl.validation.SHACLValidator;
 import eu.europa.ec.itb.shacl.ws.InputData.RuleSet;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 
 /**
  * Simple REST controller to allow an easy way of validating files with the correspondence shapes.
@@ -47,6 +49,7 @@ import eu.europa.ec.itb.shacl.ws.InputData.RuleSet;
  * Created by mfontsan on 25/03/2019
  *
  */
+@Api(value="SHACL Validator")
 @RestController
 public class ShaclController {
 
@@ -77,6 +80,7 @@ public class ShaclController {
      * @param input JSON with the configuration of the validation.
      * @return The result of the SHACL validator.
      */
+    @ApiOperation(value = "Validate one RDF instance", response = ResponseEntity.class)
     @RequestMapping(value = "/{domain}/validate", method = RequestMethod.POST)
     public ResponseEntity<String> validate(@PathVariable("domain") String domain, @RequestBody String input) { 
     	String shaclResult = null;
@@ -110,6 +114,7 @@ public class ShaclController {
      * @param input JSON with the configuration of the validation.
      * @return The result of the SHACL validator.
      */
+    @ApiOperation(value = "Validate multiple RDF instances", response = ResponseEntity.class)
     @RequestMapping(value = "/{domain}/validateMultiple", method = RequestMethod.POST)
     public ResponseEntity<String> validateMultiple(@PathVariable("domain") String domain, @RequestBody String input) { 
     	throw new ValidatorException(ValidatorException.message_support);
