@@ -37,6 +37,7 @@ public class ApplicationConfig {
     private long minimumCachedReportFileAge = 600000L;
     private String reportFilePrefix = "TAR-";
     private Set<String> acceptedMimeTypes;
+    private Set<String> acceptedContentMimeTypes;
     private Set<String> acceptedInputExtensions;
     private Set<String> acceptedSHACLExtensions;
     private Set<String> acceptedEmbeddingMethod;
@@ -98,6 +99,14 @@ public class ApplicationConfig {
 
     public void setAcceptedMimeTypes(Set<String> acceptedMimeTypes) {
         this.acceptedMimeTypes = acceptedMimeTypes;
+    }
+
+    public Set<String> getAcceptedContentMimeTypes() {
+        return acceptedContentMimeTypes;
+    }
+
+    public void setAcceptedContentMimeTypes(Set<String> acceptedContentMimeTypes) {
+        this.acceptedContentMimeTypes = acceptedContentMimeTypes;
     }
 
     public boolean isStandalone() {

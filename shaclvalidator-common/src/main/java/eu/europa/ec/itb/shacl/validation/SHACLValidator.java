@@ -78,6 +78,11 @@ public class SHACLValidator implements ApplicationContextAware {
         return overallResult;
     }
     
+    /**
+     * Validation of the model
+     * @return Model The Jena model with the report
+     * @throws FileNotFoundException
+     */
     public Model validateAgainstSHACL() throws FileNotFoundException {
         File shaclFile = getSHACLFile();
         List<Model> shaclReports = new ArrayList<Model>();
@@ -100,7 +105,7 @@ public class SHACLValidator implements ApplicationContextAware {
         }
         if (shaclFiles.isEmpty()) {
             logger.info("No SHACL to validate against ["+shaclFile+"]");
-            return null;
+            throw new FileNotFoundException();
         } else {
             for (File aSHACLFile: shaclFiles) {
                 logger.info("Validating against ["+aSHACLFile.getName()+"]");
@@ -114,6 +119,12 @@ public class SHACLValidator implements ApplicationContextAware {
         }
     }
     
+    /**
+     * Validate the RDF against one shape file
+     * @param inputSource File to validate as InputStream
+     * @param shaclFile SHACL file
+     * @return Model The Jena Model with the report
+     */
     private Model validateSHACL(InputStream inputSource, File shaclFile){
     	Model reportModel = null;
     	
@@ -126,8 +137,7 @@ public class SHACLValidator implements ApplicationContextAware {
 			Resource resource = ValidationUtil.validateModel(dataModel, shaclModel, false);		
 			reportModel = resource.getModel();
 			reportModel.setNsPrefix("sh", "http://www.w3.org/ns/shacl#");
-	
-			//String ttlResult = ModelPrinter.get().print(reportModel);			
+			
     	}catch(Exception e){
     		logger.error("Error during the SHACL validation. " + e.getMessage());
             throw new IllegalStateException(e);
@@ -140,13 +150,12 @@ public class SHACLValidator implements ApplicationContextAware {
         return Paths.get(config.getResourceRoot(), domainConfig.getDomain(), domainConfig.getShaclFile().get(validationType)).toFile();
     }
     
-	/**
-     * Get data to validate from file, and combine with the vocabulary
-     * @param shapesModel
-     * 			The Jena model containing the shacl defintion (needed to set the proper prefixes on the input data)
-	 * @throws FileNotFoundException 
-	 * @throws IOException 
-	 * @throws ServletException 
+    /**
+     * 
+     * @param dataFile File with RDF data
+     * @param shapesModel The Jena model containing the shacl defintion (needed to set the proper prefixes on the input data)
+     * @return Model Jena Model containing the data from dataFile
+     * @throws FileNotFoundException
      */
     private Model getDataModel(File dataFile, Model shapesModel) throws FileNotFoundException {    	
     	String extension = FilenameUtils.getExtension(dataFile.getName());
@@ -161,7 +170,7 @@ public class SHACLValidator implements ApplicationContextAware {
 		}
 		
 		if(shapesModel!=null && this.contentSyntax!=null) {
-			lang = RDFLanguages.shortnameToLang(this.contentSyntax);
+			lang = RDFLanguages.contentTypeToLang(this.contentSyntax);
 			if(lang==null) RDFLanguages.fileExtToLang(extension);
 		}else {
 			lang = RDFLanguages.fileExtToLang(extension);
@@ -170,8 +179,10 @@ public class SHACLValidator implements ApplicationContextAware {
 			try {
 				dataStream.close();
 			} catch (IOException e) {
-				throw new IllegalStateException(e);
+				logger.error("Error when closing InputStream: ", e);
+				throw new IllegalStateException("Error when closing InputStream.");
 			}
+			logger.error("RDF Language does not exist.");
 			throw new IllegalStateException("RDF Language does not exist.");
 		}
 		dataModel.read(dataStream, null, lang.getName());
@@ -179,7 +190,8 @@ public class SHACLValidator implements ApplicationContextAware {
 		try {
 			dataStream.close();
 		} catch (IOException e) {
-			throw new IllegalStateException(e);
+			logger.error("Error when closing InputStream: ", e);
+			throw new IllegalStateException("Error when closing InputStream.");
 		}
 		
 		return dataModel;
