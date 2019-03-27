@@ -1,4 +1,4 @@
-package eu.europa.ec.itb.shacl.web;
+package eu.europa.ec.itb.shacl;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

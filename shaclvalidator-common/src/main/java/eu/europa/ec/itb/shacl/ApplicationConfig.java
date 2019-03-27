@@ -36,11 +36,7 @@ public class ApplicationConfig {
     private long minimumCachedInputFileAge = 600000L;
     private long minimumCachedReportFileAge = 600000L;
     private String reportFilePrefix = "TAR-";
-    private Set<String> acceptedMimeTypes;
-    private Set<String> acceptedContentMimeTypes;
-    private Set<String> acceptedInputExtensions;
     private Set<String> acceptedSHACLExtensions;
-    private Set<String> acceptedEmbeddingMethod;
     private Set<String> domain;
     private String startupTimestamp;
     private String resourceUpdateTimestamp;
@@ -93,22 +89,6 @@ public class ApplicationConfig {
         this.reportFilePrefix = reportFilePrefix;
     }
 
-    public Set<String> getAcceptedMimeTypes() {
-        return acceptedMimeTypes;
-    }
-
-    public void setAcceptedMimeTypes(Set<String> acceptedMimeTypes) {
-        this.acceptedMimeTypes = acceptedMimeTypes;
-    }
-
-    public Set<String> getAcceptedContentMimeTypes() {
-        return acceptedContentMimeTypes;
-    }
-
-    public void setAcceptedContentMimeTypes(Set<String> acceptedContentMimeTypes) {
-        this.acceptedContentMimeTypes = acceptedContentMimeTypes;
-    }
-
     public boolean isStandalone() {
         return standalone;
     }
@@ -124,14 +104,6 @@ public class ApplicationConfig {
     public void setResourceRoot(String resourceRoot) {
         this.resourceRoot = resourceRoot;
     }
-
-    public Set<String> getAcceptedInputExtensions() {
-        return acceptedInputExtensions;
-    }
-
-    public void setAcceptedInputExtensions(Set<String> acceptedInputExtensions) {
-        this.acceptedInputExtensions = acceptedInputExtensions;
-    }
     
     public Set<String> getAcceptedSHACLExtensions() {
         return acceptedSHACLExtensions;
@@ -139,14 +111,6 @@ public class ApplicationConfig {
 
     public void setAcceptedSHACLExtensions(Set<String> acceptedSHACLExtensions) {
         this.acceptedSHACLExtensions = acceptedSHACLExtensions;
-    }
-    
-    public Set<String> getAcceptedEmbeddingMethod() {
-        return acceptedEmbeddingMethod;
-    }
-
-    public void setAcceptedEmbeddingMethod(Set<String> acceptedEmbeddingMethod) {
-        this.acceptedEmbeddingMethod = acceptedEmbeddingMethod;
     }
 
     public Set<String> getDomain() {

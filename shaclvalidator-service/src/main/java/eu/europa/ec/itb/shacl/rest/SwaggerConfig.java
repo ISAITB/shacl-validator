@@ -1,4 +1,4 @@
-package eu.europa.ec.itb.shacl;
+package eu.europa.ec.itb.shacl.rest;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,7 +16,7 @@ public class SwaggerConfig {
     public Docket api() {
         return new Docket(DocumentationType.SWAGGER_2).select()
             .apis(RequestHandlerSelectors
-                .basePackage("eu.europa.ec.itb.shacl.ws"))
+                .basePackage("eu.europa.ec.itb.shacl.rest"))
             .paths(PathSelectors.regex("/.*"))
             .build().apiInfo(apiEndPointsInfo());
     }

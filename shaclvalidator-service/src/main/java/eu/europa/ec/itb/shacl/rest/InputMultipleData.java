@@ -1,4 +1,4 @@
-package eu.europa.ec.itb.shacl.ws;
+package eu.europa.ec.itb.shacl.rest;
 
 import java.util.List;
 

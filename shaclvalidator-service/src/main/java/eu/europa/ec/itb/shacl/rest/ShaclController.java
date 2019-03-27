@@ -1,4 +1,4 @@
-package eu.europa.ec.itb.shacl.ws;
+package eu.europa.ec.itb.shacl.rest;
 
 import java.io.File;
 import java.io.IOException;
@@ -21,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -38,8 +39,8 @@ import eu.europa.ec.itb.shacl.ApplicationConfig;
 import eu.europa.ec.itb.shacl.DomainConfig;
 import eu.europa.ec.itb.shacl.DomainConfigCache;
 import eu.europa.ec.itb.shacl.ValidatorChannel;
+import eu.europa.ec.itb.shacl.rest.InputData.RuleSet;
 import eu.europa.ec.itb.shacl.validation.SHACLValidator;
-import eu.europa.ec.itb.shacl.ws.InputData.RuleSet;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 
@@ -55,8 +56,8 @@ public class ShaclController {
 
     private static final Logger logger = LoggerFactory.getLogger(ShaclController.class);
     
-    private File inputFile;
-    private String reportSyntax = "application/rdf+xml";
+    @Value("${validator.defaultReportSyntax}:application/rdf+xml")
+    private String defaultReportSyntax;
 
     @Autowired
     ApplicationContext ctx;
@@ -66,12 +67,6 @@ public class ShaclController {
     
     @Autowired
     DomainConfigCache domainConfigs;
-
-    DomainConfig domainConfig;
-
-    public ShaclController(DomainConfig domainConfig) {
-        this.domainConfig = domainConfig;
-    }
     
     /**
      * POST service to receive a single RDF instance to validate
@@ -81,30 +76,46 @@ public class ShaclController {
      * @return The result of the SHACL validator.
      */
     @ApiOperation(value = "Validate one RDF instance", response = ResponseEntity.class)
-    @RequestMapping(value = "/{domain}/validate", method = RequestMethod.POST)
-    public ResponseEntity<String> validate(@PathVariable("domain") String domain, @RequestBody String input) { 
+    @RequestMapping(value = "/{domain}/validate", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<String> validate(@PathVariable("domain") String domain, @RequestBody InputData in) { 
     	String shaclResult = null;
     	
-    	validateDomain(domain);
+    	DomainConfig domainConfig = validateDomain(domain);
         
-        //Process the input request body
-    	Gson gson = new Gson();
-    	InputData in = gson.fromJson(input, InputData.class);
-    	
-    	//Execute one single validation	    
-		Model shaclReport = executeValidation(in);
-		
-		//Process the result according to content-type
-	    shaclResult = getShaclReport(shaclReport, this.reportSyntax);
-	    
-	    HttpHeaders responseHeaders = new HttpHeaders();
-	    responseHeaders.setContentType(MediaType.parseMediaType(this.reportSyntax));
-	    
-	    //Remove temporary files
-	    removeContentToValidate();
-		
-		return new ResponseEntity<String>(shaclResult, responseHeaders, HttpStatus.CREATED);
+    	//Start validation of the input file
+		File inputFile = null;
+		try {
+			inputFile = getContentToValidate(in);			
+	    	//Execute one single validation	    
+			Model shaclReport = executeValidation(inputFile, in, domainConfig);
+			
+			String reportSyntax = defaultReportSyntax;
+	    	//ReportSyntax validation
+	    	if (in.getReportSyntax() != null) {
+	    		if (validReportSyntax(in.getReportSyntax())) {
+	        		reportSyntax = in.getReportSyntax();
+	    		} else {
+	    		    logger.error(ValidatorException.message_parameters, reportSyntax);			    
+	    			throw new ValidatorException(ValidatorException.message_parameters);        		
+	    		}
+	    	}
+			
+			//Process the result according to content-type
+		    shaclResult = getShaclReport(shaclReport, reportSyntax);
+		    HttpHeaders responseHeaders = new HttpHeaders();
+		    responseHeaders.setContentType(MediaType.parseMediaType(reportSyntax));
+			return new ResponseEntity<String>(shaclResult, responseHeaders, HttpStatus.CREATED);
+		} finally {
+		    //Remove temporary files
+		    removeContentToValidate(inputFile);
+		}
     }
+
+
+	private boolean validReportSyntax(String reportSyntax) {
+		Lang lang = RDFLanguages.contentTypeToLang(reportSyntax.toLowerCase());
+		return lang != null;
+	}
 
     
     /**
@@ -115,8 +126,8 @@ public class ShaclController {
      * @return The result of the SHACL validator.
      */
     @ApiOperation(value = "Validate multiple RDF instances", response = ResponseEntity.class)
-    @RequestMapping(value = "/{domain}/validateMultiple", method = RequestMethod.POST)
-    public ResponseEntity<String> validateMultiple(@PathVariable("domain") String domain, @RequestBody String input) { 
+    @RequestMapping(value = "/{domain}/validateMultiple", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<String> validateMultiple(@PathVariable("domain") String domain, @RequestBody InputMultipleData input) { 
     	throw new ValidatorException(ValidatorException.message_support);
     }
     
@@ -124,7 +135,7 @@ public class ShaclController {
      * Validates that the domain exists.
      * @param domain 
      */
-    private void validateDomain(String domain) {    	
+    private DomainConfig validateDomain(String domain) {    	
         DomainConfig config = domainConfigs.getConfigForDomain(domain);
         
         if (config == null || !config.getChannels().contains(ValidatorChannel.REST_API)) {
@@ -132,26 +143,24 @@ public class ShaclController {
 			throw new NotFoundException();
         }
         
-        MDC.put("domain", domain);    	
+        MDC.put("domain", domain);
+        return config;
     }
     
     /**
      * Executes the validation
      * @param inputData Configuration of the current RDF
+     * @param domainConfig 
      * @return Model SHACL report
      */
-    private Model executeValidation(InputData inputData) {
+    private Model executeValidation(File inputFile, InputData inputData, DomainConfig domainConfig) {
     	Model report = null;
     	
-    	//Start validation of the input file
-		inputFile = getContentToValidate(inputData);	
     	try {	
 			SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile, inputData.getValidationType(), inputData.getContentSyntax(), domainConfig);	    
 			
 			report = validator.validateAll();   
     	}catch(Exception e){
-    	    removeContentToValidate();
-    	    
             logger.error("Error during the validation: " + e);
 			throw new ValidatorException(ValidatorException.message_default);
     	}
@@ -185,7 +194,7 @@ public class ShaclController {
     /**
      * Remove the validated file
      */
-    private void removeContentToValidate() {
+    private void removeContentToValidate(File inputFile) {
     	if (inputFile != null && inputFile.exists() && inputFile.isFile()) {
             FileUtils.deleteQuietly(inputFile);
         }
@@ -201,12 +210,7 @@ public class ShaclController {
 			URL url = new URL(URLConvert);
 			String extension = FilenameUtils.getExtension(url.getFile());
 			
-			if(extension!=null) {
-				if(!config.getAcceptedInputExtensions().contains(extension.toUpperCase())) {
-				    logger.error(ValidatorException.message_parameters, extension);			    
-					throw new ValidatorException(ValidatorException.message_parameters);   					
-				} 
-				
+			if(extension!=null) {				
 				extension = "." + extension;
 			}
 			
@@ -231,7 +235,6 @@ public class ShaclController {
      */
     private File getContentToValidate(InputData input) {
     	String embeddingMethod = input.getEmbeddingMethod();
-    	String reportSyntax = input.getReportSyntax();
     	String contentSyntax = input.getContentSyntax();
     	String contentToValidate = input.getContentToValidate();
     	List<RuleSet> externalRules = input.getExternalRules();
@@ -240,47 +243,19 @@ public class ShaclController {
     	
     	//EmbeddingMethod validation
     	if(embeddingMethod!=null) {
-	    	if(config.getAcceptedEmbeddingMethod().contains(embeddingMethod.toUpperCase())) {
-	    		switch(embeddingMethod) {
-	    			case InputData.embedding_URL:
-	    				contentFile = getURLFile(contentToValidate);
-	    				break;
-	    			case InputData.embedding_BASE64:
-	    			    logger.error("Feature not supported: ", embeddingMethod);
-	    				throw new ValidatorException(ValidatorException.message_support);
-	    			default:
-	    			    logger.error(ValidatorException.message_parameters, embeddingMethod);
-	    			    
-	    				throw new ValidatorException(ValidatorException.message_parameters);
-	    		}
-	    	}else {		    
-			    logger.error(ValidatorException.message_parameters, embeddingMethod);
-			    
-	    		throw new ValidatorException(ValidatorException.message_parameters);
-	    	}
+    		switch(embeddingMethod) {
+    			case InputData.embedding_URL:
+    				contentFile = getURLFile(contentToValidate);
+    				break;
+    			case InputData.embedding_BASE64:
+    			    logger.error("Feature not supported: ", embeddingMethod);
+    				throw new ValidatorException(ValidatorException.message_support);
+    			default:
+    			    logger.error(ValidatorException.message_parameters, embeddingMethod);    			    
+    				throw new ValidatorException(ValidatorException.message_parameters);
+    		}
     	}else {
 			contentFile = getURLFile(contentToValidate);
-    	}
-    	
-    	//ReportSyntax validation
-    	if(reportSyntax!=null) {
-    		Lang lang = RDFLanguages.contentTypeToLang(reportSyntax.toLowerCase());
-        	if(lang!=null) {
-        		this.reportSyntax = reportSyntax;
-        	}else {
-        		removeContentToValidate();
-        		
-			    logger.error(ValidatorException.message_parameters, reportSyntax);			    
-				throw new ValidatorException(ValidatorException.message_parameters);        		
-        	}
-    	}
-    	
-    	//ContentSyntax validation
-    	if(contentSyntax!=null && !config.getAcceptedContentMimeTypes().contains(contentSyntax.toLowerCase())) {
-    		removeContentToValidate();
-    		
-		    logger.error(ValidatorException.message_parameters, embeddingMethod);			    
-			throw new ValidatorException(ValidatorException.message_parameters);        		
     	}
     	
     	//ExternalRules validation
