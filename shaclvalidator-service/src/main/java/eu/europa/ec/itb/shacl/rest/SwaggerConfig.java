@@ -16,6 +16,7 @@ import springfox.documentation.swagger2.annotations.EnableSwagger2;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 
 @Configuration
@@ -32,17 +33,22 @@ public class SwaggerConfig {
     private String restApiTitle;
     @Value("${validator.docs.description}")
     private String restApiDescription;
+    @Value("${validator.docs.host}:null")
+    private String restApiHost;
 
     @Bean
     public Docket api() {
-        return new Docket(DocumentationType.SWAGGER_2)
+        Docket docket =  new Docket(DocumentationType.SWAGGER_2)
                 .select()
                     .apis(RequestHandlerSelectors
                     .basePackage("eu.europa.ec.itb.shacl.rest"))
                     .paths(PathSelectors.regex("/.*"))
                 .build()
                 .apiInfo(apiEndPointsInfo())
-                .useDefaultResponseMessages(false);
+                .useDefaultResponseMessages(false)
+                .host(restApiHost)
+                .protocols(new HashSet<>(Arrays.asList("http", "https")));
+        return docket;
     }
 
     private ApiInfo apiEndPointsInfo() {
