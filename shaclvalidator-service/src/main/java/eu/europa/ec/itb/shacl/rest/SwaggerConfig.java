@@ -33,7 +33,7 @@ public class SwaggerConfig {
     private String restApiTitle;
     @Value("${validator.docs.description}")
     private String restApiDescription;
-    @Value("${validator.docs.host}:null")
+    @Value("${validator.docs.host:null}")
     private String restApiHost;
 
     @Bean
