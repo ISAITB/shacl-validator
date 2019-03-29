@@ -14,10 +14,7 @@ import springfox.documentation.spi.DocumentationType;
 import springfox.documentation.spring.web.plugins.Docket;
 import springfox.documentation.swagger2.annotations.EnableSwagger2;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 
 @Configuration
 @EnableSwagger2
@@ -35,6 +32,8 @@ public class SwaggerConfig {
     private String restApiDescription;
     @Value("${validator.docs.host:null}")
     private String restApiHost;
+    @Value("${validator.docs.schemes:null}")
+    private Set<String> schemes;
 
     @Bean
     public Docket api() {
@@ -47,7 +46,7 @@ public class SwaggerConfig {
                 .apiInfo(apiEndPointsInfo())
                 .useDefaultResponseMessages(false)
                 .host(restApiHost)
-                .protocols(new HashSet<>(Arrays.asList("http", "https")));
+                .protocols(schemes);
         return docket;
     }
 
