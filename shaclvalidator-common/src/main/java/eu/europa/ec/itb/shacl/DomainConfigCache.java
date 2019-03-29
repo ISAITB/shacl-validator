@@ -28,6 +28,7 @@ public class DomainConfigCache {
     @Autowired
     private ApplicationConfig appConfig;
     private ConcurrentHashMap<String, DomainConfig> domainConfigs = new ConcurrentHashMap<>();
+    private DomainConfig undefinedDomainConfig = new DomainConfig(false);
 
     private ExtensionFilter propertyFilter = new ExtensionFilter(".properties");
 
@@ -47,8 +48,12 @@ public class DomainConfigCache {
         return configs.toArray(new DomainConfig[0]);
     }
 
-    public boolean isValidDomain(String domain) {
-        return domain != null && domainConfigs.containsKey(domain);
+    public DomainConfig getConfigForDomainName(String domainName) {
+        DomainConfig config = getConfigForDomain(appConfig.getDomainNameToDomainId().getOrDefault(domainName, ""));
+        if (config == null) {
+            logger.warn("Invalid domain name ["+domainName+"].");
+        }
+        return config;
     }
 
     public DomainConfig getConfigForDomain(String domain) {
@@ -56,8 +61,7 @@ public class DomainConfigCache {
         if (domainConfig == null) {
             String[] files = Paths.get(appConfig.getResourceRoot(), domain).toFile().list(propertyFilter);
             if (files == null || files.length == 0) {
-                logger.warn("Invalid domain ["+domain+"].");
-                return null;
+                domainConfig = undefinedDomainConfig;
             } else {
                 CompositeConfiguration config = new CompositeConfiguration();
                 for (String file: files) {
@@ -73,58 +77,14 @@ public class DomainConfigCache {
                 }
                 domainConfig = new DomainConfig();
                 domainConfig.setDomain(domain);
-                domainConfig.setUploadTitle(config.getString("validator.uploadTitle", "Validator"));
                 domainConfig.setType(Arrays.stream(StringUtils.split(config.getString("validator.type"), ',')).map(String::trim).collect(Collectors.toList()));
-                domainConfig.setChannels(Arrays.stream(StringUtils.split(config.getString("validator.channels", ValidatorChannel.FORM.getName()+","+ValidatorChannel.REST_API.getName()+","+ValidatorChannel.SOAP_API.getName()), ',')).map(String::trim).map(ValidatorChannel::byName).collect(Collectors.toSet()));
-                domainConfig.setReportTitle(config.getString("validator.reportTitle", "Validation report"));
-                domainConfig.setWebServiceId(config.getString("validator.webServiceId", "ValidatorService"));
-                domainConfig.setMailFrom(config.getString("validator.mailFrom", null));
-                domainConfig.setMailAuthEnable(config.getBoolean("validator.mailAuthEnable", false));
-                domainConfig.setMailAuthUsername(config.getString("validator.mailAuthUsername", null));
-                domainConfig.setMailAuthPassword(config.getString("validator.mailAuthPassword", null));
-                domainConfig.setMailOutboundHost(config.getString("validator.mailOutboundHost", null));
-                domainConfig.setMailOutboundPort(config.getInt("validator.mailOutboundPort", -1));
-                domainConfig.setMailOutboundSSLEnable(config.getBoolean("validator.mailOutboundSSLEnable", false));
-                domainConfig.setMailInboundHost(config.getString("validator.mailInboundHost", null));
-                domainConfig.setMailInboundPort(config.getInt("validator.mailInboundPort", -1));
-                domainConfig.setMailInboundSSLEnable(config.getBoolean("validator.mailInboundSSLEnable", false));
-                domainConfig.setMailInboundFolder(config.getString("validator.mailInboundFolder", "INBOX"));
-                domainConfig.setTypeLabel(parseMap("validator.typeLabel", config, domainConfig.getType()));
-                domainConfig.setWebServiceDescription(parseMap("validator.webServiceDescription", config, Arrays.asList("xml", "type")));
+                domainConfig.setChannels(Arrays.stream(StringUtils.split(config.getString("validator.channels", ValidatorChannel.REST_API.getName()), ',')).map(String::trim).map(ValidatorChannel::byName).collect(Collectors.toSet()));
                 domainConfig.setShaclFile(parseMap("validator.shaclFile", config, domainConfig.getType()));
-                domainConfig.setIncludeTestDefinition(config.getBoolean("validator.includeTestDefinition", true));
-                domainConfig.setReportsOrdered(config.getBoolean("validator.reportsOrdered", false));
-                domainConfig.setShowAbout(config.getBoolean("validator.showAbout", true));
-                setLabels(domainConfig, config);
                 domainConfigs.put(domain, domainConfig);
                 logger.info("Loaded configuration for domain ["+domain+"]");
             }
         }
         return domainConfig;
-    }
-
-    private void setLabels(DomainConfig domainConfig, CompositeConfiguration config) {
-        // If the required labels ever increase the following code should be transformed into proper resource management.
-        domainConfig.getLabel().setInputSectionTitle(config.getString("validator.label.inputSectionTitle", "Validation input"));
-        domainConfig.getLabel().setResultSectionTitle(config.getString("validator.label.resultSectionTitle", "Validation result"));
-        domainConfig.getLabel().setFileInputLabel(config.getString("validator.label.fileInputLabel", "File to validate"));
-        domainConfig.getLabel().setFileInputPlaceholder(config.getString("validator.label.fileInputPlaceholder", "Select file..."));
-        domainConfig.getLabel().setTypeLabel(config.getString("validator.label.typeLabel", "Validate as"));
-        domainConfig.getLabel().setUploadButton(config.getString("validator.label.uploadButton", "Upload"));
-        domainConfig.getLabel().setResultSubSectionOverviewTitle(config.getString("validator.label.resultSubSectionOverviewTitle", "Overview"));
-        domainConfig.getLabel().setResultDateLabel(config.getString("validator.label.resultDateLabel", "Date:"));
-        domainConfig.getLabel().setResultFileNameLabel(config.getString("validator.label.resultFileNameLabel", "File name:"));
-        domainConfig.getLabel().setResultResultLabel(config.getString("validator.label.resultResultLabel", "Result:"));
-        domainConfig.getLabel().setResultErrorsLabel(config.getString("validator.label.resultErrorsLabel", "Errors:"));
-        domainConfig.getLabel().setResultWarningsLabel(config.getString("validator.label.resultWarningsLabel", "Warnings:"));
-        domainConfig.getLabel().setResultMessagesLabel(config.getString("validator.label.resultMessagesLabel", "Messages:"));
-        domainConfig.getLabel().setViewAnnotatedInputButton(config.getString("validator.label.viewAnnotatedInputButton", "View annotated input"));
-        domainConfig.getLabel().setDownloadXMLReportButton(config.getString("validator.label.downloadXMLReportButton", "Download XML report"));
-        domainConfig.getLabel().setDownloadPDFReportButton(config.getString("validator.label.downloadPDFReportButton", "Download PDF report"));
-        domainConfig.getLabel().setResultSubSectionDetailsTitle(config.getString("validator.label.resultSubSectionDetailsTitle", "Details"));
-        domainConfig.getLabel().setResultTestLabel(config.getString("validator.label.resultTestLabel", "Test:"));
-        domainConfig.getLabel().setPopupTitle(config.getString("validator.label.popupTitle", "XML content"));
-        domainConfig.getLabel().setPopupCloseButton(config.getString("validator.label.popupCloseButton", "Close"));
     }
 
     private Map<String, String> parseMap(String key, CompositeConfiguration config, List<String> types) {

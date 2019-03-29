@@ -22,7 +22,7 @@ import javax.xml.namespace.QName;
 @Configuration
 public class ValidationServiceConfig {
 
-    public static final String CXF_ROOT = "api";
+    public static final String CXF_ROOT = "soap";
 
     @Autowired
     private Bus cxfBus;
@@ -44,11 +44,8 @@ public class ValidationServiceConfig {
     @PostConstruct
     public void publishValidationServices() {
     	for (DomainConfig domainConfig: domainConfigCache.getAllDomainConfigurations()) {
-            if (domainConfig.getChannels().contains(ValidatorChannel.REST_API)) {
-            	EndpointImpl endpoint = new EndpointImpl(cxfBus, applicationContext.getBean(ShaclController.class, domainConfig));
-            	endpoint.setEndpointName(new QName("http://www.gitb.com/vs/v1/", "ValidationServicePort"));
-                endpoint.setServiceName(new QName("http://www.gitb.com/vs/v1/", "ValidationService"));
-                endpoint.publish("/"+domainConfig.getDomain()+"/validation");
+            if (domainConfig.getChannels().contains(ValidatorChannel.SOAP_API)) {
+                throw new IllegalStateException("Not implemented yet");
             }
     	}
     }

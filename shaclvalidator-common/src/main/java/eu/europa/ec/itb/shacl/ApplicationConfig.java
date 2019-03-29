@@ -1,8 +1,11 @@
 package eu.europa.ec.itb.shacl;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
@@ -13,9 +16,7 @@ import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -28,73 +29,24 @@ public class ApplicationConfig {
 
     private static final Logger logger = LoggerFactory.getLogger(ApplicationConfig.class);
 
-    private boolean standalone = false;
+    @Autowired
+    private Environment env;
+
     private String resourceRoot;
-    private File reportFolder;
     private String tmpFolder;
-    private String inputFilePrefix = "ITB-";
-    private long minimumCachedInputFileAge = 600000L;
-    private long minimumCachedReportFileAge = 600000L;
-    private String reportFilePrefix = "TAR-";
     private Set<String> acceptedSHACLExtensions;
     private Set<String> domain;
+    private Map<String, String> domainIdToDomainName = new HashMap<>();
+    private Map<String, String> domainNameToDomainId = new HashMap<>();
     private String startupTimestamp;
     private String resourceUpdateTimestamp;
 
-    public File getReportFolder() {
-        return reportFolder;
-    }
-
-    public void setReportFolder(File reportFolder) {
-        this.reportFolder = reportFolder;
-    }
-    
     public String getTmpFolder() {
         return tmpFolder;
     }
 
     public void setTmpFolder(String tmpFolder) {
         this.tmpFolder = tmpFolder;
-    }
-
-    public String getInputFilePrefix() {
-        return inputFilePrefix;
-    }
-
-    public void setInputFilePrefix(String inputFilePrefix) {
-        this.inputFilePrefix = inputFilePrefix;
-    }
-
-    public long getMinimumCachedInputFileAge() {
-        return minimumCachedInputFileAge;
-    }
-
-    public void setMinimumCachedInputFileAge(long minimumCachedInputFileAge) {
-        this.minimumCachedInputFileAge = minimumCachedInputFileAge;
-    }
-
-    public long getMinimumCachedReportFileAge() {
-        return minimumCachedReportFileAge;
-    }
-
-    public void setMinimumCachedReportFileAge(long minimumCachedReportFileAge) {
-        this.minimumCachedReportFileAge = minimumCachedReportFileAge;
-    }
-
-    public String getReportFilePrefix() {
-        return reportFilePrefix;
-    }
-
-    public void setReportFilePrefix(String reportFilePrefix) {
-        this.reportFilePrefix = reportFilePrefix;
-    }
-
-    public boolean isStandalone() {
-        return standalone;
-    }
-
-    public void setStandalone(boolean standalone) {
-        this.standalone = standalone;
     }
 
     public String getResourceRoot() {
@@ -137,6 +89,14 @@ public class ApplicationConfig {
         this.resourceUpdateTimestamp = resourceUpdateTimestamp;
     }
 
+    public Map<String, String> getDomainIdToDomainName() {
+        return domainIdToDomainName;
+    }
+
+    public Map<String, String> getDomainNameToDomainId() {
+        return domainNameToDomainId;
+    }
+
     @PostConstruct
     public void init() {
         if (resourceRoot != null && Files.isDirectory(Paths.get(resourceRoot))) {
@@ -157,6 +117,15 @@ public class ApplicationConfig {
             throw new IllegalStateException("Invalid resourceRoot configured ["+resourceRoot+"]. Ensure you specify the validator.resourceRoot property correctly.");
         }
         logger.info("Loaded validation domains: "+domain);
+        // Load domain names.
+        StringBuilder logMsg = new StringBuilder();
+        for (String domainFolder: domain) {
+            String domainName = StringUtils.defaultIfBlank(env.getProperty("validator.domainName."+domainFolder), domainFolder);
+            this.domainIdToDomainName.put(domainFolder, domainName);
+            this.domainNameToDomainId.put(domainName, domainFolder);
+            logMsg.append('[').append(domainFolder).append("]=[").append(domainName).append("]");
+        }
+        logger.info("Loaded validation domain names: " + logMsg.toString());
         // Set startup times and resource update times.
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss (XXX)");
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss (XXX)");

@@ -27,7 +27,7 @@ public enum ValidatorChannel {
         } else if (SOAP_API.getName().equals(name)) {
             return SOAP_API;            
         } else {
-            throw new IllegalArgumentException("Uknown validator channel ["+name+"]");
+            throw new IllegalArgumentException("Unknown validator channel ["+name+"]");
         }
     }
 }
