@@ -13,6 +13,7 @@ public class DomainConfig {
     private String domain;
     private String domainName;
     private List<String> type;
+    private Map<String, String> typeLabel;
     private Set<ValidatorChannel> channels;
     private Map<String,String> shaclFile;
 
@@ -74,5 +75,13 @@ public class DomainConfig {
 
     public void setDomainName(String domainName) {
         this.domainName = domainName;
+    }
+
+    public Map<String, String> getTypeLabel() {
+        return typeLabel;
+    }
+
+    public void setTypeLabel(Map<String, String> typeLabel) {
+        this.typeLabel = typeLabel;
     }
 }

@@ -115,5 +115,6 @@ The properties here define how a specific validation domain is configured. They 
 | --- | --- | --- | --- |
 | `validator.channels` | Comma separated list of features to have enabled. Possible values are (`form`, `email`, `webservice`). | Comma-separated Strings | `form,webservice` |
 | `validator.type` | A comma-separated list of supported invoice types. Values need to be reflected in properties `validator.typeLabel`, `validator.schemaFile`, `validator.schematronFolder`. | Comma-separated Strings | - |
+| `validator.typeLabel.XYZ` | Label to display for a given validator type (added as a postfix of validator.typeLabel). | String | - |
 | `validator.includeTestDefinition` | Whether tests should be included in the resulting reports. | Boolean | `true` |
 | `validator.reportsOrdered` | Whether the reports are ordered. | Boolean | `false` |

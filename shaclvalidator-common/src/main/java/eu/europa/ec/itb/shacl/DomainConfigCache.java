@@ -77,7 +77,9 @@ public class DomainConfigCache {
                 }
                 domainConfig = new DomainConfig();
                 domainConfig.setDomain(domain);
+                domainConfig.setDomainName(appConfig.getDomainIdToDomainName().get(domain));
                 domainConfig.setType(Arrays.stream(StringUtils.split(config.getString("validator.type"), ',')).map(String::trim).collect(Collectors.toList()));
+                domainConfig.setTypeLabel(parseMap("validator.typeLabel", config, domainConfig.getType()));
                 domainConfig.setChannels(Arrays.stream(StringUtils.split(config.getString("validator.channels", ValidatorChannel.REST_API.getName()), ',')).map(String::trim).map(ValidatorChannel::byName).collect(Collectors.toSet()));
                 domainConfig.setShaclFile(parseMap("validator.shaclFile", config, domainConfig.getType()));
                 domainConfigs.put(domain, domainConfig);

@@ -14,6 +14,7 @@ import java.util.UUID;
 
 import eu.europa.ec.itb.shacl.rest.errors.NotFoundException;
 import eu.europa.ec.itb.shacl.rest.errors.ValidatorException;
+import eu.europa.ec.itb.shacl.rest.model.ApiInfo;
 import eu.europa.ec.itb.shacl.rest.model.Input;
 import eu.europa.ec.itb.shacl.rest.model.Output;
 import io.swagger.annotations.*;
@@ -51,7 +52,7 @@ import eu.europa.ec.itb.shacl.validation.SHACLValidator;
  * Created by mfontsan on 25/03/2019
  *
  */
-@Api(value="/api", description = "Operations for the validation of RDF content based on SHACL shapes.")
+@Api(value="/{domain}/api", description = "Operations for the validation of RDF content based on SHACL shapes.")
 @RestController
 public class ShaclController {
 
@@ -65,6 +66,22 @@ public class ShaclController {
 
     @Autowired
     ApplicationConfig config;
+
+	@ApiOperation(value = "Get API information.", response = ApiInfo.class, notes="Retrieve the supported validation " +
+			"types that can be requested when calling this API's validation operations.")
+	@ApiResponses({
+			@ApiResponse(code = 200, message = "Success", response = ApiInfo.class),
+			@ApiResponse(code = 500, message = "Error (If a problem occurred with processing the request)", response = String.class),
+			@ApiResponse(code = 404, message = "Not found (for an invalid domain value)", response = String.class)
+	})
+	@RequestMapping(value = "/{domain}/api/info", method = RequestMethod.GET, consumes = MediaType.ALL_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+	public ApiInfo info(
+			@ApiParam(required = true, name = "domain", value = "A fixed value corresponding to the specific validation domain.")
+			@PathVariable("domain") String domain
+	) {
+		DomainConfig domainConfig = validateDomain(domain);
+		return ApiInfo.fromDomainConfig(domainConfig);
+	}
 
 	/**
 	 * POST service to receive a single RDF instance to validate
@@ -80,7 +97,7 @@ public class ShaclController {
 			@ApiResponse(code = 500, message = "Error (If a problem occurred with processing the request)", response = String.class),
 			@ApiResponse(code = 404, message = "Not found (for an invalid domain value)", response = String.class)
 	})
-	@RequestMapping(value = "/api/{domain}/validate", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+	@RequestMapping(value = "/{domain}/api/validate", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
 	public ResponseEntity<String> validate(
 			@ApiParam(required = true, name = "domain", value = "A fixed value corresponding to the specific validation domain.")
 			@PathVariable("domain") String domain,
@@ -114,6 +131,11 @@ public class ShaclController {
 			HttpHeaders responseHeaders = new HttpHeaders();
 			responseHeaders.setContentType(MediaType.parseMediaType(reportSyntax));
 			return new ResponseEntity<>(shaclResult, responseHeaders, HttpStatus.CREATED);
+		} catch (ValidatorException | NotFoundException e) {
+			throw e;
+		} catch (Exception e) {
+			logger.error("Unexpected error occurred during processing", e);
+			throw new ValidatorException(ValidatorException.message_default);
 		} finally {
 			//Remove temporary files
 			removeContentToValidate(inputFile);
@@ -144,7 +166,7 @@ public class ShaclController {
 			@ApiResponse(code = 500, message = "Error (If a problem occurred with processing the request)", response = String.class),
 			@ApiResponse(code = 404, message = "Not found (for an invalid domain value)", response = String.class)
 	})
-    @RequestMapping(value = "/api/{domain}/validateMultiple", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @RequestMapping(value = "/{domain}/api/validateMultiple", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public Output[] validateMultiple(
 			@ApiParam(required = true, name = "domain", value = "A fixed value corresponding to the specific validation domain.")
     		@PathVariable("domain") String domain,
