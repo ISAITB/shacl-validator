@@ -31,9 +31,12 @@ public class ApiInfo {
         this.validationTypes = validationTypes;
     }
 
+    @ApiModel(description = "Information on an available validation type that can be requested.")
     public static class ValidationType {
 
+        @ApiModelProperty(notes = "The value to use when requesting the validation type.")
         private String type;
+        @ApiModelProperty(notes = "The validation type's description.")
         private String description;
 
         public String getType() {
