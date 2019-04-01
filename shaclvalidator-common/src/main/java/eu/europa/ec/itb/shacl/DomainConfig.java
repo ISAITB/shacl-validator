@@ -16,6 +16,7 @@ public class DomainConfig {
     private Map<String, String> typeLabel;
     private Set<ValidatorChannel> channels;
     private Map<String,String> shaclFile;
+    private String defaultReportSyntax;
 
     public DomainConfig() {
         this(true);
@@ -83,5 +84,13 @@ public class DomainConfig {
 
     public void setTypeLabel(Map<String, String> typeLabel) {
         this.typeLabel = typeLabel;
+    }
+
+    public String getDefaultReportSyntax() {
+        return defaultReportSyntax;
+    }
+
+    public void setDefaultReportSyntax(String defaultReportSyntax) {
+        this.defaultReportSyntax = defaultReportSyntax;
     }
 }

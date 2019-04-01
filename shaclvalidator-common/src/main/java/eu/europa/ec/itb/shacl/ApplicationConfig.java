@@ -40,6 +40,7 @@ public class ApplicationConfig {
     private Map<String, String> domainNameToDomainId = new HashMap<>();
     private String startupTimestamp;
     private String resourceUpdateTimestamp;
+    private String defaultReportSyntax;
 
     public String getTmpFolder() {
         return tmpFolder;
@@ -87,6 +88,14 @@ public class ApplicationConfig {
 
     public void setResourceUpdateTimestamp(String resourceUpdateTimestamp) {
         this.resourceUpdateTimestamp = resourceUpdateTimestamp;
+    }
+
+    public String getDefaultReportSyntax() {
+        return defaultReportSyntax;
+    }
+
+    public void setDefaultReportSyntax(String defaultReportSyntax) {
+        this.defaultReportSyntax = defaultReportSyntax;
     }
 
     public Map<String, String> getDomainIdToDomainName() {

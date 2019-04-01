@@ -82,6 +82,7 @@ public class DomainConfigCache {
                 domainConfig.setTypeLabel(parseMap("validator.typeLabel", config, domainConfig.getType()));
                 domainConfig.setChannels(Arrays.stream(StringUtils.split(config.getString("validator.channels", ValidatorChannel.REST_API.getName()), ',')).map(String::trim).map(ValidatorChannel::byName).collect(Collectors.toSet()));
                 domainConfig.setShaclFile(parseMap("validator.shaclFile", config, domainConfig.getType()));
+                domainConfig.setDefaultReportSyntax(config.getString("validator.defaultReportSyntax", appConfig.getDefaultReportSyntax()));
                 domainConfigs.put(domain, domainConfig);
                 logger.info("Loaded configuration for domain ["+domain+"]");
             }

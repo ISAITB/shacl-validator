@@ -1,5 +1,33 @@
 package eu.europa.ec.itb.shacl.rest;
 
+import eu.europa.ec.itb.shacl.ApplicationConfig;
+import eu.europa.ec.itb.shacl.DomainConfig;
+import eu.europa.ec.itb.shacl.DomainConfigCache;
+import eu.europa.ec.itb.shacl.ValidatorChannel;
+import eu.europa.ec.itb.shacl.rest.errors.NotFoundException;
+import eu.europa.ec.itb.shacl.rest.errors.ValidatorException;
+import eu.europa.ec.itb.shacl.rest.model.ApiInfo;
+import eu.europa.ec.itb.shacl.rest.model.Input;
+import eu.europa.ec.itb.shacl.rest.model.Input.RuleSet;
+import eu.europa.ec.itb.shacl.rest.model.Output;
+import eu.europa.ec.itb.shacl.validation.SHACLValidator;
+import io.swagger.annotations.*;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.jena.rdf.model.Model;
+import org.apache.jena.riot.Lang;
+import org.apache.jena.riot.RDFLanguages;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -11,40 +39,6 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.UUID;
-
-import eu.europa.ec.itb.shacl.rest.errors.NotFoundException;
-import eu.europa.ec.itb.shacl.rest.errors.ValidatorException;
-import eu.europa.ec.itb.shacl.rest.model.ApiInfo;
-import eu.europa.ec.itb.shacl.rest.model.Input;
-import eu.europa.ec.itb.shacl.rest.model.Output;
-import io.swagger.annotations.*;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
-import org.apache.jena.rdf.model.Model;
-import org.apache.jena.riot.Lang;
-import org.apache.jena.riot.RDFLanguages;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.ApplicationContext;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
-
-import eu.europa.ec.itb.shacl.ApplicationConfig;
-import eu.europa.ec.itb.shacl.DomainConfig;
-import eu.europa.ec.itb.shacl.DomainConfigCache;
-import eu.europa.ec.itb.shacl.ValidatorChannel;
-import eu.europa.ec.itb.shacl.rest.model.Input.RuleSet;
-import eu.europa.ec.itb.shacl.validation.SHACLValidator;
 
 /**
  * Simple REST controller to allow an easy way of validating files with the correspondence shapes.
@@ -58,9 +52,6 @@ public class ShaclController {
 
     private static final Logger logger = LoggerFactory.getLogger(ShaclController.class);
     
-    @Value("${validator.defaultReportSyntax:application/rdf+xml}")
-    private String defaultReportSyntax;
-
     @Autowired
     ApplicationContext ctx;
 
@@ -115,7 +106,7 @@ public class ShaclController {
 			//Execute one single validation
 			Model shaclReport = executeValidation(inputFile, in, domainConfig);
 
-			String reportSyntax = defaultReportSyntax;
+			String reportSyntax = domainConfig.getDefaultReportSyntax();
 			//ReportSyntax validation
 			if (in.getReportSyntax() != null) {
 				if (validReportSyntax(in.getReportSyntax())) {
