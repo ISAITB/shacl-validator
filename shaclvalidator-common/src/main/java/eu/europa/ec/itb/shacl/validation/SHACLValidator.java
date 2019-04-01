@@ -1,14 +1,8 @@
 package eu.europa.ec.itb.shacl.validation;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
-
+import eu.europa.ec.itb.shacl.ApplicationConfig;
+import eu.europa.ec.itb.shacl.DomainConfig;
+import eu.europa.ec.itb.shacl.util.Utils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.Resource;
@@ -25,9 +19,10 @@ import org.springframework.stereotype.Component;
 import org.topbraid.jenax.util.JenaUtil;
 import org.topbraid.shacl.validation.ValidationUtil;
 
-import eu.europa.ec.itb.shacl.ApplicationConfig;
-import eu.europa.ec.itb.shacl.DomainConfig;
-import eu.europa.ec.itb.shacl.util.Utils;
+import java.io.*;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 
@@ -85,7 +80,6 @@ public class SHACLValidator implements ApplicationContextAware {
      */
     public Model validateAgainstSHACL() throws FileNotFoundException {
         File shaclFile = getSHACLFile();
-        List<Model> shaclReports = new ArrayList<Model>();
         List<File> shaclFiles = new ArrayList<>();
         if (shaclFile != null && shaclFile.exists()) {
             if (shaclFile.isFile()) {
@@ -109,28 +103,24 @@ public class SHACLValidator implements ApplicationContextAware {
         } else {
             for (File aSHACLFile: shaclFiles) {
                 logger.info("Validating against ["+aSHACLFile.getName()+"]");
-                Model shaclReport = validateSHACL(Utils.getInputStreamForValidation(inputToValidate), aSHACLFile);                
-                shaclReports.add(shaclReport);
-                logger.info("Validated against ["+aSHACLFile.getName()+"]");
             }
-            Model report = SHACLValidationReport.mergeShaclReport(shaclReports);
-            
-            return report;
+            Model shaclReport = validateSHACL(Utils.getInputStreamForValidation(inputToValidate), shaclFiles);
+            return shaclReport;
         }
     }
     
     /**
      * Validate the RDF against one shape file
      * @param inputSource File to validate as InputStream
-     * @param shaclFile SHACL file
+     * @param shaclFiles The SHACL files
      * @return Model The Jena Model with the report
      */
-    private Model validateSHACL(InputStream inputSource, File shaclFile){
+    private Model validateSHACL(InputStream inputSource, List<File> shaclFiles){
     	Model reportModel = null;
     	
     	try {
 			// Get data to validate from file
-	        Model shaclModel = getDataModel(shaclFile, null);
+            Model shaclModel = getShapesModel(shaclFiles);
 	        Model dataModel = getDataModel(inputFileToValidate, shaclModel);
 	        
 			// Perform the validation of data, using the shapes model. Do not validate any shapes inside the data model.
@@ -145,8 +135,25 @@ public class SHACLValidator implements ApplicationContextAware {
     	
     	return reportModel;
     }
-    
-    private File getSHACLFile() {  	
+
+    private Model getShapesModel(List<File> shaclFiles) throws FileNotFoundException {
+        Model aggregateModel = JenaUtil.createMemoryModel();
+        for (File shaclFile: shaclFiles) {
+            Lang lang = RDFLanguages.contentTypeToLang(RDFLanguages.guessContentType(shaclFile.getName()));
+            try (InputStream dataStream = new FileInputStream(shaclFile)) {
+                Model fileModel = JenaUtil.createMemoryModel();
+                fileModel.read(dataStream, null, lang.getName());
+                aggregateModel.add(fileModel);
+            } catch (IOException e) {
+                logger.error("Error while reading SHACL file.", e);
+                throw new IllegalStateException("Error while reading SHACL file.");
+           }
+        }
+        return aggregateModel;
+    }
+
+
+    private File getSHACLFile() {
         return Paths.get(config.getResourceRoot(), domainConfig.getDomain(), domainConfig.getShaclFile().get(validationType)).toFile();
     }
     
@@ -155,45 +162,37 @@ public class SHACLValidator implements ApplicationContextAware {
      * @param dataFile File with RDF data
      * @param shapesModel The Jena model containing the shacl defintion (needed to set the proper prefixes on the input data)
      * @return Model Jena Model containing the data from dataFile
-     * @throws FileNotFoundException
      */
-    private Model getDataModel(File dataFile, Model shapesModel) throws FileNotFoundException {    	
-    	String extension = FilenameUtils.getExtension(dataFile.getName());
-    	Lang lang = null;
-		InputStream dataStream = new FileInputStream(dataFile);
-            	
-		// Upload the data in the Model. First set the prefixes of the model to those of the shapes model to avoid mismatches.
-		Model dataModel = JenaUtil.createMemoryModel();
-		
-		if(shapesModel!=null) {
-			dataModel.setNsPrefixes(shapesModel.getNsPrefixMap());
-		}
-		
-		if(shapesModel!=null && this.contentSyntax!=null) {
-			lang = RDFLanguages.contentTypeToLang(this.contentSyntax);
-			if(lang==null) RDFLanguages.fileExtToLang(extension);
-		}else {
-			lang = RDFLanguages.fileExtToLang(extension);
-		}
-		if(lang==null) {
-			try {
-				dataStream.close();
-			} catch (IOException e) {
-				logger.error("Error when closing InputStream: ", e);
-				throw new IllegalStateException("Error when closing InputStream.");
-			}
-			logger.error("RDF Language does not exist.");
-			throw new IllegalStateException("RDF Language does not exist.");
-		}
-		dataModel.read(dataStream, null, lang.getName());
-
-		try {
-			dataStream.close();
-		} catch (IOException e) {
-			logger.error("Error when closing InputStream: ", e);
-			throw new IllegalStateException("Error when closing InputStream.");
-		}
-		
+    private Model getDataModel(File dataFile, Model shapesModel) {
+        // Upload the data in the Model. First set the prefixes of the model to those of the shapes model to avoid mismatches.
+        Model dataModel = JenaUtil.createMemoryModel();
+        if (shapesModel != null) {
+            dataModel.setNsPrefixes(shapesModel.getNsPrefixMap());
+        }
+        // Determine language.
+        Lang lang = null;
+        if (this.contentSyntax != null) {
+            lang = RDFLanguages.contentTypeToLang(this.contentSyntax);
+            if (lang != null) {
+                logger.info("Using provided data content type ["+this.contentSyntax+"] as ["+lang.getName()+"]");
+            }
+        }
+        if (lang == null) {
+            lang = RDFLanguages.contentTypeToLang(RDFLanguages.guessContentType(dataFile.getName()));
+            if (lang != null) {
+                logger.info("Guessed lang ["+lang.getName()+"] from file ["+dataFile.getName()+"]");
+            }
+        }
+        if (lang == null) {
+            logger.error("RDF Language could not be determined for data.");
+            throw new IllegalStateException("RDF Language could not be determined for data.");
+        }
+        try (InputStream dataStream = new FileInputStream(dataFile)) {
+            dataModel.read(dataStream, null, lang.getName());
+        } catch (IOException e) {
+            logger.error("Error while reading data.", e);
+            throw new IllegalStateException("Error while reading data.");
+        }
 		return dataModel;
 	}
 
