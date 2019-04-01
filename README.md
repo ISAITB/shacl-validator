@@ -105,7 +105,7 @@ defined.
 | `logging.path` | Logging path. | String | `/validator/logs` |
 | `validator.tmpFolder` | Temp folder path. | String | `/validator/tmp` |
 | `validator.acceptedSHACLExtensions` | Accepted SHACL extensions.  | Comma-separated Strings | `ttl,rdf` |
-| `validator.defaultReportSyntax ` | The default report syntax (mime type) if none is requested. | `application/application/rdf+xml`
+| `validator.defaultReportSyntax ` | The default report syntax (mime type) if none is requested. | `application/rdf+xml`
 
 ## Domain-level configuration
 
@@ -119,5 +119,5 @@ The properties here define how a specific validation domain is configured. They 
 | `validator.typeLabel.XYZ` | Label to display for a given validator type (added as a postfix of validator.typeLabel). | String | - |
 | `validator.includeTestDefinition` | Whether tests should be included in the resulting reports. | Boolean | `true` |
 | `validator.reportsOrdered` | Whether the reports are ordered. | Boolean | `false` |
-| `validator.defaultReportSyntax ` | The default report syntax (mime type) if none is requested (otherwise the global default applies) | `application/application/rdf+xml`
+| `validator.defaultReportSyntax ` | The default report syntax (mime type) if none is requested (otherwise the global default applies) | `application/rdf+xml`
 
