@@ -58,7 +58,7 @@ public class ShaclController {
 
     private static final Logger logger = LoggerFactory.getLogger(ShaclController.class);
     
-    @Value("${validator.defaultReportSyntax}:application/rdf+xml")
+    @Value("${validator.defaultReportSyntax:application/rdf+xml}")
     private String defaultReportSyntax;
 
     @Autowired
