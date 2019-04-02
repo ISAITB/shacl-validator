@@ -11,6 +11,7 @@ import eu.europa.ec.itb.shacl.rest.model.Input;
 import eu.europa.ec.itb.shacl.rest.model.Input.RuleSet;
 import eu.europa.ec.itb.shacl.rest.model.Output;
 import eu.europa.ec.itb.shacl.validation.SHACLValidator;
+import eu.europa.ec.itb.shacl.ws.BomStrippingReader;
 import io.swagger.annotations.*;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -28,15 +29,18 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 
@@ -235,6 +239,24 @@ public class ShaclController {
     }
     
     /**
+     * Get the content from URL or BASE64
+     * @param convert URL or BASE64 as String
+     * @param convertSyntax Parameter convertSyntax
+     * @return File
+     */
+    private File getContentFile(String convert, String convertSyntax) {
+    	File outputFile = null;
+    	
+    	try {
+    		outputFile = getURLFile(convert);
+    	}catch(Exception e) {
+    		outputFile = getBase64File(convert, convertSyntax);
+    	}
+    	
+    	return outputFile;
+    }
+    
+    /**
      * From a URL, it gets the File
      * @param URLConvert URL as String
      * @return File
@@ -248,8 +270,7 @@ public class ShaclController {
 				extension = "." + extension;
 			}
 			
-			Path tmpPath = Paths.get(config.getTmpFolder(), UUID.randomUUID().toString() + extension);
-			tmpPath.toFile().getParentFile().mkdirs();
+			Path tmpPath = getTmpPath(extension);
 			
 			try(InputStream in = new URL(URLConvert).openStream()){
 				Files.copy(in, tmpPath, StandardCopyOption.REPLACE_EXISTING);
@@ -261,6 +282,53 @@ public class ShaclController {
 			throw new ValidatorException(ValidatorException.message_contentToValidate);
 		}
     }
+    
+    /**
+     * From Base64 string to File
+     * @param base64Convert Base64 as String
+     * @return File
+     */
+    private File getBase64File(String base64Convert, String contentSyntax) {
+		Path tmpPath = getTmpPath("");
+		
+    	try {
+            // Construct the string from its BASE64 encoded bytes.
+            char[] buffer = new char[1024];
+            int numCharsRead;
+            StringBuilder sb = new StringBuilder();
+        	byte[] decodedBytes = Base64.getDecoder().decode(base64Convert);
+        	
+            try (BomStrippingReader reader = new BomStrippingReader(new ByteArrayInputStream(decodedBytes))) {
+                while ((numCharsRead = reader.read(buffer, 0, buffer.length)) != -1) {
+                    sb.append(buffer, 0, numCharsRead);
+                }
+            }
+            String stringContent = sb.toString();
+			FileUtils.writeStringToFile(tmpPath.toFile(), stringContent, Charset.defaultCharset());
+
+		    if(contentSyntax == null) {
+			    logger.error(ValidatorException.message_parameters, contentSyntax);    			    
+				throw new ValidatorException(ValidatorException.message_parameters);
+		    }
+		} catch (IOException e) {
+			logger.error("Error when transforming the Base64 into File.", e);
+			throw new ValidatorException(ValidatorException.message_contentToValidate);
+		}
+    	
+    	return tmpPath.toFile();
+    }
+    
+    /**
+     * Get a temporary path and create the directory
+     * @param extension Extension of the file (optional)
+     * @return Path
+     */
+    private Path getTmpPath(String extension) {
+		Path tmpPath = Paths.get(config.getTmpFolder(), UUID.randomUUID().toString() + extension);
+		tmpPath.toFile().getParentFile().mkdirs();
+		
+		return tmpPath;
+    }
 
     /**
      * Validates that the JSON send via parameters has all necessary data.
@@ -269,9 +337,9 @@ public class ShaclController {
      */
     private File getContentToValidate(Input input) {
     	String embeddingMethod = input.getEmbeddingMethod();
-    	String contentSyntax = input.getContentSyntax();
     	String contentToValidate = input.getContentToValidate();
     	List<RuleSet> externalRules = input.getExternalRules();
+    	String contentSyntax = input.getContentSyntax();
     	
     	File contentFile = null;
     	
@@ -282,14 +350,14 @@ public class ShaclController {
     				contentFile = getURLFile(contentToValidate);
     				break;
     			case Input.embedding_BASE64:
-    			    logger.error("Feature not supported: ", embeddingMethod);
-    				throw new ValidatorException(ValidatorException.message_support);
+    			    contentFile = getBase64File(contentToValidate, contentSyntax);
+    			    break;
     			default:
     			    logger.error(ValidatorException.message_parameters, embeddingMethod);    			    
     				throw new ValidatorException(ValidatorException.message_parameters);
     		}
     	}else {
-			contentFile = getURLFile(contentToValidate);
+			contentFile = getContentFile(contentToValidate, contentSyntax);
     	}
     	
     	//ExternalRules validation
