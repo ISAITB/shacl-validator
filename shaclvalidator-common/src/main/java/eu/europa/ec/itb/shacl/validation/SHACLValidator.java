@@ -2,7 +2,6 @@ package eu.europa.ec.itb.shacl.validation;
 
 import eu.europa.ec.itb.shacl.ApplicationConfig;
 import eu.europa.ec.itb.shacl.DomainConfig;
-import eu.europa.ec.itb.shacl.util.Utils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.Resource;
@@ -104,18 +103,17 @@ public class SHACLValidator implements ApplicationContextAware {
             for (File aSHACLFile: shaclFiles) {
                 logger.info("Validating against ["+aSHACLFile.getName()+"]");
             }
-            Model shaclReport = validateSHACL(Utils.getInputStreamForValidation(inputToValidate), shaclFiles);
+            Model shaclReport = validateSHACL(shaclFiles);
             return shaclReport;
         }
     }
     
     /**
      * Validate the RDF against one shape file
-     * @param inputSource File to validate as InputStream
      * @param shaclFiles The SHACL files
      * @return Model The Jena Model with the report
      */
-    private Model validateSHACL(InputStream inputSource, List<File> shaclFiles){
+    private Model validateSHACL(List<File> shaclFiles){
     	Model reportModel = null;
     	
     	try {

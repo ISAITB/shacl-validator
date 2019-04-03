@@ -11,7 +11,6 @@ import eu.europa.ec.itb.shacl.rest.model.Input;
 import eu.europa.ec.itb.shacl.rest.model.Input.RuleSet;
 import eu.europa.ec.itb.shacl.rest.model.Output;
 import eu.europa.ec.itb.shacl.validation.SHACLValidator;
-import eu.europa.ec.itb.shacl.ws.BomStrippingReader;
 import io.swagger.annotations.*;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -29,13 +28,11 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
 import java.net.URL;
-import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -250,6 +247,7 @@ public class ShaclController {
     	try {
     		outputFile = getURLFile(convert);
     	}catch(Exception e) {
+    		logger.info("Content is not a URL, treating as BASE64.");
     		outputFile = getBase64File(convert, convertSyntax);
     	}
     	
@@ -289,27 +287,16 @@ public class ShaclController {
      * @return File
      */
     private File getBase64File(String base64Convert, String contentSyntax) {
+		if (contentSyntax == null) {
+			logger.error(ValidatorException.message_parameters, "");
+			throw new ValidatorException(ValidatorException.message_parameters);
+		}
+
 		Path tmpPath = getTmpPath("");
-		
     	try {
             // Construct the string from its BASE64 encoded bytes.
-            char[] buffer = new char[1024];
-            int numCharsRead;
-            StringBuilder sb = new StringBuilder();
         	byte[] decodedBytes = Base64.getDecoder().decode(base64Convert);
-        	
-            try (BomStrippingReader reader = new BomStrippingReader(new ByteArrayInputStream(decodedBytes))) {
-                while ((numCharsRead = reader.read(buffer, 0, buffer.length)) != -1) {
-                    sb.append(buffer, 0, numCharsRead);
-                }
-            }
-            String stringContent = sb.toString();
-			FileUtils.writeStringToFile(tmpPath.toFile(), stringContent, Charset.defaultCharset());
-
-		    if(contentSyntax == null) {
-			    logger.error(ValidatorException.message_parameters, contentSyntax);    			    
-				throw new ValidatorException(ValidatorException.message_parameters);
-		    }
+			FileUtils.writeByteArrayToFile(tmpPath.toFile(), decodedBytes);
 		} catch (IOException e) {
 			logger.error("Error when transforming the Base64 into File.", e);
 			throw new ValidatorException(ValidatorException.message_contentToValidate);
