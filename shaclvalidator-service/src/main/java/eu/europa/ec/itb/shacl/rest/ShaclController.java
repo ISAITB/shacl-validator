@@ -1,19 +1,13 @@
 package eu.europa.ec.itb.shacl.rest;
 
-import eu.europa.ec.itb.shacl.ApplicationConfig;
-import eu.europa.ec.itb.shacl.DomainConfig;
-import eu.europa.ec.itb.shacl.DomainConfigCache;
-import eu.europa.ec.itb.shacl.ValidatorChannel;
-import eu.europa.ec.itb.shacl.rest.errors.NotFoundException;
-import eu.europa.ec.itb.shacl.rest.errors.ValidatorException;
-import eu.europa.ec.itb.shacl.rest.model.ApiInfo;
-import eu.europa.ec.itb.shacl.rest.model.Input;
-import eu.europa.ec.itb.shacl.rest.model.Input.RuleSet;
-import eu.europa.ec.itb.shacl.rest.model.Output;
-import eu.europa.ec.itb.shacl.validation.SHACLValidator;
-import io.swagger.annotations.*;
+import java.io.File;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.nio.file.Path;
+import java.util.Base64;
+import java.util.List;
+
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFLanguages;
@@ -26,20 +20,29 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.StringWriter;
-import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.util.Base64;
-import java.util.List;
-import java.util.UUID;
+import eu.europa.ec.itb.shacl.ApplicationConfig;
+import eu.europa.ec.itb.shacl.DomainConfig;
+import eu.europa.ec.itb.shacl.DomainConfigCache;
+import eu.europa.ec.itb.shacl.ValidatorChannel;
+import eu.europa.ec.itb.shacl.rest.errors.NotFoundException;
+import eu.europa.ec.itb.shacl.rest.errors.ValidatorException;
+import eu.europa.ec.itb.shacl.rest.model.ApiInfo;
+import eu.europa.ec.itb.shacl.rest.model.Input;
+import eu.europa.ec.itb.shacl.rest.model.Input.RuleSet;
+import eu.europa.ec.itb.shacl.rest.model.Output;
+import eu.europa.ec.itb.shacl.validation.FileManager;
+import eu.europa.ec.itb.shacl.validation.SHACLValidator;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
 
 /**
  * Simple REST controller to allow an easy way of validating files with the correspondence shapes.
@@ -130,7 +133,7 @@ public class ShaclController {
 			throw new ValidatorException(ValidatorException.message_default);
 		} finally {
 			//Remove temporary files
-			removeContentToValidate(inputFile);
+			FileManager.removeContentToValidate(inputFile);
 		}
 	}
 
@@ -227,15 +230,6 @@ public class ShaclController {
     }
     
     /**
-     * Remove the validated file
-     */
-    private void removeContentToValidate(File inputFile) {
-    	if (inputFile != null && inputFile.exists() && inputFile.isFile()) {
-            FileUtils.deleteQuietly(inputFile);
-        }
-    }
-    
-    /**
      * Get the content from URL or BASE64
      * @param convert URL or BASE64 as String
      * @param convertSyntax Parameter convertSyntax
@@ -245,40 +239,13 @@ public class ShaclController {
     	File outputFile = null;
     	
     	try {
-    		outputFile = getURLFile(convert);
+    		outputFile = FileManager.getURLFile(convert, config.getTmpFolder());
     	}catch(Exception e) {
     		logger.info("Content is not a URL, treating as BASE64.");
     		outputFile = getBase64File(convert, convertSyntax);
     	}
     	
     	return outputFile;
-    }
-    
-    /**
-     * From a URL, it gets the File
-     * @param URLConvert URL as String
-     * @return File
-     */
-    private File getURLFile(String URLConvert) {
-		try {			
-			URL url = new URL(URLConvert);
-			String extension = FilenameUtils.getExtension(url.getFile());
-			
-			if(extension!=null) {				
-				extension = "." + extension;
-			}
-			
-			Path tmpPath = getTmpPath(extension);
-			
-			try(InputStream in = new URL(URLConvert).openStream()){
-				Files.copy(in, tmpPath, StandardCopyOption.REPLACE_EXISTING);
-			}
-			
-			return tmpPath.toFile();
-		} catch (IOException e) {
-			logger.error("Error when transforming the URL into File: " + URLConvert, e);
-			throw new ValidatorException(ValidatorException.message_contentToValidate);
-		}
     }
     
     /**
@@ -292,7 +259,7 @@ public class ShaclController {
 			throw new ValidatorException(ValidatorException.message_parameters);
 		}
 
-		Path tmpPath = getTmpPath("");
+		Path tmpPath = FileManager.getTmpPath("", config.getTmpFolder());
     	try {
             // Construct the string from its BASE64 encoded bytes.
         	byte[] decodedBytes = Base64.getDecoder().decode(base64Convert);
@@ -303,18 +270,6 @@ public class ShaclController {
 		}
     	
     	return tmpPath.toFile();
-    }
-    
-    /**
-     * Get a temporary path and create the directory
-     * @param extension Extension of the file (optional)
-     * @return Path
-     */
-    private Path getTmpPath(String extension) {
-		Path tmpPath = Paths.get(config.getTmpFolder(), UUID.randomUUID().toString() + extension);
-		tmpPath.toFile().getParentFile().mkdirs();
-		
-		return tmpPath;
     }
 
     /**
@@ -334,7 +289,12 @@ public class ShaclController {
     	if(embeddingMethod!=null) {
     		switch(embeddingMethod) {
     			case Input.embedding_URL:
-    				contentFile = getURLFile(contentToValidate);
+    				try{
+    					contentFile = FileManager.getURLFile(contentToValidate, contentSyntax);
+    				}catch(IOException e) {
+						logger.error("Error when transforming the URL into File.", e);
+						throw new ValidatorException(ValidatorException.message_contentToValidate);
+					}
     				break;
     			case Input.embedding_BASE64:
     			    contentFile = getBase64File(contentToValidate, contentSyntax);

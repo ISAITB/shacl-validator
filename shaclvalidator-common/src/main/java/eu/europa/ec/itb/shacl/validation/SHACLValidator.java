@@ -2,7 +2,8 @@ package eu.europa.ec.itb.shacl.validation;
 
 import eu.europa.ec.itb.shacl.ApplicationConfig;
 import eu.europa.ec.itb.shacl.DomainConfig;
-import org.apache.commons.io.FilenameUtils;
+import eu.europa.ec.itb.shacl.DomainConfig.RemoteInfo;
+
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.riot.Lang;
@@ -20,8 +21,10 @@ import org.topbraid.shacl.validation.ValidationUtil;
 
 import java.io.*;
 import java.nio.file.Paths;
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * 
@@ -78,34 +81,103 @@ public class SHACLValidator implements ApplicationContextAware {
      * @throws FileNotFoundException
      */
     public Model validateAgainstSHACL() throws FileNotFoundException {
-        File shaclFile = getSHACLFile();
-        List<File> shaclFiles = new ArrayList<>();
-        if (shaclFile != null && shaclFile.exists()) {
+        File shaclFile = getSHACLFile();	//Internal file
+        Map<File, String> shaclFiles = new HashMap<File, String>();
+        
+        shaclFiles.putAll(getFilesContent(shaclFile));
+        shaclFiles.putAll(getRemoteSHACLFiles());
+        
+        if (shaclFiles.isEmpty()) {
+            logger.info("No SHACL to validate against ["+shaclFile+"]");
+            throw new FileNotFoundException();
+        } else {
+            Model shaclReport = validateSHACL(shaclFiles);
+            return shaclReport;
+        }
+    }
+    
+    /**
+     * Remove all SHACL files that has been created in the temporary folder.
+     * @param Map<File, String> HashMap of all SHACL files.
+     */
+    private void removeSHACLFiles(Map<File, String> shaclFiles) {
+    	Set<File> files = shaclFiles.keySet();
+    	String tmpFolder = config.getTmpFolder();
+    	
+    	for(File file: files) {
+    		if(file.getAbsolutePath().contains(tmpFolder)) {
+    			FileManager.removeContentToValidate(file);
+    		}
+    	}
+    }
+    
+    /**
+     * Returns the list of files (if it is a directory) or the file and the corresponding content type.
+     * @param File File or directory of the SHACL files
+     * @return Map<File, String> with all files and content types
+     */
+    private Map<File, String> getFilesContent(File shaclFile){
+        Map<File, String> shaclFiles = new HashMap<File, String>();
+        
+    	if (shaclFile != null && shaclFile.exists()) {
             if (shaclFile.isFile()) {
                 // We are pointing to a single master SHACL file.
-            	shaclFiles.add(shaclFile);
+            	shaclFiles.put(shaclFile, getContentLang(shaclFile));
             } else {
                 // All SHACL are processed.
                 File[] files = shaclFile.listFiles();
                 if (files != null) {
                     for (File aSHACLFile: files) {
-                        if (aSHACLFile.isFile() && config.getAcceptedSHACLExtensions().contains(FilenameUtils.getExtension(aSHACLFile.getName().toLowerCase()))) {
-                        	shaclFiles.add(aSHACLFile);
+                        if (aSHACLFile.isFile()) {
+                        	shaclFiles.put(aSHACLFile, getContentLang(aSHACLFile));
                         }
                     }
                 }
             }
         }
-        if (shaclFiles.isEmpty()) {
-            logger.info("No SHACL to validate against ["+shaclFile+"]");
-            throw new FileNotFoundException();
-        } else {
-            for (File aSHACLFile: shaclFiles) {
-                logger.info("Validating against ["+aSHACLFile.getName()+"]");
-            }
-            Model shaclReport = validateSHACL(shaclFiles);
-            return shaclReport;
-        }
+    	
+    	return shaclFiles;
+    }
+
+    /**
+     * Return the SHACL files loaded for a given validation type
+     * @return File
+     */
+    private File getSHACLFile() {
+    	String localFolder = domainConfig.getShaclFile().get(validationType).getLocalFolder();
+    	File f = null;
+    	
+    	if(!localFolder.equals(null) && !localFolder.equals("")) {
+            f = Paths.get(config.getResourceRoot(), domainConfig.getDomain(), domainConfig.getShaclFile().get(validationType).getLocalFolder()).toFile();    		
+    	}
+    	
+    	return f;
+    }
+    
+    /**
+     * Return the remote SHACL files loaded for a given validation type
+     * @return Map<File, String>
+     */
+    private Map<File, String> getRemoteSHACLFiles() {
+        Map<File, String> shaclFiles = new HashMap<File, String>();
+    	List<RemoteInfo> ri = domainConfig.getShaclFile().get(validationType).getRemote();
+    	
+		try {
+			for(RemoteInfo info: ri) {
+				File infoFile = FileManager.getURLFile(info.getUrl(), config.getTmpFolder());
+				String contentType = info.getType();
+				
+				if(RDFLanguages.contentTypeToLang(contentType) != null) {
+					shaclFiles.put(infoFile, info.getType());
+				}else {
+					shaclFiles.put(infoFile, getContentLang(infoFile));
+				}
+    		}
+		} catch (IOException e) {
+    		logger.error("Error to load the remote SHACL file: " + e.getMessage());
+		}
+		
+		return shaclFiles;
     }
     
     /**
@@ -113,7 +185,7 @@ public class SHACLValidator implements ApplicationContextAware {
      * @param shaclFiles The SHACL files
      * @return Model The Jena Model with the report
      */
-    private Model validateSHACL(List<File> shaclFiles){
+    private Model validateSHACL(Map<File, String> shaclFiles){
     	Model reportModel = null;
     	
     	try {
@@ -125,7 +197,8 @@ public class SHACLValidator implements ApplicationContextAware {
 			Resource resource = ValidationUtil.validateModel(dataModel, shaclModel, false);		
 			reportModel = resource.getModel();
 			reportModel.setNsPrefix("sh", "http://www.w3.org/ns/shacl#");
-			
+
+            removeSHACLFiles(shaclFiles);
     	}catch(Exception e){
     		logger.error("Error during the SHACL validation. " + e.getMessage());
             throw new IllegalStateException(e);
@@ -133,14 +206,37 @@ public class SHACLValidator implements ApplicationContextAware {
     	
     	return reportModel;
     }
+    
+    /**
+     * Return the content type as Lang of the File
+     * @param File
+     * @return String content type as String
+     */
+    private String getContentLang(File file) {
+    	String contentLang = this.contentSyntax;
+    	if(contentLang.equals(null) || contentLang.equals("")) {
+    		contentLang = RDFLanguages.contentTypeToLang(RDFLanguages.guessContentType(file.getName())).getName();    	
+    	}
+    	
+    	return contentLang;
+    }
 
-    private Model getShapesModel(List<File> shaclFiles) throws FileNotFoundException {
+    /**
+     * Return the aggregated model of a list of files
+     * @param Map<File, String> SHACL files
+     * @return Model aggregated model
+     * @throws FileNotFoundException
+     */
+    private Model getShapesModel(Map<File, String> shaclFiles) throws FileNotFoundException {
         Model aggregateModel = JenaUtil.createMemoryModel();
-        for (File shaclFile: shaclFiles) {
-            Lang lang = RDFLanguages.contentTypeToLang(RDFLanguages.guessContentType(shaclFile.getName()));
+        Set<File> listFiles = shaclFiles.keySet();
+        
+        for (File shaclFile: listFiles) {
+            logger.info("Validating against ["+shaclFile.getName()+"]");
+            
             try (InputStream dataStream = new FileInputStream(shaclFile)) {
                 Model fileModel = JenaUtil.createMemoryModel();
-                fileModel.read(dataStream, null, lang.getName());
+                fileModel.read(dataStream, null, shaclFiles.get(shaclFile));
                 aggregateModel.add(fileModel);
             } catch (IOException e) {
                 logger.error("Error while reading SHACL file.", e);
@@ -148,11 +244,6 @@ public class SHACLValidator implements ApplicationContextAware {
            }
         }
         return aggregateModel;
-    }
-
-
-    private File getSHACLFile() {
-        return Paths.get(config.getResourceRoot(), domainConfig.getDomain(), domainConfig.getShaclFile().get(validationType)).toFile();
     }
     
     /**
