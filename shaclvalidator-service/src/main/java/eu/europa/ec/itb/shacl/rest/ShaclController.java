@@ -122,7 +122,7 @@ public class ShaclController {
 			shaclResult = getShaclReport(shaclReport, reportSyntax);
 			HttpHeaders responseHeaders = new HttpHeaders();
 			responseHeaders.setContentType(MediaType.parseMediaType(reportSyntax));
-			return new ResponseEntity<>(shaclResult, responseHeaders, HttpStatus.CREATED);
+			return new ResponseEntity<>(shaclResult, responseHeaders, HttpStatus.OK);
 		} catch (ValidatorException | NotFoundException e) {
 			throw e;
 		} catch (Exception e) {
