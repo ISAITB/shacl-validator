@@ -98,6 +98,14 @@ public class FileManager {
     	return new File(config.getTmpFolder());
 	}
 
+	public File getHydraDocsRootFolder() {
+		return new File(config.getTmpFolder(), "hydra");
+	}
+
+	public File getHydraDocsFolder(String domainName) {
+		return new File(getHydraDocsRootFolder(), domainName);
+	}
+
     private File getRemoteFileCacheFolder() {
     	return new File(getTempFolder(), "remote_config");
 	}
