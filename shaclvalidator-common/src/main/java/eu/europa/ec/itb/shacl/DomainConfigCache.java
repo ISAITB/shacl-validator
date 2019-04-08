@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import eu.europa.ec.itb.shacl.DomainConfig.Remote;
+import eu.europa.ec.itb.shacl.DomainConfig.ShaclFileInfo;
 import eu.europa.ec.itb.shacl.DomainConfig.RemoteInfo;
 
 import javax.annotation.PostConstruct;
@@ -93,22 +93,22 @@ public class DomainConfigCache {
         return domainConfig;
     }
     
-    private Map<String, Remote> parseShaclMap(String key, CompositeConfiguration config, List<String> types){
-        Map<String, Remote> map = new HashMap<>();
+    private Map<String, ShaclFileInfo> parseShaclMap(String key, CompositeConfiguration config, List<String> types){
+        Map<String, DomainConfig.ShaclFileInfo> map = new HashMap<>();
         for (String type: types) {
-            Remote remote = new Remote();
-            List<RemoteInfo> remoteInfo = new ArrayList<RemoteInfo>();
-            List<String> processedRemote = new ArrayList<String>();
+            DomainConfig.ShaclFileInfo shaclFileInfo = new ShaclFileInfo();
+            List<RemoteInfo> remoteInfo = new ArrayList<>();
+            Set<String> processedRemote = new HashSet<>();
             
             String internalShaclFile = config.getString(key+"."+type, null);            
-            remote.setLocalFolder(internalShaclFile);
+            shaclFileInfo.setLocalFolder(internalShaclFile);
             
-            Iterator<String> it = config.getKeys("validator.shaclFile." + type + ".remote");            
+            Iterator<String> it = config.getKeys("validator.shaclFile." + type + ".remote");
             while(it.hasNext()) {
             	String remoteKeys = it.next(); 
             	String remoteInt = remoteKeys.replaceAll("(validator.shaclFile." + type + ".remote.)([0-9]{1,})(.[a-zA-Z]*)", "$2");
 
-            	if(!processedRemote.contains(remoteInt) && config.getKeys("validator.shaclFile." + type + ".remote."+remoteInt).hasNext()) {
+            	if(!processedRemote.contains(remoteInt)) {
                     RemoteInfo ri = new RemoteInfo();
                 	ri.setType(config.getString("validator.shaclFile." + type + ".remote."+remoteInt+".type"));
                 	ri.setUrl(config.getString("validator.shaclFile." + type + ".remote."+remoteInt+".url"));
@@ -118,8 +118,8 @@ public class DomainConfigCache {
             	}
             }
             
-            remote.setRemote(remoteInfo);
-            map.put(type, remote);
+            shaclFileInfo.setRemote(remoteInfo);
+            map.put(type, shaclFileInfo);
         }
     	
     	return map;

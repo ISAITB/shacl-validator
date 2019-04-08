@@ -30,9 +30,9 @@ public class SwaggerConfig {
     private String restApiTitle;
     @Value("${validator.docs.description}")
     private String restApiDescription;
-    @Value("${validator.docs.host:null}")
+    @Value("${validator.docs.host:\"localhost:8080\"}")
     private String restApiHost;
-    @Value("${validator.docs.schemes:null}")
+    @Value("${validator.docs.schemes:http}")
     private Set<String> schemes;
 
     @Bean

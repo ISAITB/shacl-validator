@@ -62,6 +62,9 @@ public class ShaclController {
     @Autowired
     ApplicationConfig config;
 
+    @Autowired
+	FileManager fileManager;
+
 	@ApiOperation(value = "Get API information.", response = ApiInfo.class, notes="Retrieve the supported validation " +
 			"types that can be requested when calling this API's validation operations.")
 	@ApiResponses({
@@ -133,7 +136,7 @@ public class ShaclController {
 			throw new ValidatorException(ValidatorException.message_default);
 		} finally {
 			//Remove temporary files
-			FileManager.removeContentToValidate(inputFile);
+			fileManager.removeContentToValidate(inputFile);
 		}
 	}
 
@@ -239,7 +242,7 @@ public class ShaclController {
     	File outputFile = null;
     	
     	try {
-    		outputFile = FileManager.getURLFile(convert, config.getTmpFolder());
+    		outputFile = fileManager.getURLFile(convert);
     	}catch(Exception e) {
     		logger.info("Content is not a URL, treating as BASE64.");
     		outputFile = getBase64File(convert, convertSyntax);
@@ -259,7 +262,7 @@ public class ShaclController {
 			throw new ValidatorException(ValidatorException.message_parameters);
 		}
 
-		Path tmpPath = FileManager.getTmpPath("", config.getTmpFolder());
+		Path tmpPath = fileManager.getTmpPath("");
     	try {
             // Construct the string from its BASE64 encoded bytes.
         	byte[] decodedBytes = Base64.getDecoder().decode(base64Convert);
@@ -290,7 +293,7 @@ public class ShaclController {
     		switch(embeddingMethod) {
     			case Input.embedding_URL:
     				try{
-    					contentFile = FileManager.getURLFile(contentToValidate, contentSyntax);
+    					contentFile = fileManager.getURLFile(contentToValidate);
     				}catch(IOException e) {
 						logger.error("Error when transforming the URL into File.", e);
 						throw new ValidatorException(ValidatorException.message_contentToValidate);
