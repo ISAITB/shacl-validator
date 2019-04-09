@@ -1,31 +1,5 @@
 package eu.europa.ec.itb.shacl.rest;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.StringWriter;
-import java.nio.file.Path;
-import java.util.Base64;
-import java.util.List;
-
-import org.apache.commons.io.FileUtils;
-import org.apache.jena.rdf.model.Model;
-import org.apache.jena.riot.Lang;
-import org.apache.jena.riot.RDFLanguages;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
-
 import eu.europa.ec.itb.shacl.ApplicationConfig;
 import eu.europa.ec.itb.shacl.DomainConfig;
 import eu.europa.ec.itb.shacl.DomainConfigCache;
@@ -34,15 +8,34 @@ import eu.europa.ec.itb.shacl.rest.errors.NotFoundException;
 import eu.europa.ec.itb.shacl.rest.errors.ValidatorException;
 import eu.europa.ec.itb.shacl.rest.model.ApiInfo;
 import eu.europa.ec.itb.shacl.rest.model.Input;
-import eu.europa.ec.itb.shacl.rest.model.Input.RuleSet;
 import eu.europa.ec.itb.shacl.rest.model.Output;
+import eu.europa.ec.itb.shacl.rest.model.RuleSet;
 import eu.europa.ec.itb.shacl.validation.FileManager;
 import eu.europa.ec.itb.shacl.validation.SHACLValidator;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
+import io.swagger.annotations.*;
+import org.apache.commons.io.FileUtils;
+import org.apache.jena.rdf.model.Model;
+import org.apache.jena.riot.Lang;
+import org.apache.jena.riot.RDFLanguages;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationContext;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import javax.servlet.http.HttpServletRequest;
+import java.io.File;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.util.*;
 
 /**
  * Simple REST controller to allow an easy way of validating files with the correspondence shapes.
@@ -58,12 +51,18 @@ public class ShaclController {
     
     @Autowired
     ApplicationContext ctx;
-
     @Autowired
     ApplicationConfig config;
-
+	@Autowired
+	DomainConfigCache domainConfigs;
     @Autowired
 	FileManager fileManager;
+    @Value("${validator.acceptedHeaderAcceptTypes}")
+	Set<String> acceptedHeaderAcceptTypes;
+    @Value("${validator.hydraServer}")
+	String hydraServer;
+	@Value("${validator.hydraRootPath}")
+	private String hydraRootPath;
 
 	@ApiOperation(value = "Get API information.", response = ApiInfo.class, notes="Retrieve the supported validation " +
 			"types that can be requested when calling this API's validation operations.")
@@ -95,15 +94,15 @@ public class ShaclController {
 			@ApiResponse(code = 500, message = "Error (If a problem occurred with processing the request)", response = String.class),
 			@ApiResponse(code = 404, message = "Not found (for an invalid domain value)", response = String.class)
 	})
-	@RequestMapping(value = "/{domain}/api/validate", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+	@RequestMapping(value = "/{domain}/api/validate", method = RequestMethod.POST, consumes = {MediaType.APPLICATION_JSON_VALUE, "application/ld+json"}, produces = MediaType.APPLICATION_JSON_VALUE)
 	public ResponseEntity<String> validate(
 			@ApiParam(required = true, name = "domain", value = "A fixed value corresponding to the specific validation domain.")
 			@PathVariable("domain") String domain,
 			@ApiParam(required = true, name = "input", value = "The input for the validation (content and metadata for one RDF instance).")
-			@RequestBody Input in
+			@RequestBody Input in,
+			HttpServletRequest request
 	) {
 		String shaclResult;
-
 		DomainConfig domainConfig = validateDomain(domain);
 
 		//Start validation of the input file
@@ -113,12 +112,18 @@ public class ShaclController {
 			//Execute one single validation
 			Model shaclReport = executeValidation(inputFile, in, domainConfig);
 
-			String reportSyntax = domainConfig.getDefaultReportSyntax();
-			//ReportSyntax validation
-			if (in.getReportSyntax() != null) {
-				if (validReportSyntax(in.getReportSyntax())) {
-					reportSyntax = in.getReportSyntax();
-				} else {
+			// Consider first the report syntax requested as part of the input properties.
+			String reportSyntax = in.getReportSyntax();
+			if (reportSyntax == null) {
+				// If unspecified consider the first acceptable syntax from the Accept header.
+				reportSyntax = getFirstSupportedAcceptHeader(request);
+			}
+			if (reportSyntax == null) {
+				// No syntax specified by client - use the configuration default.
+				reportSyntax = domainConfig.getDefaultReportSyntax();
+			} else {
+				if (!validReportSyntax(reportSyntax)) {
+					// The requested syntax is invalid.
 					logger.error(ValidatorException.message_parameters, reportSyntax);
 					throw new ValidatorException(ValidatorException.message_parameters);
 				}
@@ -140,9 +145,18 @@ public class ShaclController {
 		}
 	}
 
-    @Autowired
-    DomainConfigCache domainConfigs;
-
+	private String getFirstSupportedAcceptHeader(HttpServletRequest request) {
+		Enumeration<String> headerValues = request.getHeaders(HttpHeaders.ACCEPT);
+		while (headerValues.hasMoreElements()) {
+			String acceptHeader = headerValues.nextElement();
+			for (String acceptableValue: acceptedHeaderAcceptTypes) {
+				if (acceptHeader.contains(acceptableValue)) {
+					return acceptableValue;
+				}
+			}
+		}
+		return null;
+	}
 
 	private boolean validReportSyntax(String reportSyntax) {
 		Lang lang = RDFLanguages.contentTypeToLang(reportSyntax.toLowerCase());
@@ -164,7 +178,7 @@ public class ShaclController {
 			@ApiResponse(code = 500, message = "Error (If a problem occurred with processing the request)", response = String.class),
 			@ApiResponse(code = 404, message = "Not found (for an invalid domain value)", response = String.class)
 	})
-    @RequestMapping(value = "/{domain}/api/validateMultiple", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @RequestMapping(value = "/{domain}/api/validateMultiple", method = RequestMethod.POST, consumes = {MediaType.APPLICATION_JSON_VALUE, "application/ld+json"}, produces = MediaType.APPLICATION_JSON_VALUE)
     public Output[] validateMultiple(
 			@ApiParam(required = true, name = "domain", value = "A fixed value corresponding to the specific validation domain.")
     		@PathVariable("domain") String domain,
@@ -318,4 +332,38 @@ public class ShaclController {
     	
     	return contentFile;
     }
+
+	@ApiOperation(hidden = true, value="")
+	@RequestMapping(value = "/{domain}/api", method = RequestMethod.GET, produces = "application/ld+json")
+	public ResponseEntity<String> hydraApi(@PathVariable String domain) throws IOException {
+		DomainConfig domainConfig = validateDomain(domain);
+		String content = FileUtils.readFileToString(new File(fileManager.getHydraDocsFolder(domainConfig.getDomainName()), "api.jsonld"), Charset.defaultCharset());
+		HttpHeaders responseHeaders = new HttpHeaders();
+		responseHeaders.setAccessControlExposeHeaders(Collections.singletonList("Link"));
+		// Construct URL for vocabulary
+		StringBuilder path = new StringBuilder();
+		path.append(hydraServer);
+		path.append(hydraRootPath);
+		if (path.charAt(path.length()-1) != '/') {
+			path.append('/');
+		}
+		path.append(domainConfig.getDomainName());
+		responseHeaders.set("Link", "<"+path.toString()+"/api/vocab>; rel=\"http://www.w3.org/ns/hydra/core#apiDocumentation\"");
+		return new ResponseEntity<>(content, responseHeaders, HttpStatus.OK);
+	}
+
+	@ApiOperation(hidden = true, value="")
+	@RequestMapping(value = "/{domain}/api/contexts/{contextName}", method = RequestMethod.GET, produces = "application/ld+json")
+	public String hydraContexts(@PathVariable String domain, @PathVariable String contextName) throws IOException {
+		DomainConfig domainConfig = validateDomain(domain);
+		return FileUtils.readFileToString(new File(fileManager.getHydraDocsFolder(domainConfig.getDomainName()), "EntryPoint.jsonld"), Charset.defaultCharset());
+	}
+
+	@ApiOperation(hidden = true, value="")
+	@RequestMapping(value = "/{domain}/api/vocab", method = RequestMethod.GET, produces = "application/ld+json")
+	public String hydraVocab(@PathVariable String domain) throws IOException {
+		DomainConfig domainConfig = validateDomain(domain);
+		return FileUtils.readFileToString(new File(fileManager.getHydraDocsFolder(domainConfig.getDomainName()), "vocab.jsonld"), Charset.defaultCharset());
+	}
+
 }
