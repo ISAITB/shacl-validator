@@ -15,7 +15,7 @@ public class DomainConfig {
     private List<String> type;
     private Map<String, String> typeLabel;
     private Set<ValidatorChannel> channels;
-    private Map<String,String> shaclFile;
+    private Map<String, ShaclFileInfo> shaclFile;
     private String defaultReportSyntax;
 
     public DomainConfig() {
@@ -38,11 +38,11 @@ public class DomainConfig {
         return type != null && type.size() > 1;
     }
 
-    public Map<String, String> getShaclFile() {
+    public Map<String, ShaclFileInfo> getShaclFile() {
         return shaclFile;
     }
 
-    public void setShaclFile(Map<String, String> shaclFile) {
+    public void setShaclFile(Map<String, ShaclFileInfo> shaclFile) {
         this.shaclFile = shaclFile;
     }
 
@@ -92,5 +92,48 @@ public class DomainConfig {
 
     public void setDefaultReportSyntax(String defaultReportSyntax) {
         this.defaultReportSyntax = defaultReportSyntax;
+    }
+    
+    
+    public static class ShaclFileInfo {
+    	String localFolder;
+    	List<RemoteInfo> remote;
+    	
+    	public String getLocalFolder() {
+    		return localFolder;
+    	}
+    	
+    	public void setLocalFolder(String localFolder) {
+    		this.localFolder = localFolder;
+    	}
+    	
+    	public List<RemoteInfo> getRemote() { 
+    		return remote; 
+    	}
+    	
+    	public void setRemote(List<RemoteInfo> remote) { 
+    		this.remote = remote; 
+    	}
+    }
+    
+    public static class RemoteInfo{
+    	String url;
+    	String type;
+    	
+    	public String getUrl() {
+    		return url;
+    	}
+    	
+    	public void setUrl(String url) {
+    		this.url = url;
+    	}
+    	
+    	public String getType() {
+    		return type;
+    	}
+    	
+    	public void setType(String type) {
+    		this.type = type;
+    	}
     }
 }

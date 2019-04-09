@@ -12,6 +12,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import eu.europa.ec.itb.shacl.DomainConfig.ShaclFileInfo;
+import eu.europa.ec.itb.shacl.DomainConfig.RemoteInfo;
+
 import javax.annotation.PostConstruct;
 import java.io.File;
 import java.io.FilenameFilter;
@@ -81,13 +84,45 @@ public class DomainConfigCache {
                 domainConfig.setType(Arrays.stream(StringUtils.split(config.getString("validator.type"), ',')).map(String::trim).collect(Collectors.toList()));
                 domainConfig.setTypeLabel(parseMap("validator.typeLabel", config, domainConfig.getType()));
                 domainConfig.setChannels(Arrays.stream(StringUtils.split(config.getString("validator.channels", ValidatorChannel.REST_API.getName()), ',')).map(String::trim).map(ValidatorChannel::byName).collect(Collectors.toSet()));
-                domainConfig.setShaclFile(parseMap("validator.shaclFile", config, domainConfig.getType()));
+                domainConfig.setShaclFile(parseShaclMap("validator.shaclFile", config, domainConfig.getType()));
                 domainConfig.setDefaultReportSyntax(config.getString("validator.defaultReportSyntax", appConfig.getDefaultReportSyntax()));
                 domainConfigs.put(domain, domainConfig);
                 logger.info("Loaded configuration for domain ["+domain+"]");
             }
         }
         return domainConfig;
+    }
+    
+    private Map<String, ShaclFileInfo> parseShaclMap(String key, CompositeConfiguration config, List<String> types){
+        Map<String, DomainConfig.ShaclFileInfo> map = new HashMap<>();
+        for (String type: types) {
+            DomainConfig.ShaclFileInfo shaclFileInfo = new ShaclFileInfo();
+            List<RemoteInfo> remoteInfo = new ArrayList<>();
+            Set<String> processedRemote = new HashSet<>();
+            
+            String internalShaclFile = config.getString(key+"."+type, null);            
+            shaclFileInfo.setLocalFolder(internalShaclFile);
+            
+            Iterator<String> it = config.getKeys("validator.shaclFile." + type + ".remote");
+            while(it.hasNext()) {
+            	String remoteKeys = it.next(); 
+            	String remoteInt = remoteKeys.replaceAll("(validator.shaclFile." + type + ".remote.)([0-9]{1,})(.[a-zA-Z]*)", "$2");
+
+            	if(!processedRemote.contains(remoteInt)) {
+                    RemoteInfo ri = new RemoteInfo();
+                	ri.setType(config.getString("validator.shaclFile." + type + ".remote."+remoteInt+".type"));
+                	ri.setUrl(config.getString("validator.shaclFile." + type + ".remote."+remoteInt+".url"));
+                	
+                	remoteInfo.add(ri);
+                	processedRemote.add(remoteInt);
+            	}
+            }
+            
+            shaclFileInfo.setRemote(remoteInfo);
+            map.put(type, shaclFileInfo);
+        }
+    	
+    	return map;
     }
 
     private Map<String, String> parseMap(String key, CompositeConfiguration config, List<String> types) {

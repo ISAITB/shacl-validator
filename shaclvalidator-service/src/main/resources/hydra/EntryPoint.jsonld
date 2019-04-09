@@ -1,0 +1,19 @@
+{
+  "@context": {
+    "hydra": "http://www.w3.org/ns/hydra/core#",
+    "vocab": "http://www.itb.ec.europa.eu/shacl/api/vocab#",
+    "EntryPoint": "vocab:EntryPoint",
+    "info": {
+      "@id": "vocab:EntryPoint/apiInfo",
+      "@type": "@id"
+    },
+    "validate": {
+      "@id": "vocab:EntryPoint/validate",
+      "@type": "@id"
+    },
+    "validateMultiple": {
+      "@id": "vocab:EntryPoint/validateMultiple",
+      "@type": "@id"
+    }
+  }
+}

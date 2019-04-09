@@ -1,0 +1,293 @@
+{
+  "@context": {
+    "vocab": "http://www.itb.ec.europa.eu/shacl/api/vocab#",
+    "hydra": "http://www.w3.org/ns/hydra/core#",
+    "sh": "http://www.w3.org/ns/shacl#",
+    "ApiDocumentation": "hydra:ApiDocumentation",
+    "property": {
+      "@id": "hydra:property",
+      "@type": "@id"
+    },
+    "readonly": "hydra:readonly",
+    "writeonly": "hydra:writeonly",
+    "supportedClass": "hydra:supportedClass",
+    "supportedProperty": "hydra:supportedProperty",
+    "supportedOperation": "hydra:supportedOperation",
+    "method": "hydra:method",
+    "expects": {
+      "@id": "hydra:expects",
+      "@type": "@id"
+    },
+    "returns": {
+      "@id": "hydra:returns",
+      "@type": "@id"
+    },
+    "statusCodes": "hydra:statusCodes",
+    "code": "hydra:statusCode",
+    "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "label": "rdfs:label",
+    "description": "rdfs:comment",
+    "domain": {
+      "@id": "rdfs:domain",
+      "@type": "@id"
+    },
+    "range": {
+      "@id": "rdfs:range",
+      "@type": "@id"
+    },
+    "subClassOf": {
+      "@id": "rdfs:subClassOf",
+      "@type": "@id"
+    }
+  },
+  "@id": "vocab",
+  "@type": "ApiDocumentation",
+  "supportedClass": [
+    {
+      "@id": "vocab:EntryPoint/apiInfo",
+      "@type": "hydra:Class",
+      "title": "ApiInfo",
+      "description": "The information on how to call the API methods (domain and validation types).",
+      "supportedProperty": [
+        {
+          "title": "domain",
+          "property": "",
+          "required": true,
+          "readonly": false,
+          "writeonly": false
+        },
+        {
+          "title": "validationTypes",
+          "property": "",
+          "required": true,
+          "readonly": false,
+          "writeonly": false
+        }
+      ],
+      "supportedOperation": [
+        {
+          "@type": "http://schema.org/FindAction",
+          "method": "GET",
+          "label": "Get API information.",
+          "description": "Retrieve the supported validation types that can be requested when calling this API's validation operations.",
+          "expects": null,
+          "returns": "vocab:ApiInfo",
+          "possibleStatus": [
+            {
+              "statusCode": 200,
+              "description": "Success"
+            },
+            {
+              "statusCode": 404,
+              "description": "Not found (for an invalid domain value)"
+            },
+            {
+              "statusCode": 500,
+              "description": "Error (If a problem occurred with processing the request)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "@id": "sh:ValidationReport",
+      "@type": "sh:ValidationReport",
+      "hydra:title": "SHACLValidationReport",
+      "hydra:description": "Report following validation using the configured SHACL shapes.",
+      "supportedOperation": [],
+      "supportedProperty": []
+    },
+    {
+      "@id": "vocab:ApiInfo",
+      "@type": "hydra:Class",
+      "hydra:title": "ApiInfo",
+      "hydra:description": "The information on how to call the API methods (domain and validation types).",
+      "supportedOperation": [],
+      "supportedProperty": []
+    },
+    {
+      "@id": "vocab:Input",
+      "@type": "hydra:Class",
+      "hydra:title": "Input",
+      "hydra:description": "The content and metadata specific to input content that is to be validated.",
+      "supportedOperation": [],
+      "supportedProperty": [
+        {
+          "property": "vocab:Input/contentToValidate",
+          "hydra:title": "contentToValidate",
+          "hydra:description": "The RDF content to validate.",
+          "required": true,
+          "readonly": false,
+          "writeonly": false
+        },
+        {
+          "property": "vocab:Input/contentSyntax",
+          "hydra:title": "contentSyntax",
+          "hydra:description": "The mime type of the provided RDF content (e.g. \"application/rdf+xml\", \"application/ld+json\", \"text/turtle\"). If not provided the type is determined from the provided content (if possible).",
+          "required": true,
+          "readonly": false,
+          "writeonly": false
+        },
+        {
+          "property": "vocab:Input/embeddingMethod",
+          "hydra:title": "embeddingMethod",
+          "hydra:description": "The way in which to interpret the contentToValidate (URI|BASE64). If not provided, the method will be determined from the contentToValidate value (i.e. check it is a valid URL)",
+          "required": true,
+          "readonly": false,
+          "writeonly": false
+        },
+        {
+          "property": "vocab:Input/validationType",
+          "hydra:title": "validationType",
+          "hydra:description": "The type of validation to perform (e.g. the profile to apply or the version to validate against). This can be skipped if a single validation type is supported by the validator. Otherwise, if multiple are supported, the service should fail with an error.",
+          "required": true,
+          "readonly": false,
+          "writeonly": false
+        },
+        {
+          "property": "vocab:Input/reportSyntax",
+          "hydra:title": "reportSyntax",
+          "hydra:description": "The mime type for the validation report syntax. If none is provided \"application/rdf+xml\" is considered as the default, unless a different syntax is configured for the domain in question.",
+          "required": false,
+          "readonly": false,
+          "writeonly": false
+        }
+      ]
+    },
+    {
+      "@id": "vocab:Output",
+      "@type": "hydra:Class",
+      "hydra:title": "Output",
+      "hydra:description": "The content and metadata linked to the validation report that corresponds to a provided RDF input.",
+      "supportedOperation": [],
+      "supportedProperty": [
+        {
+          "property": "vocab:Output/report",
+          "hydra:title": "report",
+          "hydra:description": "The RDF validation report, provided as a BASE64 encoded String.",
+          "required": true,
+          "readonly": false,
+          "writeonly": false
+        },
+        {
+          "property": "vocab:Output/reportSyntax",
+          "hydra:title": "reportSyntax",
+          "hydra:description": "The mime type for the validation report as defined by the corresponding Input.reportSyntax property (or the applied default if missing).",
+          "required": true,
+          "readonly": false,
+          "writeonly": false
+        }
+      ]
+    },
+    {
+      "@id": "vocab:OutputCollection",
+      "@type": "hydra:Class",
+      "subClassOf": "http://www.w3.org/ns/hydra/core#Collection",
+      "title": "OutputCollection",
+      "description": "A collection of outputs",
+      "supportedOperation": [],
+      "supportedProperty": [
+        {
+          "property": "http://www.w3.org/ns/hydra/core#member",
+          "title": "members",
+          "required": false,
+          "readonly": false,
+          "writeonly": false,
+          "description": "An output"
+        }
+      ]
+    },
+    {
+      "@id": "vocab:EntryPoint",
+      "@type": "hydra:Class",
+      "subClassOf": null,
+      "label": "EntryPoint",
+      "description": "The main entry point or homepage of the API.",
+      "supportedOperation": [
+        {
+          "@id": "_:entry_point",
+          "@type": "hydra:Operation",
+          "method": "GET",
+          "label": "The APIs main entry point.",
+          "description": null,
+          "expects": null,
+          "returns": "vocab:EntryPoint",
+          "statusCodes": [
+            {
+              "code": 200,
+              "description": "Success"
+            }
+          ]
+        }
+      ],
+      "supportedProperty": []
+    },
+    {
+      "@id": "vocab:EntryPoint/validate",
+      "@type": "hydra:Class",
+      "subClassOf": null,
+      "label": "validate",
+      "description": "Validate a single RDF instance. The content can be provided either within the request as a BASE64 encoded string or remotely as a URL. The RDF syntax for the input can be determined in the request as can the syntax to produce the resulting SHACL validation report.",
+      "supportedOperation": [
+        {
+          "@id": "_:validate",
+          "@type": "hydra:Operation",
+          "method": "POST",
+          "label": "Validate one RDF instance.",
+          "description": "Validate a single RDF instance. The content can be provided either within the request as a BASE64 encoded string or remotely as a URL. The RDF syntax for the input can be determined in the request as can the syntax to produce the resulting SHACL validation report.",
+          "expects": "vocab:Input",
+          "returns": "sh:ValidationReport",
+          "statusCodes": [
+            {
+              "code": 200,
+              "description": "Success (for successful validation)"
+            },
+            {
+              "code": 404,
+              "description": "Not found (for an invalid domain value)"
+            },
+            {
+              "code": 500,
+              "description": "Error (If a problem occurred with processing the request)"
+            }
+          ]
+        }
+      ],
+      "supportedProperty": []
+    },
+    {
+      "@id": "vocab:EntryPoint/validateMultiple",
+      "@type": "hydra:Class",
+      "subClassOf": null,
+      "label": "validateMultiple",
+      "description": "Validate multiple RDF instances. The content for each instance can be provided either within the request as a BASE64 encoded string or remotely as a URL. The RDF syntax for each input can be determined in the request as can the syntax to produce each resulting SHACL validation report.",
+      "supportedOperation": [
+        {
+          "@id": "_:validateMultiple",
+          "@type": "hydra:Operation",
+          "method": "POST",
+          "label": "Validate multiple RDF instances.",
+          "description": "Validate multiple RDF instances. The content for each instance can be provided either within the request as a BASE64 encoded string or remotely as a URL. The RDF syntax for each input can be determined in the request as can the syntax to produce each resulting SHACL validation report.",
+          "expects": null,
+          "returns": "vocab:OutputCollection",
+          "statusCodes": [
+            {
+              "code": 200,
+              "description": "Success (for successful validation)"
+            },
+            {
+              "code": 404,
+              "description": "Not found (for an invalid domain value)"
+            },
+            {
+              "code": 500,
+              "description": "Error (If a problem occurred with processing the request)"
+            }
+          ]
+        }
+      ],
+      "supportedProperty": []
+    }
+  ]
+}

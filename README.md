@@ -117,6 +117,9 @@ The properties here define how a specific validation domain is configured. They 
 | `validator.channels` | Comma separated list of features to have enabled. Possible values are (`form`, `email`, `webservice`). | Comma-separated Strings | `form,webservice` |
 | `validator.type` | A comma-separated list of supported invoice types. Values need to be reflected in properties `validator.typeLabel`, `validator.schemaFile`, `validator.schematronFolder`. | Comma-separated Strings | - |
 | `validator.typeLabel.XYZ` | Label to display for a given validator type (added as a postfix of validator.typeLabel). | String | - |
+| `validator.shaclFile.XYZ` | The SHACL files loaded for a given validation type (added as a postfix). This can be a file or folder (must never start with a '/'). | String | - |
+| `validator.shaclFile.XYZ.remote.A.url` | The SHACL files loaded for a given validation type (added as a postfix) as URL. | String | - |
+| `validator.shaclFile.XYZ.remote.A.type` | The content syntax (mime type) of the SHACL files loaded for a given validation type (added as a postfix). | String | - |
 | `validator.includeTestDefinition` | Whether tests should be included in the resulting reports. | Boolean | `true` |
 | `validator.reportsOrdered` | Whether the reports are ordered. | Boolean | `false` |
 | `validator.defaultReportSyntax ` | The default report syntax (mime type) if none is requested (otherwise the global default applies) | `application/rdf+xml`

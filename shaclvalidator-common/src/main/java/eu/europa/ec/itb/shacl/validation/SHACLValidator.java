@@ -2,25 +2,22 @@ package eu.europa.ec.itb.shacl.validation;
 
 import eu.europa.ec.itb.shacl.ApplicationConfig;
 import eu.europa.ec.itb.shacl.DomainConfig;
-import org.apache.commons.io.FilenameUtils;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFLanguages;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 import org.topbraid.jenax.util.JenaUtil;
 import org.topbraid.shacl.validation.ValidationUtil;
 
-import java.io.*;
-import java.nio.file.Paths;
-import java.util.ArrayList;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 
 /**
@@ -30,16 +27,17 @@ import java.util.List;
  */
 @Component
 @Scope("prototype")
-public class SHACLValidator implements ApplicationContextAware {
+public class SHACLValidator {
 
     private static final Logger logger = LoggerFactory.getLogger(SHACLValidator.class);
 
     @Autowired
     private ApplicationConfig config;
 
-    private InputStream inputToValidate;
+    @Autowired
+    private FileManager fileManager;
+
     private File inputFileToValidate;
-    private ApplicationContext ctx;
     private final DomainConfig domainConfig;
     private String validationType;
     private String contentSyntax;
@@ -47,11 +45,6 @@ public class SHACLValidator implements ApplicationContextAware {
     public SHACLValidator(File inputFileToValidate, String validationType, String contentSyntax, DomainConfig domainConfig) {
     	this.contentSyntax = contentSyntax;
     	this.inputFileToValidate = inputFileToValidate;
-		try {
-			this.inputToValidate = new FileInputStream(inputFileToValidate);
-		} catch (FileNotFoundException e) {
-			logger.error(e.getMessage());
-		}
         this.validationType = validationType;
         this.domainConfig = domainConfig;
         if (validationType == null) {
@@ -61,60 +54,35 @@ public class SHACLValidator implements ApplicationContextAware {
     
     public Model validateAll() {
     	logger.info("Starting validation..");
-    	
-        Model overallResult = null;
-		try {
-			overallResult = validateAgainstSHACL();
-		} catch (FileNotFoundException e) {
-			logger.error(e.getMessage());
-		}
-        
-        return overallResult;
+        return validateAgainstShacl();
     }
     
     /**
      * Validation of the model
      * @return Model The Jena model with the report
-     * @throws FileNotFoundException
      */
-    public Model validateAgainstSHACL() throws FileNotFoundException {
-        File shaclFile = getSHACLFile();
-        List<File> shaclFiles = new ArrayList<>();
-        if (shaclFile != null && shaclFile.exists()) {
-            if (shaclFile.isFile()) {
-                // We are pointing to a single master SHACL file.
-            	shaclFiles.add(shaclFile);
+    private Model validateAgainstShacl() {
+        try {
+            fileManager.signalValidationStart(domainConfig.getDomainName());
+            List<FileInfo> shaclFiles = fileManager.getAllShaclFiles(domainConfig, validationType);
+            if (shaclFiles.isEmpty()) {
+                logger.info("No SHACL files to validate against");
+                throw new IllegalStateException("No SHACL files to validate against");
             } else {
-                // All SHACL are processed.
-                File[] files = shaclFile.listFiles();
-                if (files != null) {
-                    for (File aSHACLFile: files) {
-                        if (aSHACLFile.isFile() && config.getAcceptedSHACLExtensions().contains(FilenameUtils.getExtension(aSHACLFile.getName().toLowerCase()))) {
-                        	shaclFiles.add(aSHACLFile);
-                        }
-                    }
-                }
+                return validateShacl(shaclFiles);
             }
-        }
-        if (shaclFiles.isEmpty()) {
-            logger.info("No SHACL to validate against ["+shaclFile+"]");
-            throw new FileNotFoundException();
-        } else {
-            for (File aSHACLFile: shaclFiles) {
-                logger.info("Validating against ["+aSHACLFile.getName()+"]");
-            }
-            Model shaclReport = validateSHACL(shaclFiles);
-            return shaclReport;
+        } finally {
+            fileManager.signalValidationEnd(domainConfig.getDomainName());
         }
     }
-    
+
     /**
      * Validate the RDF against one shape file
      * @param shaclFiles The SHACL files
      * @return Model The Jena Model with the report
      */
-    private Model validateSHACL(List<File> shaclFiles){
-    	Model reportModel = null;
+    private Model validateShacl(List<FileInfo> shaclFiles){
+    	Model reportModel;
     	
     	try {
 			// Get data to validate from file
@@ -125,7 +93,7 @@ public class SHACLValidator implements ApplicationContextAware {
 			Resource resource = ValidationUtil.validateModel(dataModel, shaclModel, false);		
 			reportModel = resource.getModel();
 			reportModel.setNsPrefix("sh", "http://www.w3.org/ns/shacl#");
-			
+
     	}catch(Exception e){
     		logger.error("Error during the SHACL validation. " + e.getMessage());
             throw new IllegalStateException(e);
@@ -134,13 +102,17 @@ public class SHACLValidator implements ApplicationContextAware {
     	return reportModel;
     }
 
-    private Model getShapesModel(List<File> shaclFiles) throws FileNotFoundException {
+    /**
+     * Return the aggregated model of a list of files
+     * @return Model aggregated model
+     */
+    private Model getShapesModel(List<FileInfo> shaclFiles) {
         Model aggregateModel = JenaUtil.createMemoryModel();
-        for (File shaclFile: shaclFiles) {
-            Lang lang = RDFLanguages.contentTypeToLang(RDFLanguages.guessContentType(shaclFile.getName()));
-            try (InputStream dataStream = new FileInputStream(shaclFile)) {
+        for (FileInfo shaclFile: shaclFiles) {
+            logger.info("Validating against ["+shaclFile.getFile().getName()+"]");
+            try (InputStream dataStream = new FileInputStream(shaclFile.getFile())) {
                 Model fileModel = JenaUtil.createMemoryModel();
-                fileModel.read(dataStream, null, lang.getName());
+                fileModel.read(dataStream, null, shaclFile.getContentLang());
                 aggregateModel.add(fileModel);
             } catch (IOException e) {
                 logger.error("Error while reading SHACL file.", e);
@@ -148,11 +120,6 @@ public class SHACLValidator implements ApplicationContextAware {
            }
         }
         return aggregateModel;
-    }
-
-
-    private File getSHACLFile() {
-        return Paths.get(config.getResourceRoot(), domainConfig.getDomain(), domainConfig.getShaclFile().get(validationType)).toFile();
     }
     
     /**
@@ -194,8 +161,4 @@ public class SHACLValidator implements ApplicationContextAware {
 		return dataModel;
 	}
 
-    @Override
-    public void setApplicationContext(ApplicationContext ctx) throws BeansException {
-        this.ctx = ctx;
-    }
 }
