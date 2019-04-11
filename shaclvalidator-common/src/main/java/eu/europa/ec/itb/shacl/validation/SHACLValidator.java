@@ -2,6 +2,8 @@ package eu.europa.ec.itb.shacl.validation;
 
 import eu.europa.ec.itb.shacl.ApplicationConfig;
 import eu.europa.ec.itb.shacl.DomainConfig;
+import eu.europa.ec.itb.shacl.DomainConfig.RemoteInfo;
+
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.riot.Lang;
@@ -41,12 +43,14 @@ public class SHACLValidator {
     private final DomainConfig domainConfig;
     private String validationType;
     private String contentSyntax;
+    private List<RemoteInfo> remoteInfo;
 
-    public SHACLValidator(File inputFileToValidate, String validationType, String contentSyntax, DomainConfig domainConfig) {
+    public SHACLValidator(File inputFileToValidate, String validationType, String contentSyntax, List<RemoteInfo> ri, DomainConfig domainConfig) {
     	this.contentSyntax = contentSyntax;
     	this.inputFileToValidate = inputFileToValidate;
         this.validationType = validationType;
         this.domainConfig = domainConfig;
+        this.remoteInfo = ri;
         if (validationType == null) {
             this.validationType = domainConfig.getType().get(0);
         }
@@ -64,7 +68,7 @@ public class SHACLValidator {
     private Model validateAgainstShacl() {
         try {
             fileManager.signalValidationStart(domainConfig.getDomainName());
-            List<FileInfo> shaclFiles = fileManager.getAllShaclFiles(domainConfig, validationType);
+            List<FileInfo> shaclFiles = fileManager.getAllShaclFiles(domainConfig, validationType, remoteInfo);
             if (shaclFiles.isEmpty()) {
                 logger.info("No SHACL files to validate against");
                 throw new IllegalStateException("No SHACL files to validate against");

@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 
@@ -28,13 +29,14 @@ import org.springframework.web.bind.annotation.RestController;
 
 import eu.europa.ec.itb.shacl.ApplicationConfig;
 import eu.europa.ec.itb.shacl.DomainConfig;
+import eu.europa.ec.itb.shacl.DomainConfig.RemoteInfo;
 import eu.europa.ec.itb.shacl.DomainConfigCache;
 import eu.europa.ec.itb.shacl.ValidatorChannel;
 import eu.europa.ec.itb.shacl.rest.errors.NotFoundException;
 import eu.europa.ec.itb.shacl.rest.errors.ValidatorException;
 import eu.europa.ec.itb.shacl.rest.model.ApiInfo;
 import eu.europa.ec.itb.shacl.rest.model.Input;
-import eu.europa.ec.itb.shacl.rest.model.Input.RuleSet;
+import eu.europa.ec.itb.shacl.rest.model.Input.ExternalRuleSet;
 import eu.europa.ec.itb.shacl.rest.model.Output;
 import eu.europa.ec.itb.shacl.validation.FileManager;
 import eu.europa.ec.itb.shacl.validation.SHACLValidator;
@@ -109,9 +111,10 @@ public class ShaclController {
 		//Start validation of the input file
 		File inputFile = null;
 		try {
-			inputFile = getContentToValidate(in);
+			inputFile = getContentToValidate(in, domainConfig);
+			List<RemoteInfo> ri = getExternalShapes(in.getExternalRules());
 			//Execute one single validation
-			Model shaclReport = executeValidation(inputFile, in, domainConfig);
+			Model shaclReport = executeValidation(inputFile, in, domainConfig, ri);
 
 			String reportSyntax = domainConfig.getDefaultReportSyntax();
 			//ReportSyntax validation
@@ -179,13 +182,13 @@ public class ShaclController {
      * @param domain 
      */
     private DomainConfig validateDomain(String domain) {
-		DomainConfig config = domainConfigs.getConfigForDomainName(domain);
-        if (config == null || !config.isDefined() || !config.getChannels().contains(ValidatorChannel.REST_API)) {
+		DomainConfig domainConfig = domainConfigs.getConfigForDomainName(domain);
+        if (domainConfig == null || !domainConfig.isDefined() || !domainConfig.getChannels().contains(ValidatorChannel.REST_API)) {
             logger.error("The following domain does not exist: " + domain);
 			throw new NotFoundException();
         }
         MDC.put("domain", domain);
-        return config;
+        return domainConfig;
     }
     
     /**
@@ -194,11 +197,11 @@ public class ShaclController {
      * @param domainConfig 
      * @return Model SHACL report
      */
-    private Model executeValidation(File inputFile, Input input, DomainConfig domainConfig) {
+    private Model executeValidation(File inputFile, Input input, DomainConfig domainConfig, List<RemoteInfo> ri) {
     	Model report = null;
     	
     	try {	
-			SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile, input.getValidationType(), input.getContentSyntax(), domainConfig);
+			SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile, input.getValidationType(), input.getContentSyntax(), ri, domainConfig);
 			
 			report = validator.validateAll();   
     	}catch(Exception e){
@@ -280,11 +283,12 @@ public class ShaclController {
      * @param input JSON send via REST API
      * @return File to validate
      */
-    private File getContentToValidate(Input input) {
+    private File getContentToValidate(Input input, DomainConfig domainConfig) {
     	String embeddingMethod = input.getEmbeddingMethod();
     	String contentToValidate = input.getContentToValidate();
-    	List<RuleSet> externalRules = input.getExternalRules();
+    	List<ExternalRuleSet> externalRules = input.getExternalRules();
     	String contentSyntax = input.getContentSyntax();
+    	String validationType = input.getValidationType();
     	
     	File contentFile = null;
     	
@@ -310,12 +314,34 @@ public class ShaclController {
 			contentFile = getContentFile(contentToValidate, contentSyntax);
     	}
     	
+    	//ValidationType validation
+    	if((validationType!=null && !domainConfig.getType().contains(validationType)) || (validationType==null && domainConfig.getType().size()!=1)) {
+		    logger.error(ValidatorException.message_parameters, embeddingMethod);    			    
+			throw new ValidatorException(ValidatorException.message_parameters);
+    	}
+    	validationType = validationType==null ? domainConfig.getType().get(0) : validationType;
+    	
     	//ExternalRules validation
-    	if(externalRules!=null) {
-		    logger.error("Feature not supported.");
-			throw new ValidatorException(ValidatorException.message_support);
+    	Boolean hasExternalShapes = domainConfig.getExternalShapes().get(validationType);
+    	if(externalRules!=null && !externalRules.isEmpty() && !hasExternalShapes) {
+		    logger.error("Loading external shape files is not supported in this domain.");
+			throw new ValidatorException("Loading external shape files is not supported in this domain.");
     	}
     	
     	return contentFile;
+    }
+    
+    private List<RemoteInfo> getExternalShapes(List<ExternalRuleSet> externalRules) {
+		List<RemoteInfo> shaclFiles = new ArrayList<>();
+		
+    	for(ExternalRuleSet externalRule : externalRules) {
+    		RemoteInfo fileInfo = new RemoteInfo();
+    		fileInfo.setType(externalRule.getEmbeddingMethod());
+    		fileInfo.setUrl(externalRule.getRuleSet());
+    		
+    		shaclFiles.add(fileInfo);
+    	}
+    	
+    	return shaclFiles;
     }
 }
