@@ -31,31 +31,6 @@ public class ApiInfo {
         this.validationTypes = validationTypes;
     }
 
-    @ApiModel(description = "Information on an available validation type that can be requested.")
-    public static class ValidationType {
-
-        @ApiModelProperty(notes = "The value to use when requesting the validation type.")
-        private String type;
-        @ApiModelProperty(notes = "The validation type's description.")
-        private String description;
-
-        public String getType() {
-            return type;
-        }
-
-        public void setType(String type) {
-            this.type = type;
-        }
-
-        public String getDescription() {
-            return description;
-        }
-
-        public void setDescription(String description) {
-            this.description = description;
-        }
-    }
-
     public static ApiInfo fromDomainConfig(DomainConfig config) {
         ApiInfo info = new ApiInfo();
         info.setDomain(config.getDomainName());

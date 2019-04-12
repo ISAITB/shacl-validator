@@ -2,9 +2,8 @@ package eu.europa.ec.itb.shacl.validation;
 
 import eu.europa.ec.itb.shacl.ApplicationConfig;
 import eu.europa.ec.itb.shacl.DomainConfig;
-import eu.europa.ec.itb.shacl.DomainConfigCache;
 import eu.europa.ec.itb.shacl.DomainConfig.RemoteInfo;
-
+import eu.europa.ec.itb.shacl.DomainConfigCache;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -98,6 +97,14 @@ public class FileManager {
 
     private File getTempFolder() {
     	return new File(config.getTmpFolder());
+	}
+
+	public File getHydraDocsRootFolder() {
+		return new File(config.getTmpFolder(), "hydra");
+	}
+
+	public File getHydraDocsFolder(String domainName) {
+		return new File(getHydraDocsRootFolder(), domainName);
 	}
 
     private File getRemoteFileCacheFolder() {

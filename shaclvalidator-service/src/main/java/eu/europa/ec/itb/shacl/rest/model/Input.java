@@ -2,9 +2,11 @@ package eu.europa.ec.itb.shacl.rest.model;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 @ApiModel(description = "The content and metadata specific to input content that is to be validated.")
 public class Input {
 
@@ -22,7 +24,7 @@ public class Input {
     @ApiModelProperty(notes = "The mime type for the validation report syntax. If none is provided \"application/rdf+xml\" is considered as the default, unless a different syntax is configured for the domain in question.")
 	private String reportSyntax;
     @ApiModelProperty(notes = "Any shapes to consider that are externally provided (i.e. provided at the time of the call).")
-	private List<ExternalRuleSet> externalRules;
+	private List<RuleSet> externalRules;
 
 	public String getContentToValidate() { return this.contentToValidate; }
 	
@@ -34,9 +36,9 @@ public class Input {
 	
 	public String getContentSyntax() { return this.contentSyntax; }
 	
-	public List<ExternalRuleSet> getExternalRules(){ return this.externalRules; }
+	public List<RuleSet> getExternalRules(){ return this.externalRules; }
 	
-	public ExternalRuleSet getExternalRules(int value) { return this.externalRules.get(value); }
+	public RuleSet getExternalRules(int value) { return this.externalRules.get(value); }
 
 	public void setContentToValidate(String contentToValidate) {
 		this.contentToValidate = contentToValidate;
@@ -58,26 +60,8 @@ public class Input {
 		this.reportSyntax = reportSyntax;
 	}
 
-	public void setExternalRules(List<ExternalRuleSet> externalRules) {
+	public void setExternalRules(List<RuleSet> externalRules) {
 		this.externalRules = externalRules;
 	}
 
-	public static class ExternalRuleSet{
-	    @ApiModelProperty(required = true, notes = "The RDF containing the rules to apply (shapes).")
-		private String ruleSet;
-	    @ApiModelProperty(notes = "The way in which to interpret the value for ruleSet. If not provided, the method will be determined from the ruleSet value (i.e. check it is a valid URL).", allowableValues = embedding_URL+","+embedding_BASE64)
-		private String embeddingMethod;
-		
-		public String getRuleSet() { return this.ruleSet; }
-		
-		public String getEmbeddingMethod() { return this.embeddingMethod; }
-
-		public void setRuleSet(String ruleSet) {
-			this.ruleSet = ruleSet;
-		}
-
-		public void setEmbeddingMethod(String embeddingMethod) {
-			this.embeddingMethod = embeddingMethod;
-		}
-	}
 }
