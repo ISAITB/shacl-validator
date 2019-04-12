@@ -120,8 +120,8 @@ public class FileManager {
 		}
 	}
 	
-	private List<FileInfo> getRemoteExternalShapes(DomainConfig domainConfig, String validationType, List<RemoteInfo> remoteInfo){
-		File remoteConfigFolder = new File(new File(getRemoteFileCacheFolder(), domainConfig.getDomainName()), System.currentTimeMillis() + validationType);
+	public List<FileInfo> getRemoteExternalShapes(List<RemoteInfo> remoteInfo){
+		File remoteConfigFolder = new File(config.getTmpFolder(), Long.toString(System.currentTimeMillis()));
 		
 		try {
 			for(RemoteInfo ri : remoteInfo) {
@@ -139,11 +139,11 @@ public class FileManager {
 		}
 	}
 
-	public List<FileInfo> getAllShaclFiles(DomainConfig domainConfig, String validationType, List<RemoteInfo> remoteInfo){
+	public List<FileInfo> getAllShaclFiles(DomainConfig domainConfig, String validationType, List<FileInfo> filesInfo){
 		List<FileInfo> shaclFiles = new ArrayList<>();
 		shaclFiles.addAll(getLocalShaclFiles(getShaclFile(domainConfig, validationType)));
 		shaclFiles.addAll(getRemoteShaclFiles(domainConfig, validationType));
-		shaclFiles.addAll(getRemoteExternalShapes(domainConfig, validationType, remoteInfo));
+		shaclFiles.addAll(filesInfo);
 		return shaclFiles;
 	}
 

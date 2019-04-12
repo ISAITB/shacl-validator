@@ -11,6 +11,7 @@ import eu.europa.ec.itb.shacl.rest.model.ApiInfo;
 import eu.europa.ec.itb.shacl.rest.model.Input;
 import eu.europa.ec.itb.shacl.rest.model.Output;
 import eu.europa.ec.itb.shacl.rest.model.RuleSet;
+import eu.europa.ec.itb.shacl.validation.FileInfo;
 import eu.europa.ec.itb.shacl.validation.FileManager;
 import eu.europa.ec.itb.shacl.validation.SHACLValidator;
 import io.swagger.annotations.*;
@@ -105,14 +106,15 @@ public class ShaclController {
 	) {
 		String shaclResult;
 		DomainConfig domainConfig = validateDomain(domain);
+		List<FileInfo> fi = new ArrayList<>();
 
 		//Start validation of the input file
 		File inputFile = null;
 		try {
 			inputFile = getContentToValidate(in, domainConfig);
-			List<RemoteInfo> ri = getExternalShapes(in.getExternalRules());
+			fi = getExternalShapes(in.getExternalRules());
 			//Execute one single validation
-			Model shaclReport = executeValidation(inputFile, in, domainConfig, ri);
+			Model shaclReport = executeValidation(inputFile, in, domainConfig, fi);
 
 			// Consider first the report syntax requested as part of the input properties.
 			String reportSyntax = in.getReportSyntax();
@@ -144,6 +146,10 @@ public class ShaclController {
 		} finally {
 			//Remove temporary files
 			fileManager.removeContentToValidate(inputFile);
+			
+			for(FileInfo file : fi) {
+				fileManager.removeContentToValidate(file.getFile().getParentFile());
+			}
 		}
 	}
 
@@ -210,11 +216,11 @@ public class ShaclController {
      * @param domainConfig 
      * @return Model SHACL report
      */
-    private Model executeValidation(File inputFile, Input input, DomainConfig domainConfig, List<RemoteInfo> ri) {
+    private Model executeValidation(File inputFile, Input input, DomainConfig domainConfig, List<FileInfo> fi) {
     	Model report = null;
     	
     	try {	
-			SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile, input.getValidationType(), input.getContentSyntax(), ri, domainConfig);
+			SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile, input.getValidationType(), input.getContentSyntax(), fi, domainConfig);
 			
 			report = validator.validateAll();   
     	}catch(Exception e){
@@ -344,18 +350,20 @@ public class ShaclController {
     	return contentFile;
     }
     
-    private List<RemoteInfo> getExternalShapes(List<RuleSet> externalRules) {
+    private List<FileInfo> getExternalShapes(List<RuleSet> externalRules) {
 		List<RemoteInfo> shaclFiles = new ArrayList<>();
 		
-    	for(RuleSet externalRule : externalRules) {
-    		RemoteInfo fileInfo = new RemoteInfo();
-    		fileInfo.setType(externalRule.getEmbeddingMethod());
-    		fileInfo.setUrl(externalRule.getRuleSet());
-    		
-    		shaclFiles.add(fileInfo);
-    	}
-    	
-    	return shaclFiles;
+		if(externalRules!=null) {
+	    	for(RuleSet externalRule : externalRules) {
+	    		RemoteInfo fileInfo = new RemoteInfo();
+	    		fileInfo.setType(externalRule.getEmbeddingMethod());
+	    		fileInfo.setUrl(externalRule.getRuleSet());
+	    		
+	    		shaclFiles.add(fileInfo);
+	    	}
+		}
+
+    	return fileManager.getRemoteExternalShapes(shaclFiles);
     }
     
 	@ApiOperation(hidden = true, value="")
