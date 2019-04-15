@@ -81,12 +81,14 @@ public class ShaclController {
 		DomainConfig domainConfig = validateDomain(domain);
 		return ApiInfo.fromDomainConfig(domainConfig);
 	}
-
+	
 	/**
 	 * POST service to receive a single RDF instance to validate
-	 *
-	 * @param domain The domain where the SHACL validator is executed.
-	 * @return The result of the SHACL validator.
+     * 
+     * @param domain The domain where the SHACL validator is executed. 
+	 * @param inputs The input for the validation (content and metadata for one or more RDF instances).
+	 * @param request HttpServletRequest
+     * @return The result of the SHACL validator.
 	 */
 	@ApiOperation(value = "Validate one RDF instance.", response = String.class, notes="Validate a single RDF instance. " +
 			"The content can be provided either within the request as a BASE64 encoded string or remotely as a URL. The RDF syntax for the input can be " +
@@ -106,15 +108,15 @@ public class ShaclController {
 	) {
 		String shaclResult;
 		DomainConfig domainConfig = validateDomain(domain);
-		List<FileInfo> fi = new ArrayList<>();
+		List<FileInfo> remoteShaclFiles = new ArrayList<>();
 
 		//Start validation of the input file
 		File inputFile = null;
 		try {
 			inputFile = getContentToValidate(in, domainConfig);
-			fi = getExternalShapes(in.getExternalRules());
+			remoteShaclFiles = getExternalShapes(in.getExternalRules());
 			//Execute one single validation
-			Model shaclReport = executeValidation(inputFile, in, domainConfig, fi);
+			Model shaclReport = executeValidation(inputFile, in, domainConfig, remoteShaclFiles);
 
 			// Consider first the report syntax requested as part of the input properties.
 			String reportSyntax = in.getReportSyntax();
@@ -147,8 +149,8 @@ public class ShaclController {
 			//Remove temporary files
 			fileManager.removeContentToValidate(inputFile);
 			
-			for(FileInfo file : fi) {
-				fileManager.removeContentToValidate(file.getFile().getParentFile());
+			for(FileInfo remoteShaclFile : remoteShaclFiles) {
+				fileManager.removeContentToValidate(remoteShaclFile.getFile().getParentFile());
 			}
 		}
 	}
@@ -171,13 +173,14 @@ public class ShaclController {
 		return lang != null;
 	}
 
-    
-    /**
+	
+	/**
      * POST service to receive multiple RDF instances to validate
      * 
      * @param domain The domain where the SHACL validator is executed. 
+	 * @param inputs The input for the validation (content and metadata for one or more RDF instances).
      * @return The result of the SHACL validator.
-     */
+	 */
     @ApiOperation(value = "Validate multiple RDF instances.", response = Output[].class, notes="Validate multiple RDF instances. " +
 			"The content for each instance can be provided either within the request as a BASE64 encoded string or remotely as a URL. " +
 			"The RDF syntax for each input can be determined in the request as can the syntax to produce each resulting SHACL validation report.")
@@ -198,7 +201,8 @@ public class ShaclController {
     
     /**
      * Validates that the domain exists.
-     * @param domain 
+     * @param domain The domain where the SHACL validator is executed as String.
+     * @return DomainConfig
      */
     private DomainConfig validateDomain(String domain) {
 		DomainConfig config = domainConfigs.getConfigForDomainName(domain);
@@ -212,15 +216,17 @@ public class ShaclController {
     
     /**
      * Executes the validation
-     * @param input Configuration of the current RDF
-     * @param domainConfig 
+     * @param inputFile The input RDF (or other) content to validate.
+     * @param input Configuration of the current RDF.
+     * @param domainConfig The domain where the SHACL validator is executed.
+     * @param remoteShaclFiles Any shapes to consider that are externally provided.
      * @return Model SHACL report
      */
-    private Model executeValidation(File inputFile, Input input, DomainConfig domainConfig, List<FileInfo> fi) {
+    private Model executeValidation(File inputFile, Input input, DomainConfig domainConfig, List<FileInfo> remoteShaclFiles) {
     	Model report = null;
     	
     	try {	
-			SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile, input.getValidationType(), input.getContentSyntax(), fi, domainConfig);
+			SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile, input.getValidationType(), input.getContentSyntax(), remoteShaclFiles, domainConfig);
 			
 			report = validator.validateAll();   
     	}catch(Exception e){
@@ -310,6 +316,20 @@ public class ShaclController {
     	String validationType = input.getValidationType();
     	
     	File contentFile = null;
+
+    	//ValidationType validation
+    	if((validationType!=null && !domainConfig.getType().contains(validationType)) || (validationType==null && domainConfig.getType().size()!=1)) {
+		    logger.error(ValidatorException.message_parameters, embeddingMethod);    			    
+			throw new ValidatorException(ValidatorException.message_parameters);
+    	}
+    	validationType = validationType==null ? domainConfig.getType().get(0) : validationType;
+    	
+    	//ExternalRules validation
+    	Boolean hasExternalShapes = domainConfig.getExternalShapes().get(validationType);
+    	if(externalRules!=null && !externalRules.isEmpty() && !hasExternalShapes) {
+		    logger.error("Loading external shape files is not supported in this domain.");
+			throw new ValidatorException("Loading external shape files is not supported in this domain.");
+    	}
     	
     	//EmbeddingMethod validation
     	if(embeddingMethod!=null) {
@@ -331,20 +351,6 @@ public class ShaclController {
     		}
     	}else {
 			contentFile = getContentFile(contentToValidate, contentSyntax);
-    	}
-    	
-    	//ValidationType validation
-    	if((validationType!=null && !domainConfig.getType().contains(validationType)) || (validationType==null && domainConfig.getType().size()!=1)) {
-		    logger.error(ValidatorException.message_parameters, embeddingMethod);    			    
-			throw new ValidatorException(ValidatorException.message_parameters);
-    	}
-    	validationType = validationType==null ? domainConfig.getType().get(0) : validationType;
-    	
-    	//ExternalRules validation
-    	Boolean hasExternalShapes = domainConfig.getExternalShapes().get(validationType);
-    	if(externalRules!=null && !externalRules.isEmpty() && !hasExternalShapes) {
-		    logger.error("Loading external shape files is not supported in this domain.");
-			throw new ValidatorException("Loading external shape files is not supported in this domain.");
     	}
     	
     	return contentFile;

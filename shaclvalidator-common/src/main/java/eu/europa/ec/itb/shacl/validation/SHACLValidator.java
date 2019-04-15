@@ -44,17 +44,29 @@ public class SHACLValidator {
     private String contentSyntax;
     private List<FileInfo> filesInfo;
 
-    public SHACLValidator(File inputFileToValidate, String validationType, String contentSyntax, List<FileInfo> fi, DomainConfig domainConfig) {
+    /**
+     * Constructor to start the SHACL validator.
+     * @param inputFileToValidate The input RDF (or other) content to validate.
+     * @param validationType The type of validation to perform.
+     * @param contentSyntax The mime type of the provided RDF content.
+     * @param remoteShaclFiles Any shapes to consider that are externally provided 
+     * @param domainConfig Domain
+     */
+    public SHACLValidator(File inputFileToValidate, String validationType, String contentSyntax, List<FileInfo> remoteShaclFiles, DomainConfig domainConfig) {
     	this.contentSyntax = contentSyntax;
     	this.inputFileToValidate = inputFileToValidate;
         this.validationType = validationType;
         this.domainConfig = domainConfig;
-        this.filesInfo = fi;
+        this.filesInfo = remoteShaclFiles;
         if (validationType == null) {
             this.validationType = domainConfig.getType().get(0);
         }
     }
     
+    /**
+     * Manager of the validation.
+     * @return The Jena model with the report.
+     */
     public Model validateAll() {
     	logger.info("Starting validation..");
         return validateAgainstShacl();
