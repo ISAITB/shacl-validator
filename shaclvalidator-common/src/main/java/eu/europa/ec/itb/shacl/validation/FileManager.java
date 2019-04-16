@@ -2,6 +2,7 @@ package eu.europa.ec.itb.shacl.validation;
 
 import eu.europa.ec.itb.shacl.ApplicationConfig;
 import eu.europa.ec.itb.shacl.DomainConfig;
+import eu.europa.ec.itb.shacl.DomainConfig.RemoteInfo;
 import eu.europa.ec.itb.shacl.DomainConfigCache;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -118,11 +119,31 @@ public class FileManager {
 			return Collections.emptyList();
 		}
 	}
+	
+	public List<FileInfo> getRemoteExternalShapes(List<RemoteInfo> remoteInfo){
+		File remoteConfigFolder = new File(config.getTmpFolder(), Long.toString(System.currentTimeMillis()));
+		
+		try {
+			for(RemoteInfo ri : remoteInfo) {
+				getURLFile(remoteConfigFolder.getAbsolutePath(), ri.getUrl());
+			}
+		} catch (IOException e) {
+			logger.error("Error to load the external SHACL file", e);
+			throw new IllegalStateException("Error to load the external SHACL file", e);
+		}
+		
+		if (remoteConfigFolder.exists()) {
+			return getLocalShaclFiles(remoteConfigFolder);
+		} else {
+			return Collections.emptyList();
+		}
+	}
 
-	public List<FileInfo> getAllShaclFiles(DomainConfig domainConfig, String validationType){
+	public List<FileInfo> getAllShaclFiles(DomainConfig domainConfig, String validationType, List<FileInfo> filesInfo){
 		List<FileInfo> shaclFiles = new ArrayList<>();
 		shaclFiles.addAll(getLocalShaclFiles(getShaclFile(domainConfig, validationType)));
 		shaclFiles.addAll(getRemoteShaclFiles(domainConfig, validationType));
+		shaclFiles.addAll(filesInfo);
 		return shaclFiles;
 	}
 

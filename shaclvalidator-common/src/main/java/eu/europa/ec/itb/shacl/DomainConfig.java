@@ -17,6 +17,7 @@ public class DomainConfig {
     private Set<ValidatorChannel> channels;
     private Map<String, ShaclFileInfo> shaclFile;
     private String defaultReportSyntax;
+    private Map<String, Boolean> externalShapes;
 
     public DomainConfig() {
         this(true);
@@ -24,6 +25,14 @@ public class DomainConfig {
 
     public DomainConfig(boolean isDefined) {
         this.isDefined = isDefined;
+    }
+    
+    public void setExternalShapes(Map<String, Boolean> externalShapes) {
+    	this.externalShapes = externalShapes;
+    }
+    
+    public Map<String, Boolean> getExternalShapes() {
+    	return this.externalShapes;
     }
 
     public String getDomain() {

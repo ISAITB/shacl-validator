@@ -2,6 +2,7 @@ package eu.europa.ec.itb.shacl.validation;
 
 import eu.europa.ec.itb.shacl.ApplicationConfig;
 import eu.europa.ec.itb.shacl.DomainConfig;
+
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.riot.Lang;
@@ -41,17 +42,31 @@ public class SHACLValidator {
     private final DomainConfig domainConfig;
     private String validationType;
     private String contentSyntax;
+    private List<FileInfo> filesInfo;
 
-    public SHACLValidator(File inputFileToValidate, String validationType, String contentSyntax, DomainConfig domainConfig) {
+    /**
+     * Constructor to start the SHACL validator.
+     * @param inputFileToValidate The input RDF (or other) content to validate.
+     * @param validationType The type of validation to perform.
+     * @param contentSyntax The mime type of the provided RDF content.
+     * @param remoteShaclFiles Any shapes to consider that are externally provided 
+     * @param domainConfig Domain
+     */
+    public SHACLValidator(File inputFileToValidate, String validationType, String contentSyntax, List<FileInfo> remoteShaclFiles, DomainConfig domainConfig) {
     	this.contentSyntax = contentSyntax;
     	this.inputFileToValidate = inputFileToValidate;
         this.validationType = validationType;
         this.domainConfig = domainConfig;
+        this.filesInfo = remoteShaclFiles;
         if (validationType == null) {
             this.validationType = domainConfig.getType().get(0);
         }
     }
     
+    /**
+     * Manager of the validation.
+     * @return The Jena model with the report.
+     */
     public Model validateAll() {
     	logger.info("Starting validation..");
         return validateAgainstShacl();
@@ -64,7 +79,7 @@ public class SHACLValidator {
     private Model validateAgainstShacl() {
         try {
             fileManager.signalValidationStart(domainConfig.getDomainName());
-            List<FileInfo> shaclFiles = fileManager.getAllShaclFiles(domainConfig, validationType);
+            List<FileInfo> shaclFiles = fileManager.getAllShaclFiles(domainConfig, validationType, filesInfo);
             if (shaclFiles.isEmpty()) {
                 logger.info("No SHACL files to validate against");
                 throw new IllegalStateException("No SHACL files to validate against");
