@@ -106,53 +106,15 @@ public class ShaclController {
 			@RequestBody Input in,
 			HttpServletRequest request
 	) {
-		String shaclResult;
 		DomainConfig domainConfig = validateDomain(domain);
-		List<FileInfo> remoteShaclFiles = new ArrayList<>();
+		String reportSyntax = getValidateReportSyntax(in.getReportSyntax(), getFirstSupportedAcceptHeader(request), domainConfig.getDefaultReportSyntax());
 
-		//Start validation of the input file
-		File inputFile = null;
-		try {
-			inputFile = getContentToValidate(in, domainConfig);
-			remoteShaclFiles = getExternalShapes(in.getExternalRules());
-			//Execute one single validation
-			Model shaclReport = executeValidation(inputFile, in, domainConfig, remoteShaclFiles);
-
-			// Consider first the report syntax requested as part of the input properties.
-			String reportSyntax = in.getReportSyntax();
-			if (reportSyntax == null) {
-				// If unspecified consider the first acceptable syntax from the Accept header.
-				reportSyntax = getFirstSupportedAcceptHeader(request);
-			}
-			if (reportSyntax == null) {
-				// No syntax specified by client - use the configuration default.
-				reportSyntax = domainConfig.getDefaultReportSyntax();
-			} else {
-				if (!validReportSyntax(reportSyntax)) {
-					// The requested syntax is invalid.
-					logger.error(ValidatorException.message_parameters, reportSyntax);
-					throw new ValidatorException(ValidatorException.message_parameters);
-				}
-			}
-
-			//Process the result according to content-type
-			shaclResult = getShaclReport(shaclReport, reportSyntax);
-			HttpHeaders responseHeaders = new HttpHeaders();
-			responseHeaders.setContentType(MediaType.parseMediaType(reportSyntax));
-			return new ResponseEntity<>(shaclResult, responseHeaders, HttpStatus.CREATED);
-		} catch (ValidatorException | NotFoundException e) {
-			throw e;
-		} catch (Exception e) {
-			logger.error("Unexpected error occurred during processing", e);
-			throw new ValidatorException(ValidatorException.message_default);
-		} finally {
-			//Remove temporary files
-			fileManager.removeContentToValidate(inputFile);
-			
-			for(FileInfo remoteShaclFile : remoteShaclFiles) {
-				fileManager.removeContentToValidate(remoteShaclFile.getFile().getParentFile());
-			}
-		}
+		//Start validation process of the Input
+		String shaclResult = executeValidationProcess(in, domainConfig, reportSyntax);
+		
+		HttpHeaders responseHeaders = new HttpHeaders();
+		responseHeaders.setContentType(MediaType.parseMediaType(reportSyntax));
+		return new ResponseEntity<>(shaclResult, responseHeaders, HttpStatus.CREATED);
 	}
 
 	private String getFirstSupportedAcceptHeader(HttpServletRequest request) {
@@ -171,6 +133,72 @@ public class ShaclController {
 	private boolean validReportSyntax(String reportSyntax) {
 		Lang lang = RDFLanguages.contentTypeToLang(reportSyntax.toLowerCase());
 		return lang != null;
+	}
+	
+	/**
+	 * Returns the report syntax of the content to validate
+	 * @param inputRS Report syntax from the Input data
+	 * @param acceptHeader Report syntax from the Header
+	 * @param defaultRS Default report syntax
+	 * @return Report syntax as string
+	 */
+	private String getValidateReportSyntax(String inputRS, String acceptHeader, String defaultRS) {
+		// Consider first the report syntax requested as part of the input properties.
+		String reportSyntax = inputRS;
+		if (reportSyntax == null) {
+			// If unspecified consider the first acceptable syntax from the Accept header.
+			reportSyntax = acceptHeader;
+		}
+		if (reportSyntax == null) {
+			// No syntax specified by client - use the configuration default.
+			reportSyntax = defaultRS;
+		} else {
+			if (!validReportSyntax(reportSyntax)) {
+				// The requested syntax is invalid.
+				logger.error(ValidatorException.message_parameters, reportSyntax);
+				throw new ValidatorException(ValidatorException.message_parameters);
+			}
+		}
+		
+		return reportSyntax;
+	}
+	
+	/**
+	 * Execute the process to validate the content
+	 * @param in The input for the validation (content and metadata for one or more RDF instances).
+	 * @param domainConfig The domain where the SHACL validator is executed. 
+	 * @param reportSyntax Report syntax of the report.
+	 * @return Report of the validation as String.
+	 */
+	private String executeValidationProcess(Input in, DomainConfig domainConfig, String reportSyntax) {
+		String shaclResult;
+		List<FileInfo> remoteShaclFiles = new ArrayList<>();
+		File inputFile = null;
+		
+		//Start validation of the input file
+		try {
+			inputFile = getContentToValidate(in, domainConfig);
+			remoteShaclFiles = getExternalShapes(in.getExternalRules());
+			//Execute one single validation
+			Model shaclReport = executeValidation(inputFile, in, domainConfig, remoteShaclFiles);
+
+			//Process the result according to content-type
+			shaclResult = getShaclReport(shaclReport, reportSyntax);
+		} catch (ValidatorException | NotFoundException e) {
+			throw e;
+		} catch (Exception e) {
+			logger.error("Unexpected error occurred during processing", e);
+			throw new ValidatorException(ValidatorException.message_default);
+		} finally {
+			//Remove temporary files
+			fileManager.removeContentToValidate(inputFile);
+			
+			for(FileInfo remoteShaclFile : remoteShaclFiles) {
+				fileManager.removeContentToValidate(remoteShaclFile.getFile().getParentFile());
+			}
+		}
+		
+		return shaclResult;
 	}
 
 	
@@ -194,9 +222,32 @@ public class ShaclController {
 			@ApiParam(required = true, name = "domain", value = "A fixed value corresponding to the specific validation domain.")
     		@PathVariable("domain") String domain,
 			@ApiParam(required = true, name = "input", value = "The input for the validation (content and metadata for one or more RDF instances).")
-			@RequestBody Input[] inputs
+			@RequestBody Input[] inputs,
+			HttpServletRequest request
 	) {
-    	throw new ValidatorException(ValidatorException.message_support);
+		DomainConfig domainConfig = validateDomain(domain);		
+		String acceptHeader = getFirstSupportedAcceptHeader(request);
+    	
+    	Output[] outputs = new Output[inputs.length];
+    	int i = 0;
+		for(Input input: inputs) {
+			Output output = new Output();			
+			String reportSyntax = getValidateReportSyntax(input.getReportSyntax(), acceptHeader, domainConfig.getDefaultReportSyntax());
+
+			//Start validation process of the Input
+			String shaclResult = executeValidationProcess(input, domainConfig, reportSyntax);
+			output.setReport(shaclResult);
+			output.setReportSyntax(reportSyntax);
+			
+			outputs[i] = output;
+			
+			i++;
+		}
+
+		
+		HttpHeaders responseHeaders = new HttpHeaders();
+		responseHeaders.setContentType(MediaType.APPLICATION_JSON);
+		return outputs;
     }
     
     /**
