@@ -274,7 +274,7 @@ public class ShaclController {
 			
 			report = validator.validateAll();   
     	}catch(Exception e){
-            logger.error("Error during the validation: " + e);
+            logger.error("Error during the validation", e);
 			throw new ValidatorException(ValidatorException.message_default);
     	}
 		

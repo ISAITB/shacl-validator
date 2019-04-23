@@ -81,7 +81,7 @@ public class SHACLValidator {
             fileManager.signalValidationStart(domainConfig.getDomainName());
             List<FileInfo> shaclFiles = fileManager.getAllShaclFiles(domainConfig, validationType, filesInfo);
             if (shaclFiles.isEmpty()) {
-                logger.info("No SHACL files to validate against");
+                logger.warn("No SHACL files to validate against");
                 throw new IllegalStateException("No SHACL files to validate against");
             } else {
                 return validateShacl(shaclFiles);
