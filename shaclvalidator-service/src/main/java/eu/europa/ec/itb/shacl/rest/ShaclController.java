@@ -2,7 +2,6 @@ package eu.europa.ec.itb.shacl.rest;
 
 import eu.europa.ec.itb.shacl.ApplicationConfig;
 import eu.europa.ec.itb.shacl.DomainConfig;
-import eu.europa.ec.itb.shacl.DomainConfig.RemoteInfo;
 import eu.europa.ec.itb.shacl.DomainConfigCache;
 import eu.europa.ec.itb.shacl.ValidatorChannel;
 import eu.europa.ec.itb.shacl.rest.errors.NotFoundException;
@@ -11,11 +10,13 @@ import eu.europa.ec.itb.shacl.rest.model.ApiInfo;
 import eu.europa.ec.itb.shacl.rest.model.Input;
 import eu.europa.ec.itb.shacl.rest.model.Output;
 import eu.europa.ec.itb.shacl.rest.model.RuleSet;
+import eu.europa.ec.itb.shacl.validation.FileContent;
 import eu.europa.ec.itb.shacl.validation.FileInfo;
 import eu.europa.ec.itb.shacl.validation.FileManager;
 import eu.europa.ec.itb.shacl.validation.SHACLValidator;
 import io.swagger.annotations.*;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFLanguages;
@@ -36,8 +37,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.nio.charset.Charset;
-import java.nio.file.Path;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Simple REST controller to allow an easy way of validating files with the correspondence shapes.
@@ -190,12 +191,8 @@ public class ShaclController {
 			logger.error("Unexpected error occurred during processing", e);
 			throw new ValidatorException(ValidatorException.message_default);
 		} finally {
-			//Remove temporary files
-			fileManager.removeContentToValidate(inputFile);
-			
-			for(FileInfo remoteShaclFile : remoteShaclFiles) {
-				fileManager.removeContentToValidate(remoteShaclFile.getFile().getParentFile());
-			}
+			// Remove temporary files
+			fileManager.removeContentToValidate(inputFile, remoteShaclFiles);
 		}
 		
 		return shaclResult;
@@ -308,25 +305,6 @@ public class ShaclController {
     }
     
     /**
-     * Get the content from URL or BASE64
-     * @param convert URL or BASE64 as String
-     * @param convertSyntax Parameter convertSyntax
-     * @return File
-     */
-    private File getContentFile(String convert, String convertSyntax) {
-    	File outputFile = null;
-    	
-    	try {
-    		outputFile = fileManager.getURLFile(convert);
-    	}catch(Exception e) {
-    		logger.info("Content is not a URL, treating as BASE64.");
-    		outputFile = getBase64File(convert, convertSyntax);
-    	}
-    	
-    	return outputFile;
-    }
-    
-    /**
      * From Base64 string to File
      * @param base64Convert Base64 as String
      * @return File
@@ -336,18 +314,12 @@ public class ShaclController {
 			logger.error(ValidatorException.message_parameters, "");
 			throw new ValidatorException(ValidatorException.message_parameters);
 		}
-
-		Path tmpPath = fileManager.getTmpPath("");
-    	try {
-            // Construct the string from its BASE64 encoded bytes.
-        	byte[] decodedBytes = Base64.getDecoder().decode(base64Convert);
-			FileUtils.writeByteArrayToFile(tmpPath.toFile(), decodedBytes);
-		} catch (IOException e) {
+		try {
+			return fileManager.getBase64File(base64Convert);
+		} catch (Exception e) {
 			logger.error("Error when transforming the Base64 into File.", e);
 			throw new ValidatorException(ValidatorException.message_contentToValidate);
 		}
-    	
-    	return tmpPath.toFile();
     }
 
     /**
@@ -373,15 +345,24 @@ public class ShaclController {
     	
     	//ExternalRules validation
     	Boolean hasExternalShapes = domainConfig.getExternalShapes().get(validationType);
-    	if(externalRules!=null && !externalRules.isEmpty() && !hasExternalShapes) {
-		    logger.error("Loading external shape files is not supported in this domain.");
-			throw new ValidatorException("Loading external shape files is not supported in this domain.");
-    	}
+    	if (externalRules!=null) {
+    		if (!externalRules.isEmpty() && !hasExternalShapes) {
+				logger.error("Loading external shape files is not supported in this domain.");
+				throw new ValidatorException("Loading external shape files is not supported in this domain.");
+			} else {
+				for (RuleSet ruleSet: externalRules) {
+					if (FileContent.embedding_BASE64.equals(ruleSet.getEmbeddingMethod()) && StringUtils.isEmpty(ruleSet.getRuleSyntax())) {
+						logger.error(ValidatorException.message_syntaxRequired, "");
+						throw new ValidatorException(ValidatorException.message_syntaxRequired);
+					}
+				}
+			}
+		}
     	
     	//EmbeddingMethod validation
     	if(embeddingMethod!=null) {
     		switch(embeddingMethod) {
-    			case Input.embedding_URL:
+    			case FileContent.embedding_URL:
     				try{
     					contentFile = fileManager.getURLFile(contentToValidate);
     				}catch(IOException e) {
@@ -389,7 +370,7 @@ public class ShaclController {
 						throw new ValidatorException(ValidatorException.message_contentToValidate);
 					}
     				break;
-    			case Input.embedding_BASE64:
+    			case FileContent.embedding_BASE64:
     			    contentFile = getBase64File(contentToValidate, contentSyntax);
     			    break;
     			default:
@@ -397,26 +378,20 @@ public class ShaclController {
     				throw new ValidatorException(ValidatorException.message_parameters);
     		}
     	}else {
-			contentFile = getContentFile(contentToValidate, contentSyntax);
+			contentFile = fileManager.getFileAsUrlOrBase64(contentToValidate);
     	}
     	
     	return contentFile;
     }
     
     private List<FileInfo> getExternalShapes(List<RuleSet> externalRules) {
-		List<RemoteInfo> shaclFiles = new ArrayList<>();
-		
-		if(externalRules!=null) {
-	    	for(RuleSet externalRule : externalRules) {
-	    		RemoteInfo fileInfo = new RemoteInfo();
-	    		fileInfo.setType(externalRule.getEmbeddingMethod());
-	    		fileInfo.setUrl(externalRule.getRuleSet());
-	    		
-	    		shaclFiles.add(fileInfo);
-	    	}
+		List<FileInfo> shaclFiles;
+		if (externalRules != null) {
+			shaclFiles = fileManager.getRemoteExternalShapes(externalRules.stream().map(RuleSet::toFileContent).collect(Collectors.toList()));
+		} else {
+			shaclFiles = Collections.emptyList();
 		}
-
-    	return fileManager.getRemoteExternalShapes(shaclFiles);
+    	return shaclFiles;
     }
     
 	@ApiOperation(hidden = true, value="")

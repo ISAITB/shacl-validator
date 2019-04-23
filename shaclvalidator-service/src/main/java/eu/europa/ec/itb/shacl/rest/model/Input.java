@@ -6,13 +6,13 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 
+import static eu.europa.ec.itb.shacl.validation.FileContent.embedding_BASE64;
+import static eu.europa.ec.itb.shacl.validation.FileContent.embedding_URL;
+
 @JsonIgnoreProperties(ignoreUnknown = true)
 @ApiModel(description = "The content and metadata specific to input content that is to be validated.")
 public class Input {
 
-    public static final String embedding_URL     	= "URL" ;
-    public static final String embedding_BASE64		= "BASE64" ;
-    
     @ApiModelProperty(required = true, notes = "The RDF content to validate.")
 	private String contentToValidate;
     @ApiModelProperty(notes = "The mime type of the provided RDF content (e.g. \"application/rdf+xml\", \"application/ld+json\", \"text/turtle\"). If not provided the type is determined from the provided content (if possible).")
