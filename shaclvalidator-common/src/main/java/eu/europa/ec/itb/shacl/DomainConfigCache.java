@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 
 import eu.europa.ec.itb.shacl.DomainConfig.ShaclFileInfo;
 import eu.europa.ec.itb.shacl.DomainConfig.RemoteInfo;
+import eu.europa.ec.itb.shacl.ApplicationConfig;
 
 import javax.annotation.PostConstruct;
 import java.io.File;
@@ -44,7 +45,7 @@ public class DomainConfigCache {
         List<DomainConfig> configs = new ArrayList<>();
         for (String domain: appConfig.getDomain()) {
             DomainConfig domainConfig = getConfigForDomain(domain);
-            if (domainConfig != null) {
+            if (domainConfig != null && domainConfig.isDefined()) {
                 configs.add(domainConfig);
             }
         }
@@ -86,6 +87,7 @@ public class DomainConfigCache {
                 domainConfig.setChannels(Arrays.stream(StringUtils.split(config.getString("validator.channels", ValidatorChannel.REST_API.getName()), ',')).map(String::trim).map(ValidatorChannel::byName).collect(Collectors.toSet()));
                 domainConfig.setShaclFile(parseShaclMap("validator.shaclFile", config, domainConfig.getType()));
                 domainConfig.setDefaultReportSyntax(config.getString("validator.defaultReportSyntax", appConfig.getDefaultReportSyntax()));
+                domainConfig.setExternalShapes(parseBooleanMap("validator.externalShapes", config, domainConfig.getType()));
                 domainConfigs.put(domain, domainConfig);
                 logger.info("Loaded configuration for domain ["+domain+"]");
             }
@@ -123,6 +125,23 @@ public class DomainConfigCache {
         }
     	
     	return map;
+    }
+
+    private Map<String, Boolean> parseBooleanMap(String key, CompositeConfiguration config, List<String> types) {
+        Map<String, Boolean> map = new HashMap<>();
+        for (String type: types) {
+            boolean value = false;
+            
+            try {
+            	value = config.getBoolean(key+"."+type);
+            }catch(Exception e){
+            	value = false;
+            }
+            finally {
+                map.put(type, value);
+            }
+        }
+        return map;
     }
 
     private Map<String, String> parseMap(String key, CompositeConfiguration config, List<String> types) {

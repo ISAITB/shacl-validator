@@ -10,10 +10,13 @@ import eu.europa.ec.itb.shacl.rest.model.ApiInfo;
 import eu.europa.ec.itb.shacl.rest.model.Input;
 import eu.europa.ec.itb.shacl.rest.model.Output;
 import eu.europa.ec.itb.shacl.rest.model.RuleSet;
+import eu.europa.ec.itb.shacl.validation.FileContent;
+import eu.europa.ec.itb.shacl.validation.FileInfo;
 import eu.europa.ec.itb.shacl.validation.FileManager;
 import eu.europa.ec.itb.shacl.validation.SHACLValidator;
 import io.swagger.annotations.*;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFLanguages;
@@ -34,8 +37,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.nio.charset.Charset;
-import java.nio.file.Path;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Simple REST controller to allow an easy way of validating files with the correspondence shapes.
@@ -79,12 +82,14 @@ public class ShaclController {
 		DomainConfig domainConfig = validateDomain(domain);
 		return ApiInfo.fromDomainConfig(domainConfig);
 	}
-
+	
 	/**
 	 * POST service to receive a single RDF instance to validate
-	 *
-	 * @param domain The domain where the SHACL validator is executed.
-	 * @return The result of the SHACL validator.
+     * 
+     * @param domain The domain where the SHACL validator is executed. 
+	 * @param in The input for the validation.
+	 * @param request HttpServletRequest
+     * @return The result of the SHACL validator.
 	 */
 	@ApiOperation(value = "Validate one RDF instance.", response = String.class, notes="Validate a single RDF instance. " +
 			"The content can be provided either within the request as a BASE64 encoded string or remotely as a URL. The RDF syntax for the input can be " +
@@ -102,47 +107,15 @@ public class ShaclController {
 			@RequestBody Input in,
 			HttpServletRequest request
 	) {
-		String shaclResult;
 		DomainConfig domainConfig = validateDomain(domain);
+		String reportSyntax = getValidateReportSyntax(in.getReportSyntax(), getFirstSupportedAcceptHeader(request), domainConfig.getDefaultReportSyntax());
 
-		//Start validation of the input file
-		File inputFile = null;
-		try {
-			inputFile = getContentToValidate(in);
-			//Execute one single validation
-			Model shaclReport = executeValidation(inputFile, in, domainConfig);
-
-			// Consider first the report syntax requested as part of the input properties.
-			String reportSyntax = in.getReportSyntax();
-			if (reportSyntax == null) {
-				// If unspecified consider the first acceptable syntax from the Accept header.
-				reportSyntax = getFirstSupportedAcceptHeader(request);
-			}
-			if (reportSyntax == null) {
-				// No syntax specified by client - use the configuration default.
-				reportSyntax = domainConfig.getDefaultReportSyntax();
-			} else {
-				if (!validReportSyntax(reportSyntax)) {
-					// The requested syntax is invalid.
-					logger.error(ValidatorException.message_parameters, reportSyntax);
-					throw new ValidatorException(ValidatorException.message_parameters);
-				}
-			}
-
-			//Process the result according to content-type
-			shaclResult = getShaclReport(shaclReport, reportSyntax);
-			HttpHeaders responseHeaders = new HttpHeaders();
-			responseHeaders.setContentType(MediaType.parseMediaType(reportSyntax));
-			return new ResponseEntity<>(shaclResult, responseHeaders, HttpStatus.OK);
-		} catch (ValidatorException | NotFoundException e) {
-			throw e;
-		} catch (Exception e) {
-			logger.error("Unexpected error occurred during processing", e);
-			throw new ValidatorException(ValidatorException.message_default);
-		} finally {
-			//Remove temporary files
-			fileManager.removeContentToValidate(inputFile);
-		}
+		//Start validation process of the Input
+		String shaclResult = executeValidationProcess(in, domainConfig, reportSyntax);
+		
+		HttpHeaders responseHeaders = new HttpHeaders();
+		responseHeaders.setContentType(MediaType.parseMediaType(reportSyntax));
+		return new ResponseEntity<>(shaclResult, responseHeaders, HttpStatus.OK);
 	}
 
 	private String getFirstSupportedAcceptHeader(HttpServletRequest request) {
@@ -162,14 +135,77 @@ public class ShaclController {
 		Lang lang = RDFLanguages.contentTypeToLang(reportSyntax.toLowerCase());
 		return lang != null;
 	}
+	
+	/**
+	 * Returns the report syntax of the content to validate
+	 * @param inputRS Report syntax from the Input data
+	 * @param acceptHeader Report syntax from the Header
+	 * @param defaultRS Default report syntax
+	 * @return Report syntax as string
+	 */
+	private String getValidateReportSyntax(String inputRS, String acceptHeader, String defaultRS) {
+		// Consider first the report syntax requested as part of the input properties.
+		String reportSyntax = inputRS;
+		if (reportSyntax == null) {
+			// If unspecified consider the first acceptable syntax from the Accept header.
+			reportSyntax = acceptHeader;
+		}
+		if (reportSyntax == null) {
+			// No syntax specified by client - use the configuration default.
+			reportSyntax = defaultRS;
+		} else {
+			if (!validReportSyntax(reportSyntax)) {
+				// The requested syntax is invalid.
+				logger.error(ValidatorException.message_parameters, reportSyntax);
+				throw new ValidatorException(ValidatorException.message_parameters);
+			}
+		}
+		
+		return reportSyntax;
+	}
+	
+	/**
+	 * Execute the process to validate the content
+	 * @param in The input for the validation (content and metadata for one or more RDF instances).
+	 * @param domainConfig The domain where the SHACL validator is executed. 
+	 * @param reportSyntax Report syntax of the report.
+	 * @return Report of the validation as String.
+	 */
+	private String executeValidationProcess(Input in, DomainConfig domainConfig, String reportSyntax) {
+		String shaclResult;
+		List<FileInfo> remoteShaclFiles = new ArrayList<>();
+		File inputFile = null;
+		
+		//Start validation of the input file
+		try {
+			inputFile = getContentToValidate(in, domainConfig);
+			remoteShaclFiles = getExternalShapes(in.getExternalRules());
+			//Execute one single validation
+			Model shaclReport = executeValidation(inputFile, in, domainConfig, remoteShaclFiles);
 
-    
-    /**
+			//Process the result according to content-type
+			shaclResult = getShaclReport(shaclReport, reportSyntax);
+		} catch (ValidatorException | NotFoundException e) {
+			throw e;
+		} catch (Exception e) {
+			logger.error("Unexpected error occurred during processing", e);
+			throw new ValidatorException(ValidatorException.message_default);
+		} finally {
+			// Remove temporary files
+			fileManager.removeContentToValidate(inputFile, remoteShaclFiles);
+		}
+		
+		return shaclResult;
+	}
+
+	
+	/**
      * POST service to receive multiple RDF instances to validate
      * 
      * @param domain The domain where the SHACL validator is executed. 
+	 * @param inputs The input for the validation (content and metadata for one or more RDF instances).
      * @return The result of the SHACL validator.
-     */
+	 */
     @ApiOperation(value = "Validate multiple RDF instances.", response = Output[].class, notes="Validate multiple RDF instances. " +
 			"The content for each instance can be provided either within the request as a BASE64 encoded string or remotely as a URL. " +
 			"The RDF syntax for each input can be determined in the request as can the syntax to produce each resulting SHACL validation report.")
@@ -183,14 +219,34 @@ public class ShaclController {
 			@ApiParam(required = true, name = "domain", value = "A fixed value corresponding to the specific validation domain.")
     		@PathVariable("domain") String domain,
 			@ApiParam(required = true, name = "input", value = "The input for the validation (content and metadata for one or more RDF instances).")
-			@RequestBody Input[] inputs
+			@RequestBody Input[] inputs,
+			HttpServletRequest request
 	) {
-    	throw new ValidatorException(ValidatorException.message_support);
+		DomainConfig domainConfig = validateDomain(domain);		
+		String acceptHeader = getFirstSupportedAcceptHeader(request);
+    	
+    	Output[] outputs = new Output[inputs.length];
+    	int i = 0;
+		for(Input input: inputs) {
+			Output output = new Output();			
+			String reportSyntax = getValidateReportSyntax(input.getReportSyntax(), acceptHeader, domainConfig.getDefaultReportSyntax());
+
+			//Start validation process of the Input
+			String shaclResult = executeValidationProcess(input, domainConfig, reportSyntax);
+			output.setReport(Base64.getEncoder().encodeToString(shaclResult.getBytes()));
+			output.setReportSyntax(reportSyntax);
+			
+			outputs[i] = output;
+			
+			i++;
+		}
+		return outputs;
     }
     
     /**
      * Validates that the domain exists.
-     * @param domain 
+     * @param domain The domain where the SHACL validator is executed as String.
+     * @return DomainConfig
      */
     private DomainConfig validateDomain(String domain) {
 		DomainConfig config = domainConfigs.getConfigForDomainName(domain);
@@ -204,19 +260,21 @@ public class ShaclController {
     
     /**
      * Executes the validation
-     * @param input Configuration of the current RDF
-     * @param domainConfig 
+     * @param inputFile The input RDF (or other) content to validate.
+     * @param input Configuration of the current RDF.
+     * @param domainConfig The domain where the SHACL validator is executed.
+     * @param remoteShaclFiles Any shapes to consider that are externally provided.
      * @return Model SHACL report
      */
-    private Model executeValidation(File inputFile, Input input, DomainConfig domainConfig) {
+    private Model executeValidation(File inputFile, Input input, DomainConfig domainConfig, List<FileInfo> remoteShaclFiles) {
     	Model report = null;
     	
     	try {	
-			SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile, input.getValidationType(), input.getContentSyntax(), domainConfig);
+			SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile, input.getValidationType(), input.getContentSyntax(), remoteShaclFiles, domainConfig);
 			
 			report = validator.validateAll();   
     	}catch(Exception e){
-            logger.error("Error during the validation: " + e);
+            logger.error("Error during the validation", e);
 			throw new ValidatorException(ValidatorException.message_default);
     	}
 		
@@ -247,25 +305,6 @@ public class ShaclController {
     }
     
     /**
-     * Get the content from URL or BASE64
-     * @param convert URL or BASE64 as String
-     * @param convertSyntax Parameter convertSyntax
-     * @return File
-     */
-    private File getContentFile(String convert, String convertSyntax) {
-    	File outputFile = null;
-    	
-    	try {
-    		outputFile = fileManager.getURLFile(convert);
-    	}catch(Exception e) {
-    		logger.info("Content is not a URL, treating as BASE64.");
-    		outputFile = getBase64File(convert, convertSyntax);
-    	}
-    	
-    	return outputFile;
-    }
-    
-    /**
      * From Base64 string to File
      * @param base64Convert Base64 as String
      * @return File
@@ -275,18 +314,12 @@ public class ShaclController {
 			logger.error(ValidatorException.message_parameters, "");
 			throw new ValidatorException(ValidatorException.message_parameters);
 		}
-
-		Path tmpPath = fileManager.getTmpPath("");
-    	try {
-            // Construct the string from its BASE64 encoded bytes.
-        	byte[] decodedBytes = Base64.getDecoder().decode(base64Convert);
-			FileUtils.writeByteArrayToFile(tmpPath.toFile(), decodedBytes);
-		} catch (IOException e) {
+		try {
+			return fileManager.getBase64File(base64Convert);
+		} catch (Exception e) {
 			logger.error("Error when transforming the Base64 into File.", e);
 			throw new ValidatorException(ValidatorException.message_contentToValidate);
 		}
-    	
-    	return tmpPath.toFile();
     }
 
     /**
@@ -294,18 +327,42 @@ public class ShaclController {
      * @param input JSON send via REST API
      * @return File to validate
      */
-    private File getContentToValidate(Input input) {
+    private File getContentToValidate(Input input, DomainConfig domainConfig) {
     	String embeddingMethod = input.getEmbeddingMethod();
     	String contentToValidate = input.getContentToValidate();
     	List<RuleSet> externalRules = input.getExternalRules();
     	String contentSyntax = input.getContentSyntax();
+    	String validationType = input.getValidationType();
     	
     	File contentFile = null;
+
+    	//ValidationType validation
+    	if((validationType!=null && !domainConfig.getType().contains(validationType)) || (validationType==null && domainConfig.getType().size()!=1)) {
+		    logger.error(ValidatorException.message_parameters, embeddingMethod);    			    
+			throw new ValidatorException(ValidatorException.message_parameters);
+    	}
+    	validationType = validationType==null ? domainConfig.getType().get(0) : validationType;
+    	
+    	//ExternalRules validation
+    	Boolean hasExternalShapes = domainConfig.getExternalShapes().get(validationType);
+    	if (externalRules!=null) {
+    		if (!externalRules.isEmpty() && !hasExternalShapes) {
+				logger.error("Loading external shape files is not supported in this domain.");
+				throw new ValidatorException("Loading external shape files is not supported in this domain.");
+			} else {
+				for (RuleSet ruleSet: externalRules) {
+					if (FileContent.embedding_BASE64.equals(ruleSet.getEmbeddingMethod()) && StringUtils.isEmpty(ruleSet.getRuleSyntax())) {
+						logger.error(ValidatorException.message_syntaxRequired, "");
+						throw new ValidatorException(ValidatorException.message_syntaxRequired);
+					}
+				}
+			}
+		}
     	
     	//EmbeddingMethod validation
     	if(embeddingMethod!=null) {
     		switch(embeddingMethod) {
-    			case Input.embedding_URL:
+    			case FileContent.embedding_URL:
     				try{
     					contentFile = fileManager.getURLFile(contentToValidate);
     				}catch(IOException e) {
@@ -313,7 +370,7 @@ public class ShaclController {
 						throw new ValidatorException(ValidatorException.message_contentToValidate);
 					}
     				break;
-    			case Input.embedding_BASE64:
+    			case FileContent.embedding_BASE64:
     			    contentFile = getBase64File(contentToValidate, contentSyntax);
     			    break;
     			default:
@@ -321,18 +378,22 @@ public class ShaclController {
     				throw new ValidatorException(ValidatorException.message_parameters);
     		}
     	}else {
-			contentFile = getContentFile(contentToValidate, contentSyntax);
-    	}
-    	
-    	//ExternalRules validation
-    	if(externalRules!=null) {
-		    logger.error("Feature not supported.");
-			throw new ValidatorException(ValidatorException.message_support);
+			contentFile = fileManager.getFileAsUrlOrBase64(contentToValidate);
     	}
     	
     	return contentFile;
     }
-
+    
+    private List<FileInfo> getExternalShapes(List<RuleSet> externalRules) {
+		List<FileInfo> shaclFiles;
+		if (externalRules != null) {
+			shaclFiles = fileManager.getRemoteExternalShapes(externalRules.stream().map(RuleSet::toFileContent).collect(Collectors.toList()));
+		} else {
+			shaclFiles = Collections.emptyList();
+		}
+    	return shaclFiles;
+    }
+    
 	@ApiOperation(hidden = true, value="")
 	@RequestMapping(value = "/{domain}/api", method = RequestMethod.GET, produces = "application/ld+json")
 	public ResponseEntity<String> hydraApi(@PathVariable String domain) throws IOException {

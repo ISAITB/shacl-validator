@@ -1,7 +1,8 @@
 package eu.europa.ec.itb.shacl.ws;
 
+import javax.annotation.PostConstruct;
+
 import org.apache.cxf.Bus;
-import org.apache.cxf.jaxws.EndpointImpl;
 import org.apache.cxf.transport.servlet.CXFServlet;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.servlet.ServletRegistrationBean;
@@ -12,9 +13,6 @@ import org.springframework.context.annotation.Configuration;
 import eu.europa.ec.itb.shacl.DomainConfig;
 import eu.europa.ec.itb.shacl.DomainConfigCache;
 import eu.europa.ec.itb.shacl.ValidatorChannel;
-
-import javax.annotation.PostConstruct;
-import javax.xml.namespace.QName;
 
 /**
  * Configuration class responsible for creating the Spring beans required by the service.

@@ -22,10 +22,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -42,6 +39,10 @@ public class FileManager {
 	private DomainConfigCache domainConfigCache;
 
 	private ConcurrentHashMap<String, ReadWriteLock> externalDomainFileCacheLocks = new ConcurrentHashMap<>();
+
+	private File getURLFile(File targetFolder, String URLConvert) throws IOException {
+		return getURLFile(targetFolder.getAbsolutePath(), URLConvert);
+	}
 
 	private File getURLFile(String targetFolder, String URLConvert) throws IOException {
 		URL url = new URL(URLConvert);
@@ -88,10 +89,16 @@ public class FileManager {
     /**
      * Remove the validated file
      */
-    public void removeContentToValidate(File inputFile) {
+    public void removeContentToValidate(File inputFile, List<FileInfo> externalShaclFiles) {
+    	// Remove content that was validated.
     	if (inputFile != null && inputFile.exists() && inputFile.isFile()) {
             FileUtils.deleteQuietly(inputFile);
         }
+    	// Remove externally provided SHACL files.
+		if (externalShaclFiles != null && !externalShaclFiles.isEmpty()) {
+			// All such files are stored under a single root folder (per validation run).
+			FileUtils.deleteQuietly(externalShaclFiles.get(0).getFile().getParentFile());
+		}
     }
 
     private File getTempFolder() {
@@ -110,6 +117,53 @@ public class FileManager {
     	return new File(getTempFolder(), "remote_config");
 	}
 
+	private File getBase64File(File targetFolder, String base64Convert) {
+		if (targetFolder == null) {
+			targetFolder = getTempFolder();
+		}
+		File tempFile;
+		try {
+			tempFile = getFilePath(targetFolder.getAbsolutePath(), "").toFile();
+			// Construct the string from its BASE64 encoded bytes.
+			byte[] decodedBytes = Base64.getDecoder().decode(base64Convert);
+			FileUtils.writeByteArrayToFile(tempFile, decodedBytes);
+		} catch (IOException e) {
+			throw new IllegalStateException("Error when transforming the Base64 into File.", e);
+		}
+		return tempFile;
+	}
+
+	/**
+	 * From Base64 string to File
+	 * @param base64Convert Base64 as String
+	 * @return File
+	 */
+	public File getBase64File(String base64Convert) {
+		return getBase64File(null, base64Convert);
+	}
+
+	private File getFileAsUrlOrBase64(File targetFolder, String content) {
+		if (targetFolder == null) {
+			targetFolder = getTempFolder();
+		}
+		File outputFile;
+		try {
+			outputFile = getURLFile(targetFolder, content);
+		}catch(Exception e) {
+			outputFile = getBase64File(targetFolder, content);
+		}
+		return outputFile;
+	}
+
+	/**
+	 * Get the content from URL or BASE64
+	 * @param content URL or BASE64 as String
+	 * @return File
+	 */
+	public File getFileAsUrlOrBase64(String content) {
+		return getFileAsUrlOrBase64(null, content);
+	}
+
 	private List<FileInfo> getRemoteShaclFiles(DomainConfig domainConfig, String validationType) {
 		File remoteConfigFolder = new File(new File(getRemoteFileCacheFolder(), domainConfig.getDomainName()), validationType);
 		if (remoteConfigFolder.exists()) {
@@ -119,10 +173,45 @@ public class FileManager {
 		}
 	}
 
-	public List<FileInfo> getAllShaclFiles(DomainConfig domainConfig, String validationType){
+	private File getExternalShapeFolder() {
+		return new File(getTempFolder(), "external_config");
+	}
+
+	public List<FileInfo> getRemoteExternalShapes(List<FileContent> externalRules) {
+		List<FileInfo> externalShapeFiles = new ArrayList<>();
+    	if (externalRules != null && !externalRules.isEmpty()) {
+    		File externalShapeFolder = new File(getExternalShapeFolder(), UUID.randomUUID().toString());
+			for (FileContent externalRule: externalRules) {
+				File contentFile;
+				if (externalRule.getEmbeddingMethod() != null) {
+					switch(externalRule.getEmbeddingMethod()) {
+						case FileContent.embedding_URL:
+							try{
+								contentFile = getURLFile(externalShapeFolder, externalRule.getContent());
+							} catch(IOException e) {
+								throw new IllegalArgumentException("Error when transforming the URL into File.", e);
+							}
+							break;
+						case FileContent.embedding_BASE64:
+							contentFile = getBase64File(externalShapeFolder, externalRule.getContent());
+							break;
+						default:
+							throw new IllegalArgumentException("Unexpected embedding method ["+externalRule.getEmbeddingMethod()+"]");
+					}
+				} else {
+					contentFile = getFileAsUrlOrBase64(externalShapeFolder, externalRule.getContent());
+				}
+				externalShapeFiles.add(new FileInfo(contentFile, getContentLang(contentFile, externalRule.getSyntax())));
+			}
+		}
+		return externalShapeFiles;
+	}
+
+	public List<FileInfo> getAllShaclFiles(DomainConfig domainConfig, String validationType, List<FileInfo> filesInfo){
 		List<FileInfo> shaclFiles = new ArrayList<>();
 		shaclFiles.addAll(getLocalShaclFiles(getShaclFile(domainConfig, validationType)));
 		shaclFiles.addAll(getRemoteShaclFiles(domainConfig, validationType));
+		shaclFiles.addAll(filesInfo);
 		return shaclFiles;
 	}
 
