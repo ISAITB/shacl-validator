@@ -45,7 +45,7 @@ public class DomainConfigCache {
         List<DomainConfig> configs = new ArrayList<>();
         for (String domain: appConfig.getDomain()) {
             DomainConfig domainConfig = getConfigForDomain(domain);
-            if (domainConfig != null) {
+            if (domainConfig != null && domainConfig.isDefined()) {
                 configs.add(domainConfig);
             }
         }
