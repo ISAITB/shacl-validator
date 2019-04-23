@@ -120,6 +120,7 @@ The properties here define how a specific validation domain is configured. They 
 | `validator.shaclFile.XYZ` | The SHACL files loaded for a given validation type (added as a postfix). This can be a file or folder (must never start with a '/'). | String | - |
 | `validator.shaclFile.XYZ.remote.A.url` | The SHACL files loaded for a given validation type (added as a postfix) as URL. | String | - |
 | `validator.shaclFile.XYZ.remote.A.type` | The content syntax (mime type) of the SHACL files loaded for a given validation type (added as a postfix). | String | - |
+| `validator.externalShapes.XYZ` | External shapes are allowed for a given validation type (added as a postfix) as Boolean. | Boolean | `false` |
 | `validator.includeTestDefinition` | Whether tests should be included in the resulting reports. | Boolean | `true` |
 | `validator.reportsOrdered` | Whether the reports are ordered. | Boolean | `false` |
 | `validator.defaultReportSyntax ` | The default report syntax (mime type) if none is requested (otherwise the global default applies) | `application/rdf+xml`
