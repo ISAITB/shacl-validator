@@ -86,7 +86,7 @@ public class ShaclController {
 	 * POST service to receive a single RDF instance to validate
      * 
      * @param domain The domain where the SHACL validator is executed. 
-	 * @param inputs The input for the validation (content and metadata for one or more RDF instances).
+	 * @param in The input for the validation.
 	 * @param request HttpServletRequest
      * @return The result of the SHACL validator.
 	 */
@@ -114,7 +114,7 @@ public class ShaclController {
 		
 		HttpHeaders responseHeaders = new HttpHeaders();
 		responseHeaders.setContentType(MediaType.parseMediaType(reportSyntax));
-		return new ResponseEntity<>(shaclResult, responseHeaders, HttpStatus.CREATED);
+		return new ResponseEntity<>(shaclResult, responseHeaders, HttpStatus.OK);
 	}
 
 	private String getFirstSupportedAcceptHeader(HttpServletRequest request) {
@@ -236,17 +236,13 @@ public class ShaclController {
 
 			//Start validation process of the Input
 			String shaclResult = executeValidationProcess(input, domainConfig, reportSyntax);
-			output.setReport(shaclResult);
+			output.setReport(Base64.getEncoder().encodeToString(shaclResult.getBytes()));
 			output.setReportSyntax(reportSyntax);
 			
 			outputs[i] = output;
 			
 			i++;
 		}
-
-		
-		HttpHeaders responseHeaders = new HttpHeaders();
-		responseHeaders.setContentType(MediaType.APPLICATION_JSON);
 		return outputs;
     }
     
