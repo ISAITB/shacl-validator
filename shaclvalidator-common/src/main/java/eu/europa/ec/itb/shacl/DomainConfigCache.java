@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import eu.europa.ec.itb.shacl.DomainConfig.ShaclFileInfo;
+import eu.europa.ec.itb.shacl.validation.ValidationConstants;
 import eu.europa.ec.itb.shacl.DomainConfig.RemoteInfo;
 import eu.europa.ec.itb.shacl.ApplicationConfig;
 
@@ -88,6 +89,8 @@ public class DomainConfigCache {
                 domainConfig.setShaclFile(parseShaclMap("validator.shaclFile", config, domainConfig.getType()));
                 domainConfig.setDefaultReportSyntax(config.getString("validator.defaultReportSyntax", appConfig.getDefaultReportSyntax()));
                 domainConfig.setExternalShapes(parseBooleanMap("validator.externalShapes", config, domainConfig.getType()));
+                domainConfig.setWebServiceId(config.getString("validator.webServiceId", "ValidatorService"));
+                domainConfig.setWebServiceDescription(parseMap("validator.webServiceDescription", config, Arrays.asList(ValidationConstants.INPUT_CONTENT, ValidationConstants.INPUT_SYNTAX, ValidationConstants.INPUT_VALIDATION_TYPE, ValidationConstants.INPUT_EXTERNAL_RULES)));
                 domainConfigs.put(domain, domainConfig);
                 logger.info("Loaded configuration for domain ["+domain+"]");
             }

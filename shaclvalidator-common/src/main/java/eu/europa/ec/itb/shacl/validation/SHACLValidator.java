@@ -1,7 +1,10 @@
 package eu.europa.ec.itb.shacl.validation;
 
-import eu.europa.ec.itb.shacl.ApplicationConfig;
-import eu.europa.ec.itb.shacl.DomainConfig;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.List;
 
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.Resource;
@@ -15,11 +18,7 @@ import org.springframework.stereotype.Component;
 import org.topbraid.jenax.util.JenaUtil;
 import org.topbraid.shacl.validation.ValidationUtil;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.List;
+import eu.europa.ec.itb.shacl.DomainConfig;
 
 /**
  * 
@@ -33,9 +32,6 @@ public class SHACLValidator {
     private static final Logger logger = LoggerFactory.getLogger(SHACLValidator.class);
 
     @Autowired
-    private ApplicationConfig config;
-
-    @Autowired
     private FileManager fileManager;
 
     private File inputFileToValidate;
@@ -43,6 +39,7 @@ public class SHACLValidator {
     private String validationType;
     private String contentSyntax;
     private List<FileInfo> filesInfo;
+    private Model aggregatedShapes;
 
     /**
      * Constructor to start the SHACL validator.
@@ -101,11 +98,11 @@ public class SHACLValidator {
     	
     	try {
 			// Get data to validate from file
-            Model shaclModel = getShapesModel(shaclFiles);
-	        Model dataModel = getDataModel(inputFileToValidate, shaclModel);
+    		this.aggregatedShapes = getShapesModel(shaclFiles);
+	        Model dataModel = getDataModel(inputFileToValidate, this.aggregatedShapes);
 	        
 			// Perform the validation of data, using the shapes model. Do not validate any shapes inside the data model.
-			Resource resource = ValidationUtil.validateModel(dataModel, shaclModel, false);		
+			Resource resource = ValidationUtil.validateModel(dataModel, this.aggregatedShapes, false);		
 			reportModel = resource.getModel();
 			reportModel.setNsPrefix("sh", "http://www.w3.org/ns/shacl#");
 
@@ -175,5 +172,9 @@ public class SHACLValidator {
         }
 		return dataModel;
 	}
+    
+    public Model getAggregatedShapes() {
+    	return this.aggregatedShapes;
+    }
 
 }
