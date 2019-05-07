@@ -1,8 +1,10 @@
-package eu.europa.ec.itb.shacl.ws;
+package eu.europa.ec.itb.shacl.gitb;
 
 import javax.annotation.PostConstruct;
+import javax.xml.namespace.QName;
 
 import org.apache.cxf.Bus;
+import org.apache.cxf.jaxws.EndpointImpl;
 import org.apache.cxf.transport.servlet.CXFServlet;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.servlet.ServletRegistrationBean;
@@ -31,7 +33,6 @@ public class ValidationServiceConfig {
     @Autowired
     private DomainConfigCache domainConfigCache;
 
-
     @Bean
     public ServletRegistrationBean servletRegistrationBean(ApplicationContext context) {
         ServletRegistrationBean<CXFServlet> srb = new ServletRegistrationBean<>(new CXFServlet(), "/"+ CXF_ROOT +"/*");
@@ -43,7 +44,10 @@ public class ValidationServiceConfig {
     public void publishValidationServices() {
     	for (DomainConfig domainConfig: domainConfigCache.getAllDomainConfigurations()) {
             if (domainConfig.getChannels().contains(ValidatorChannel.SOAP_API)) {
-                throw new IllegalStateException("Not implemented yet");
+                EndpointImpl endpoint = new EndpointImpl(cxfBus, applicationContext.getBean(ValidationServiceImpl.class, domainConfig));
+                endpoint.setEndpointName(new QName("http://www.gitb.com/vs/v1/", "ValidationServicePort"));
+                endpoint.setServiceName(new QName("http://www.gitb.com/vs/v1/", "ValidationService"));
+                endpoint.publish("/"+domainConfig.getDomain()+"/validation");
             }
     	}
     }

@@ -5,7 +5,11 @@ package eu.europa.ec.itb.shacl.validation;
  */
 public class ValidationConstants {
 
-    public static String INPUT_TYPE = "type";
-    public static String INPUT_XML = "xml";
+    public static String INPUT_CONTENT = "contentToValidate";
+    public static String INPUT_SYNTAX = "contentSyntax";
+    public static String INPUT_VALIDATION_TYPE = "validationType";
+    public static String INPUT_EXTERNAL_RULES = "externalRules";
+    public static String INPUT_RULE_SET = "ruleSet";
+    public static String INPUT_RULE_SYNTAX = "ruleSyntax";
 
 }

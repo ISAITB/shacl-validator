@@ -1,5 +1,6 @@
 package eu.europa.ec.itb.shacl.util;
 
+import org.apache.jena.rdf.model.Model;
 import org.springframework.util.StreamUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -8,6 +9,10 @@ import org.xml.sax.Attributes;
 import org.xml.sax.Locator;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
+
+import com.gitb.tr.TAR;
+
+import eu.europa.ec.itb.shacl.validation.SHACLReportHandler;
 
 import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeFactory;
@@ -24,6 +29,8 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.GregorianCalendar;
 import java.util.Stack;
 
@@ -137,4 +144,16 @@ public class Utils {
         return new ByteArrayInputStream(inputBytes);
     }
 
+    public static TAR getTAR(Model report, Path inputFilePath, String contentSyntax, Model aggregatedShapes) {    	
+    	//SHACL report: from Model to TAR
+		try {
+			String contentToValidateString = new String(Files.readAllBytes(inputFilePath));
+	    	
+	    	SHACLReportHandler reportHandler = new SHACLReportHandler(contentToValidateString, contentSyntax, aggregatedShapes, report);
+	    	
+	    	return reportHandler.createReport();
+		} catch (IOException e) {
+            throw new IllegalStateException("Error during the transformation of the report to TAR");
+		}
+    }
 }
