@@ -294,11 +294,11 @@ public class ValidationServiceImpl implements ValidationService {
 	    	if(!StringUtils.isEmpty(ruleFileContent.getContent())) filesContent.add(ruleFileContent);
 	    	
 	    	for(AnyContent content : listRuleSets.getItem()) {
-	    		//for(AnyContent contentItem : content.getItem()) {
-		    		FileContent fileContent = getFileContent(content);
-		    		
-			    	if(!StringUtils.isEmpty(fileContent.getContent())) filesContent.add(fileContent);
-	    		//}
+				FileContent fileContent = getFileContent(content);
+
+				if (!StringUtils.isEmpty(fileContent.getContent())) {
+					filesContent.add(fileContent);
+				}
 	    	}
 	    	
 	    	return getExternalShapes(filesContent);

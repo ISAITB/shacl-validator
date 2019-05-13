@@ -1,5 +1,8 @@
 package eu.europa.ec.itb.shacl;
 
+import eu.europa.ec.itb.shacl.DomainConfig.RemoteInfo;
+import eu.europa.ec.itb.shacl.DomainConfig.ShaclFileInfo;
+import eu.europa.ec.itb.shacl.validation.ValidationConstants;
 import org.apache.commons.configuration2.CompositeConfiguration;
 import org.apache.commons.configuration2.FileBasedConfiguration;
 import org.apache.commons.configuration2.PropertiesConfiguration;
@@ -7,16 +10,10 @@ import org.apache.commons.configuration2.builder.FileBasedConfigurationBuilder;
 import org.apache.commons.configuration2.builder.fluent.Parameters;
 import org.apache.commons.configuration2.ex.ConfigurationException;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.xerces.impl.dv.ValidationContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-
-import eu.europa.ec.itb.shacl.DomainConfig.ShaclFileInfo;
-import eu.europa.ec.itb.shacl.validation.ValidationConstants;
-import eu.europa.ec.itb.shacl.DomainConfig.RemoteInfo;
-import eu.europa.ec.itb.shacl.ApplicationConfig;
 
 import javax.annotation.PostConstruct;
 import java.io.File;
