@@ -116,7 +116,7 @@ The properties here define how a specific validation domain is configured. They 
 
 | Property | Description | Type | Default value |
 | --- | --- | --- | --- |
-| `validator.channels` | Comma separated list of features to have enabled. Possible values are (`form`, `email`, `webservice`). | Comma-separated Strings | `form,webservice` |
+| `validator.channels` | Comma separated list of features to have enabled. Possible values are (`form`, `email`, `rest_api`, `soap_api`). | Comma-separated Strings | `rest_api,soap_api` |
 | `validator.type` | A comma-separated list of supported invoice types. Values need to be reflected in properties `validator.typeLabel`, `validator.schemaFile`, `validator.schematronFolder`. | Comma-separated Strings | - |
 | `validator.typeLabel.XYZ` | Label to display for a given validator type (added as a postfix of validator.typeLabel). | String | - |
 | `validator.shaclFile.XYZ` | The SHACL files loaded for a given validation type (added as a postfix). This can be a file or folder (must never start with a '/'). | String | - |

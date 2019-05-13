@@ -1,14 +1,14 @@
 package eu.europa.ec.itb.shacl.gitb;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.Collections;
-import java.util.List;
-
-import javax.jws.WebParam;
-
-import org.apache.commons.io.FilenameUtils;
+import com.gitb.core.*;
+import com.gitb.tr.TAR;
+import com.gitb.vs.Void;
+import com.gitb.vs.*;
+import eu.europa.ec.itb.shacl.DomainConfig;
+import eu.europa.ec.itb.shacl.ValidatorContent;
+import eu.europa.ec.itb.shacl.rest.errors.ValidatorException;
+import eu.europa.ec.itb.shacl.util.Utils;
+import eu.europa.ec.itb.shacl.validation.*;
 import org.apache.commons.lang.StringUtils;
 import org.apache.jena.rdf.model.Model;
 import org.slf4j.Logger;
@@ -16,37 +16,21 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
-import com.gitb.core.AnyContent;
-import com.gitb.core.ConfigurationType;
-import com.gitb.core.Metadata;
-import com.gitb.core.TypedParameter;
-import com.gitb.core.TypedParameters;
-import com.gitb.core.UsageEnumeration;
-import com.gitb.core.ValidationModule;
-import com.gitb.core.ValueEmbeddingEnumeration;
-import com.gitb.tr.TAR;
-import com.gitb.vs.GetModuleDefinitionResponse;
-import com.gitb.vs.ValidateRequest;
-import com.gitb.vs.ValidationResponse;
-import com.gitb.vs.ValidationService;
-import com.gitb.vs.Void;
-
-import eu.europa.ec.itb.shacl.DomainConfig;
-import eu.europa.ec.itb.shacl.ValidatorContent;
-import eu.europa.ec.itb.shacl.rest.errors.ValidatorException;
-import eu.europa.ec.itb.shacl.util.Utils;
-import eu.europa.ec.itb.shacl.validation.FileContent;
-import eu.europa.ec.itb.shacl.validation.FileInfo;
-import eu.europa.ec.itb.shacl.validation.FileManager;
-import eu.europa.ec.itb.shacl.validation.SHACLValidator;
-import eu.europa.ec.itb.shacl.validation.ValidationConstants;
+import javax.jws.WebParam;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Spring component that realises the validation service.
  */
 @Component
+@Scope("prototype")
 public class ValidationServiceImpl implements ValidationService {
 
     /** Logger. **/
