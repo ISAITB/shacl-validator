@@ -7,6 +7,7 @@ import org.apache.commons.configuration2.builder.FileBasedConfigurationBuilder;
 import org.apache.commons.configuration2.builder.fluent.Parameters;
 import org.apache.commons.configuration2.ex.ConfigurationException;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.xerces.impl.dv.ValidationContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -90,7 +91,7 @@ public class DomainConfigCache {
                 domainConfig.setDefaultReportSyntax(config.getString("validator.defaultReportSyntax", appConfig.getDefaultReportSyntax()));
                 domainConfig.setExternalShapes(parseBooleanMap("validator.externalShapes", config, domainConfig.getType()));
                 domainConfig.setWebServiceId(config.getString("validator.webServiceId", "ValidatorService"));
-                domainConfig.setWebServiceDescription(parseMap("validator.webServiceDescription", config, Arrays.asList(ValidationConstants.INPUT_CONTENT, ValidationConstants.INPUT_SYNTAX, ValidationConstants.INPUT_VALIDATION_TYPE, ValidationConstants.INPUT_EXTERNAL_RULES)));
+                domainConfig.setWebServiceDescription(parseMap("validator.webServiceDescription", config, Arrays.asList(ValidationConstants.INPUT_CONTENT, ValidationConstants.INPUT_SYNTAX, ValidationConstants.INPUT_VALIDATION_TYPE, ValidationConstants.INPUT_EXTERNAL_RULES, ValidationConstants.INPUT_EMBEDDING_METHOD)));
                 domainConfigs.put(domain, domainConfig);
                 logger.info("Loaded configuration for domain ["+domain+"]");
             }

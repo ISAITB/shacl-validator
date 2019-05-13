@@ -6,6 +6,7 @@ package eu.europa.ec.itb.shacl.validation;
 public class ValidationConstants {
 
     public static String INPUT_CONTENT = "contentToValidate";
+    public static String INPUT_EMBEDDING_METHOD = "embeddingMethod";
     public static String INPUT_SYNTAX = "contentSyntax";
     public static String INPUT_VALIDATION_TYPE = "validationType";
     public static String INPUT_EXTERNAL_RULES = "externalRules";
