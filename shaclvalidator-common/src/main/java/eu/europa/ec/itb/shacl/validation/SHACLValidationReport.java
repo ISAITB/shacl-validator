@@ -159,29 +159,6 @@ public class SHACLValidationReport {
 		
 		return validationList;
 	}
-	
-	
-    public TAR createReport() {
-        if (validationResult != null) {
-            report.setResult(TestResultType.SUCCESS);
-            if (validationResult.size() > 0) {
-                BAR error = new BAR();
-                error.setDescription(validationResult.get(0).getResultMessage());
-                error.setLocation(validationResult.get(0).getResultPath());
-                report.setResult(TestResultType.FAILURE);
-                report.getReports().getInfoOrWarningOrError().add(objectFactory.createTestAssertionGroupReportsTypeError(error));
-            }
-        } else {
-            report.setResult(TestResultType.FAILURE);
-            BAR error = new BAR();
-            error.setDescription("An error occurred when generating SHACL Validation Report due to a problem in given content.");
-            error.setLocation(ValidationConstants.INPUT_XML+":1:0");
-            JAXBElement<TestAssertionReportType> element = objectFactory.createTestAssertionGroupReportsTypeError(error);
-            report.getReports().getInfoOrWarningOrError().add(element);
-        }
-        
-        return report;
-    }
     
     /**
      * Returns a single Model from a list of models

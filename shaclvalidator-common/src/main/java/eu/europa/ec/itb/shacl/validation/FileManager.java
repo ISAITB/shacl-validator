@@ -3,9 +3,11 @@ package eu.europa.ec.itb.shacl.validation;
 import eu.europa.ec.itb.shacl.ApplicationConfig;
 import eu.europa.ec.itb.shacl.DomainConfig;
 import eu.europa.ec.itb.shacl.DomainConfigCache;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFLanguages;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,6 +16,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
+
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -61,6 +65,23 @@ public class FileManager {
 		return tmpPath.toFile();
 	}
 
+	private File getStringFile(String targetFolder, String stringConvert, String contentSyntax) throws IOException {
+		Lang langExtension = RDFLanguages.contentTypeToLang(contentSyntax);
+		String extension = null;
+
+		if(langExtension!=null) {
+			extension = "." + langExtension.getName();
+		}
+
+		Path tmpPath = getFilePath(targetFolder, extension);
+
+		try(InputStream in = new ByteArrayInputStream(stringConvert.getBytes())){
+			Files.copy(in, tmpPath, StandardCopyOption.REPLACE_EXISTING);
+		}
+
+		return tmpPath.toFile();
+	}
+
     /**
      * From a URL, it gets the File
      * @return File
@@ -68,6 +89,13 @@ public class FileManager {
      */
     public File getURLFile(String url) throws IOException {
     	return getURLFile(config.getTmpFolder(), url);
+    }
+    
+    public File getStringFile(String contentToValidate, String contentSyntax) throws IOException {
+    	return getStringFile(config.getTmpFolder(), contentToValidate, contentSyntax);
+    }
+    public File getStringFile(File targetFolder, String contentToValidate, String contentSyntax) throws IOException {
+    	return getStringFile(targetFolder.getAbsolutePath(), contentToValidate, contentSyntax);
     }
     
     /**
@@ -182,7 +210,7 @@ public class FileManager {
     	if (externalRules != null && !externalRules.isEmpty()) {
     		File externalShapeFolder = new File(getExternalShapeFolder(), UUID.randomUUID().toString());
 			for (FileContent externalRule: externalRules) {
-				File contentFile;
+				File contentFile = null;
 				if (externalRule.getEmbeddingMethod() != null) {
 					switch(externalRule.getEmbeddingMethod()) {
 						case FileContent.embedding_URL:
@@ -195,6 +223,13 @@ public class FileManager {
 						case FileContent.embedding_BASE64:
 							contentFile = getBase64File(externalShapeFolder, externalRule.getContent());
 							break;
+		    			case FileContent.embedding_STRING:
+		    				try{
+		        				contentFile = getStringFile(externalShapeFolder, externalRule.getContent(), externalRule.getSyntax());
+		    				}catch(IOException e) {
+								throw new IllegalArgumentException("Error when transforming the STRING into File.", e);
+							}
+		    				break;
 						default:
 							throw new IllegalArgumentException("Unexpected embedding method ["+externalRule.getEmbeddingMethod()+"]");
 					}
@@ -263,13 +298,18 @@ public class FileManager {
 	 * @return String content type as String
 	 */
 	private String getContentLang(File file, String contentSyntax) {
-		String contentLang;
+		String stringLang = null;
+		Lang contentLang;
 		if (StringUtils.isEmpty(contentSyntax)) {
-			contentLang = RDFLanguages.contentTypeToLang(RDFLanguages.guessContentType(file.getName())).getName();
+			contentLang = RDFLanguages.contentTypeToLang(RDFLanguages.guessContentType(file.getName()));
 		} else {
-			contentLang = RDFLanguages.contentTypeToLang(contentSyntax).getName();
+			contentLang = RDFLanguages.contentTypeToLang(contentSyntax);
 		}
-		return contentLang;
+		
+		if(contentLang != null) {
+			stringLang = contentLang.getName();
+		}
+		return stringLang;
 	}
 
 	@PostConstruct

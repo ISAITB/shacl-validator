@@ -18,6 +18,8 @@ public class DomainConfig {
     private Map<String, ShaclFileInfo> shaclFile;
     private String defaultReportSyntax;
     private Map<String, Boolean> externalShapes;
+    private String webServiceId = "SHACLValidationService";
+    private Map<String, String> webServiceDescription;
 
     public DomainConfig() {
         this(true);
@@ -101,6 +103,22 @@ public class DomainConfig {
 
     public void setDefaultReportSyntax(String defaultReportSyntax) {
         this.defaultReportSyntax = defaultReportSyntax;
+    }
+
+    public String getWebServiceId() {
+        return webServiceId;
+    }
+
+    public void setWebServiceId(String webServiceId) {
+        this.webServiceId = webServiceId;
+    }
+
+    public Map<String, String> getWebServiceDescription() {
+        return webServiceDescription;
+    }
+
+    public void setWebServiceDescription(Map<String, String> webServiceDescription) {
+        this.webServiceDescription = webServiceDescription;
     }
     
     

@@ -3,6 +3,7 @@
 Application used for the validation of RDF documents by means of:
 
 * A REST API.
+* A SOAP API.
 
 The validator can be used with a single or multiple validation domains, i.e. validation cases that should be considered
 as distinct. Note that each such domain can still contain within it multiple validation types - the validation domain
@@ -47,7 +48,8 @@ Both web and standalone versions require at least Java 8 to run.
 
 The application is accessible at:
 
-* REST-API: http://localhost:8080/DOMAIN/upload
+* REST-API: http://localhost:8080/shacl/DOMAIN/api/validate
+* SOAP-API: http://localhost:8080/shacl/soap/DOMAIN/validation?wsdl
 
 Note that all configuration properties in `application.properties` can be overriden by means of environment variables
 (e.g. set in a downstream Dockerfile). 
@@ -83,7 +85,7 @@ COPY domain /validator/domain/
 
 **Important:** The naming of the `domain` folder in the above example is important as it will be used for the 
 request paths for all communication channels both the REST API (e.g. http://localhost:8080/api/domain/) and also for 
-the SOAP web service endpoints (e.g. http://localhost:8080/soap/domain/validation?wsdl). 
+the SOAP web service endpoints (e.g. http://localhost:8080/shacl/soap/DOMAIN/validation?wsdl). 
 
 ## Configuration property reference
 
@@ -123,5 +125,10 @@ The properties here define how a specific validation domain is configured. They 
 | `validator.externalShapes.XYZ` | External shapes are allowed for a given validation type (added as a postfix) as Boolean. | Boolean | `false` |
 | `validator.includeTestDefinition` | Whether tests should be included in the resulting reports. | Boolean | `true` |
 | `validator.reportsOrdered` | Whether the reports are ordered. | Boolean | `false` |
-| `validator.defaultReportSyntax ` | The default report syntax (mime type) if none is requested (otherwise the global default applies) | `application/rdf+xml`
+| `validator.defaultReportSyntax` | The default report syntax (mime type) if none is requested (otherwise the global default applies). | `application/rdf+xml` |
+| `validator.webServiceId` | The ID of the web service. | String | `ValidatorService` |
+| `validator.webServiceDescription.contentToValidate` | The description of the web service for element "contentToValidate". | String | - |
+| `validator.webServiceDescription.contentSyntax` | The description of the web service for element "contentSyntax". | String | - |
+| `validator.webServiceDescription.validationType` | The description of the web service for element "validationType". | String | - |
+| `validator.webServiceDescription.externalRules` | The description of the web service for element "externalRules". | String | - 
 

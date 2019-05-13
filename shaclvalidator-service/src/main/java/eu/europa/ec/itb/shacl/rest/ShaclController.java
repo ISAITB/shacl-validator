@@ -4,6 +4,7 @@ import eu.europa.ec.itb.shacl.ApplicationConfig;
 import eu.europa.ec.itb.shacl.DomainConfig;
 import eu.europa.ec.itb.shacl.DomainConfigCache;
 import eu.europa.ec.itb.shacl.ValidatorChannel;
+import eu.europa.ec.itb.shacl.ValidatorContent;
 import eu.europa.ec.itb.shacl.rest.errors.NotFoundException;
 import eu.europa.ec.itb.shacl.rest.errors.ValidatorException;
 import eu.europa.ec.itb.shacl.rest.model.ApiInfo;
@@ -60,6 +61,8 @@ public class ShaclController {
 	DomainConfigCache domainConfigs;
     @Autowired
 	FileManager fileManager;
+    @Autowired
+	ValidatorContent validatorContent;
     @Value("${validator.acceptedHeaderAcceptTypes}")
 	Set<String> acceptedHeaderAcceptTypes;
     @Value("${validator.hydraServer}")
@@ -303,24 +306,6 @@ public class ShaclController {
 		
 		return writer.toString();
     }
-    
-    /**
-     * From Base64 string to File
-     * @param base64Convert Base64 as String
-     * @return File
-     */
-    private File getBase64File(String base64Convert, String contentSyntax) {
-		if (contentSyntax == null) {
-			logger.error(ValidatorException.message_parameters, "");
-			throw new ValidatorException(ValidatorException.message_parameters);
-		}
-		try {
-			return fileManager.getBase64File(base64Convert);
-		} catch (Exception e) {
-			logger.error("Error when transforming the Base64 into File.", e);
-			throw new ValidatorException(ValidatorException.message_contentToValidate);
-		}
-    }
 
     /**
      * Validates that the JSON send via parameters has all necessary data.
@@ -333,15 +318,9 @@ public class ShaclController {
     	List<RuleSet> externalRules = input.getExternalRules();
     	String contentSyntax = input.getContentSyntax();
     	String validationType = input.getValidationType();
-    	
-    	File contentFile = null;
 
     	//ValidationType validation
-    	if((validationType!=null && !domainConfig.getType().contains(validationType)) || (validationType==null && domainConfig.getType().size()!=1)) {
-		    logger.error(ValidatorException.message_parameters, embeddingMethod);    			    
-			throw new ValidatorException(ValidatorException.message_parameters);
-    	}
-    	validationType = validationType==null ? domainConfig.getType().get(0) : validationType;
+    	validationType = validatorContent.validateValidationType(validationType, domainConfig);
     	
     	//ExternalRules validation
     	Boolean hasExternalShapes = domainConfig.getExternalShapes().get(validationType);
@@ -359,29 +338,8 @@ public class ShaclController {
 			}
 		}
     	
-    	//EmbeddingMethod validation
-    	if(embeddingMethod!=null) {
-    		switch(embeddingMethod) {
-    			case FileContent.embedding_URL:
-    				try{
-    					contentFile = fileManager.getURLFile(contentToValidate);
-    				}catch(IOException e) {
-						logger.error("Error when transforming the URL into File.", e);
-						throw new ValidatorException(ValidatorException.message_contentToValidate);
-					}
-    				break;
-    			case FileContent.embedding_BASE64:
-    			    contentFile = getBase64File(contentToValidate, contentSyntax);
-    			    break;
-    			default:
-    			    logger.error(ValidatorException.message_parameters, embeddingMethod);    			    
-    				throw new ValidatorException(ValidatorException.message_parameters);
-    		}
-    	}else {
-			contentFile = fileManager.getFileAsUrlOrBase64(contentToValidate);
-    	}
-    	
-    	return contentFile;
+    	//EmbeddingMethod validation and returns the content    	
+    	return validatorContent.getContentToValidate(embeddingMethod, contentToValidate, contentSyntax);
     }
     
     private List<FileInfo> getExternalShapes(List<RuleSet> externalRules) {
