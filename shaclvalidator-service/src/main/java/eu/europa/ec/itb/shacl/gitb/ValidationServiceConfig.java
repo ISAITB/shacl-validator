@@ -47,7 +47,7 @@ public class ValidationServiceConfig {
                 EndpointImpl endpoint = new EndpointImpl(cxfBus, applicationContext.getBean(ValidationServiceImpl.class, domainConfig));
                 endpoint.setEndpointName(new QName("http://www.gitb.com/vs/v1/", "ValidationServicePort"));
                 endpoint.setServiceName(new QName("http://www.gitb.com/vs/v1/", "ValidationService"));
-                endpoint.publish("/"+domainConfig.getDomain()+"/validation");
+                endpoint.publish("/"+domainConfig.getDomainName()+"/validation");
             }
     	}
     }
