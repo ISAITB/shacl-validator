@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Error</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <link rel="stylesheet" th:href="@{/webjars/bootstrap/3.3.6/css/bootstrap.min.css}"/>
+    <link rel="stylesheet" th:href="@{/css/style.css}"/>
+</head>
+<body>
+<div class="container view-section">
+    <div class="view-section-input">
+        <h2 class="view-section-title">An error occurred</h2>
+        <div class="error-details">
+            <span th:text="${errorMessage}">Message</span>
+        </div>
+    </div>
+</div>
+</body>
+</html>

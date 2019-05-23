@@ -36,6 +36,10 @@
     		<groupId>eu.europa.ec.itb.shacl</groupId>
             <artifactId>shaclvalidator-common</artifactId>
         </dependency>
+        <dependency>
+    		<groupId>eu.europa.ec.itb.shacl</groupId>
+            <artifactId>shaclvalidator-web</artifactId>
+        </dependency>
 		<dependency>
 		    <groupId>io.springfox</groupId>
 		    <artifactId>springfox-swagger2</artifactId>

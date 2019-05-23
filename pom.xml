@@ -14,6 +14,7 @@
     <modules>
         <module>shaclvalidator-common</module>
         <module>shaclvalidator-service</module>
+        <module>shaclvalidator-web</module>
     </modules>
     <properties>
         <validatorTimestamp>${maven.build.timestamp}</validatorTimestamp>
@@ -67,6 +68,16 @@
                 <artifactId>shaclvalidator-common</artifactId>
                 <version>1.0.0-SNAPSHOT</version>
             </dependency>
+            <dependency>
+                <groupId>eu.europa.ec.itb.shacl</groupId>
+                <artifactId>shaclvalidator-service</artifactId>
+                <version>1.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>eu.europa.ec.itb.shacl</groupId>
+                <artifactId>shaclvalidator-web</artifactId>
+                <version>1.0.0-SNAPSHOT</version>
+            </dependency>
             <!-- ITB resources. -->
             <dependency>
                 <groupId>eu.europa.ec.itb</groupId>
@@ -114,6 +125,31 @@
                 <groupId>commons-beanutils</groupId>
                 <artifactId>commons-beanutils</artifactId>
                 <version>1.9.3</version>
+            </dependency>
+            <dependency>
+                <groupId>org.webjars</groupId>
+                <artifactId>bootstrap</artifactId>
+                <version>3.3.6</version>
+            </dependency>
+            <dependency>
+                <groupId>org.webjars</groupId>
+                <artifactId>font-awesome</artifactId>
+                <version>4.5.0</version>
+            </dependency>
+            <dependency>
+                <groupId>org.webjars</groupId>
+                <artifactId>jquery</artifactId>
+                <version>2.0.3</version>
+            </dependency>
+            <dependency>
+                <groupId>org.webjars</groupId>
+                <artifactId>codemirror</artifactId>
+                <version>5.11</version>
+            </dependency>
+            <dependency>
+                <groupId>org.webjars</groupId>
+                <artifactId>spin-js</artifactId>
+                <version>2.1.0</version>
             </dependency>
             <dependency>
                 <groupId>org.bouncycastle</groupId>
