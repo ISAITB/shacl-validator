@@ -81,6 +81,20 @@ public class FileManager {
 
 		return tmpPath.toFile();
 	}
+	
+	private File getInputStreamFile(String targetFolder, InputStream stream, String contentSyntax) throws IOException {
+		Lang langExtension = RDFLanguages.contentTypeToLang(contentSyntax);
+		String extension = null;
+
+		if(langExtension!=null) {
+			extension = "." + langExtension.getName();
+		}
+
+		Path tmpPath = getFilePath(targetFolder, extension);
+		Files.copy(stream, tmpPath, StandardCopyOption.REPLACE_EXISTING);
+		
+		return tmpPath.toFile();
+	}
 
     /**
      * From a URL, it gets the File
@@ -96,6 +110,10 @@ public class FileManager {
     }
     public File getStringFile(File targetFolder, String contentToValidate, String contentSyntax) throws IOException {
     	return getStringFile(targetFolder.getAbsolutePath(), contentToValidate, contentSyntax);
+    }
+    
+    public File getInputStreamFile(InputStream stream, String contentSyntax) throws IOException {
+    	return getInputStreamFile(config.getTmpFolder(), stream, contentSyntax);
     }
     
     /**

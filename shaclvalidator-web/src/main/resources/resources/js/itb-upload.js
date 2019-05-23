@@ -17,14 +17,29 @@ function uploadFile() {
 	waitingDialog.show('Validating input', {dialogSize: 'm'});
 	return true;
 }
-
-function addExternalRules(){
-	$.ajax({
-		url: "/"+domain+"/upload",
-		type: 'POST',
-		name: 'addRow',
-		success: function(data) {
-			 $('.externalRules_list').html(data);
-		}
-	});
+function removeElement(elementId) {
+    $("#"+elementId).remove();
 }
+
+function addElement(type) {
+    var elements = $("."+type+"Div").length;
+    var elementId = type+"-"+elements;
+    $("<div class='input-group "+type+"Div col-sm-4' id='"+elementId+"'>" +
+    		"<input type='text' name="+type+" class='form-control'/>" +
+    		"<div class='input-group-btn'>" +
+    			"<button class='btn btn-default' type='button' onclick='removeElement(\""+elementId+"\")'><i class='far fa-trash-alt'></i></button>" +
+    		"</div></div>").insertBefore("#"+type+"AddButton");
+    $("#"+elementId+" input").focus();
+}
+
+function addExternalShapes(){
+	addElement("externalShape");
+}
+
+function toggleExternalShapesClassCheck() {
+    $(".externalShapesClass").toggle();
+}
+
+$(document).ready(function() {
+	toggleExternalShapesClassCheck();
+});
