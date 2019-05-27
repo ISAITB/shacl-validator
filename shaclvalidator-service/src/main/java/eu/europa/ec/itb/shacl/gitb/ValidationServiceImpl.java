@@ -286,30 +286,36 @@ public class ValidationServiceImpl implements ValidationService {
 		FileContent fileContent = new FileContent();
 		ValueEmbeddingEnumeration embeddingMethod = null;
 		String explicitEmbeddingMethod = null;
-    	for (AnyContent ruleSet : content.getItem()) {
-    		if (StringUtils.equals(ruleSet.getName(), ValidationConstants.INPUT_RULE_SET)) {
-    			embeddingMethod = ruleSet.getEmbeddingMethod();
-        		fileContent.setContent(ruleSet.getValue());
-    		}
-    		if (StringUtils.equals(ruleSet.getName(), ValidationConstants.INPUT_RULE_SYNTAX)) {
-    			fileContent.setSyntax(ruleSet.getValue());
-    		}
-    		if(StringUtils.equals(ruleSet.getName(), ValidationConstants.INPUT_EMBEDDING_METHOD)) {
-    			explicitEmbeddingMethod = getEmbeddingMethod(ruleSet);
-    		}
-    	}
-		if (explicitEmbeddingMethod == null) {
-			explicitEmbeddingMethod = FileContent.fromValueEmbeddingEnumeration(embeddingMethod);
+		if (content.getItem() != null && !content.getItem().isEmpty()) {
+			boolean isRuleSet = false;
+			for (AnyContent ruleSet : content.getItem()) {
+				if (StringUtils.equals(ruleSet.getName(), ValidationConstants.INPUT_RULE_SET)) {
+					embeddingMethod = ruleSet.getEmbeddingMethod();
+					fileContent.setContent(ruleSet.getValue());
+					isRuleSet = true;
+				}
+				if (StringUtils.equals(ruleSet.getName(), ValidationConstants.INPUT_RULE_SYNTAX)) {
+					fileContent.setSyntax(ruleSet.getValue());
+				}
+				if(StringUtils.equals(ruleSet.getName(), ValidationConstants.INPUT_EMBEDDING_METHOD)) {
+					explicitEmbeddingMethod = getEmbeddingMethod(ruleSet);
+				}
+			}
+			if (isRuleSet) {
+				if (explicitEmbeddingMethod == null) {
+					explicitEmbeddingMethod = FileContent.fromValueEmbeddingEnumeration(embeddingMethod);
+				}
+				if (explicitEmbeddingMethod == null) {
+					// Embedding method not provided as input nor as parameter.
+					throw new ValidatorException(ValidatorException.message_parameters);
+				}
+				if (embeddingMethod == ValueEmbeddingEnumeration.BASE_64 && !FileContent.embedding_BASE64.equals(explicitEmbeddingMethod)) {
+					// This is a URI or a plain text string encoded as BASE64.
+					fileContent.setContent(new String(Base64.getDecoder().decode(fileContent.getContent())));
+				}
+				fileContent.setEmbeddingMethod(explicitEmbeddingMethod);
+			}
 		}
-		if (explicitEmbeddingMethod == null) {
-			// Embedding method not provided as input nor as parameter.
-			throw new ValidatorException(ValidatorException.message_parameters);
-		}
-		if (embeddingMethod == ValueEmbeddingEnumeration.BASE_64 && !FileContent.embedding_BASE64.equals(explicitEmbeddingMethod)) {
-			// This is a URI or a plain text string encoded as BASE64.
-			fileContent.setContent(new String(Base64.getDecoder().decode(fileContent.getContent())));
-		}
-		fileContent.setEmbeddingMethod(explicitEmbeddingMethod);
     	return fileContent;
     }
 
