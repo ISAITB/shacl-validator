@@ -37,6 +37,17 @@ public class FileContent {
     }
     
     public static boolean isValid(String type) {
-    	return embedding_BASE64.equals(type) || embedding_URL.equals(type)  || embedding_STRING.equals(type) || ValueEmbeddingEnumeration.URI.toString().equals(type); 
+    	return embedding_BASE64.equals(type) || embedding_URL.equals(type)  || embedding_STRING.equals(type);
     }
+
+    public static String fromValueEmbeddingEnumeration(ValueEmbeddingEnumeration type) {
+        if (type == ValueEmbeddingEnumeration.STRING || type == ValueEmbeddingEnumeration.BASE_64) {
+            return type.value();
+        } else if (type == ValueEmbeddingEnumeration.URI) {
+            return embedding_URL;
+        } else {
+            throw new IllegalArgumentException("Unknown type ["+type+"]");
+        }
+    }
+
 }

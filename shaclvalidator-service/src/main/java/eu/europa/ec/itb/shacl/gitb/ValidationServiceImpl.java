@@ -76,7 +76,7 @@ public class ValidationServiceImpl implements ValidationService {
         response.getModule().getInputs().getParam().add(createParameter(ValidationConstants.INPUT_EMBEDDING_METHOD, "string", UsageEnumeration.O, ConfigurationType.SIMPLE, domainConfig.getWebServiceDescription().get(ValidationConstants.INPUT_EMBEDDING_METHOD)));
         response.getModule().getInputs().getParam().add(createParameter(ValidationConstants.INPUT_SYNTAX, "string", UsageEnumeration.O, ConfigurationType.SIMPLE, domainConfig.getWebServiceDescription().get(ValidationConstants.INPUT_SYNTAX)));
         response.getModule().getInputs().getParam().add(createParameter(ValidationConstants.INPUT_VALIDATION_TYPE, "string", UsageEnumeration.O, ConfigurationType.SIMPLE, domainConfig.getWebServiceDescription().get(ValidationConstants.INPUT_VALIDATION_TYPE)));
-        response.getModule().getInputs().getParam().add(createParameter(ValidationConstants.INPUT_EXTERNAL_RULES, "map", UsageEnumeration.O, ConfigurationType.SIMPLE, domainConfig.getWebServiceDescription().get(ValidationConstants.INPUT_EXTERNAL_RULES)));
+        response.getModule().getInputs().getParam().add(createParameter(ValidationConstants.INPUT_EXTERNAL_RULES, "list[map]", UsageEnumeration.O, ConfigurationType.SIMPLE, domainConfig.getWebServiceDescription().get(ValidationConstants.INPUT_EXTERNAL_RULES)));
         
         return response;
     }
@@ -112,20 +112,27 @@ public class ValidationServiceImpl implements ValidationService {
     @Override
     public ValidationResponse validate(@WebParam(name = "ValidateRequest", targetNamespace = "http://www.gitb.com/vs/v1/", partName = "parameters") ValidateRequest validateRequest) {
     	MDC.put("domain", domainConfig.getDomain());
+    	try {
+			//Validation of the input data
+			String contentSyntax = validateContentSyntax(validateRequest);
+			String contentEmbeddingMethod = validateContentEmbeddingMethod(validateRequest);
+			File contentToValidate = validateContentToValidate(validateRequest, contentEmbeddingMethod, contentSyntax);
+			String validationType = validateValidationType(validateRequest);
+			List<FileInfo> externalShapes = validateExternalShapes(validateRequest);
 
-    	//Validation of the input data
-    	String contentSyntax = validateContentSyntax(validateRequest);
-    	String contentEmbeddingMethod = validateContentEmbeddingMethod(validateRequest);
-        File contentToValidate = validateContentToValidate(validateRequest, contentEmbeddingMethod, contentSyntax);
-    	String validationType = validateValidationType(validateRequest);
-    	List<FileInfo> externalShapes = validateExternalShapes(validateRequest);
-    	
-    	//Execution of the validation
-    	TAR report = executeValidation(contentToValidate, validationType, contentSyntax, domainConfig, externalShapes);
-    	
-        ValidationResponse result = new ValidationResponse();  
-        result.setReport(report);
-        return result;
+			//Execution of the validation
+			TAR report = executeValidation(contentToValidate, validationType, contentSyntax, domainConfig, externalShapes);
+
+			ValidationResponse result = new ValidationResponse();
+			result.setReport(report);
+			return result;
+		} catch (ValidatorException e) {
+    		logger.error(e.getMessage(), e);
+    		throw e;
+		} catch (Exception e) {
+			logger.error("Unexpected error", e);
+			throw new ValidatorException(ValidatorException.message_default);
+		}
     }
     
     /**
@@ -138,7 +145,7 @@ public class ValidationServiceImpl implements ValidationService {
      * @return The response containing the validation report.
      */
     private TAR executeValidation(File inputFile, String validationType, String contentSyntax, DomainConfig domainConfig, List<FileInfo> remoteShaclFiles) {
-    	TAR report = null;
+    	TAR report;
     	
     	try {	
 			SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile, validationType, contentSyntax, remoteShaclFiles, domainConfig);
@@ -164,13 +171,12 @@ public class ValidationServiceImpl implements ValidationService {
         
         if(!listValidationType.isEmpty()) {
 	    	AnyContent content = listValidationType.get(0);
-	    	String validationType = null;
+	    	String validationType;
 	    	
 	    	if(content.getEmbeddingMethod()==ValueEmbeddingEnumeration.STRING) {
 	    		validationType = validatorContent.validateValidationType(content.getValue(), domainConfig);
 	    	}else {
-			    logger.error(ValidatorException.message_parameters, validationType);    			    
-				throw new ValidatorException(ValidatorException.message_parameters);    		
+				throw new ValidatorException(ValidatorException.message_parameters);
 	    	}
 	    	
 	    	return validationType;
@@ -189,12 +195,6 @@ public class ValidationServiceImpl implements ValidationService {
         
         if(!listContentSyntax.isEmpty()) {
         	AnyContent content = listContentSyntax.get(0);
-
-        	if(content.getEmbeddingMethod()!=ValueEmbeddingEnumeration.STRING) {
-    		    logger.error(ValidatorException.message_parameters, content.getName());    			    
-    			throw new ValidatorException(ValidatorException.message_parameters);    		
-        	}
-        	
         	return content.getValue();
         }else {
         	return null;
@@ -215,53 +215,44 @@ public class ValidationServiceImpl implements ValidationService {
     
     private String getEmbeddingMethod(AnyContent content) {
     	String value = content.getValue();
-    	if (StringUtils.isBlank(value)) {
-    		value = FileContent.embedding_BASE64;
-    	}
-    	
-    	if(content.getEmbeddingMethod()!=ValueEmbeddingEnumeration.STRING || !FileContent.isValid(value)) {
-		    logger.error(ValidatorException.message_parameters, content.getName());    			    
-			throw new ValidatorException(ValidatorException.message_parameters);    		
-    	}
-    	
-    	return value;    	
+    	if (!StringUtils.isBlank(value)) {
+			if (!FileContent.isValid(value)) {
+				throw new ValidatorException(ValidatorException.message_parameters);
+			}
+		}
+    	return value;
     }
     
     /**
      * Validation of the content.
      * @param validateRequest The request's parameters.
-     * @param contentSyntax2 
-     * @return The file to validate.
+     * @param explicitEmbeddingMethod
+	 * @param contentSyntax
+	 * @return The file to validate.
      */
-    private File validateContentToValidate(ValidateRequest validateRequest, String contentEmbeddingMethod, String contentSyntax) {
+    private File validateContentToValidate(ValidateRequest validateRequest, String explicitEmbeddingMethod, String contentSyntax) {
         List<AnyContent> listContentToValidate = getInputFor(validateRequest, ValidationConstants.INPUT_CONTENT);
         
         if(!listContentToValidate.isEmpty()) {
 	    	AnyContent content = listContentToValidate.get(0);
-	    	String parameterEmbeddingMethod = getEmbeddingMethodString(content.getEmbeddingMethod());
-	    	// As this is declared as "binary" this will always be BASE64.
-	    	String valueToProcess = content.getValue();
-	    	if (ValueEmbeddingEnumeration.URI.toString().equals(contentEmbeddingMethod)) {
-	    		// This is a BASE64 encoded String that is a URI or a CDATA string section.
-	    		valueToProcess = new String(Base64.getDecoder().decode(valueToProcess));
-	    		parameterEmbeddingMethod = FileContent.embedding_URL;
-	    	}
-	    	return validatorContent.getContentToValidate(parameterEmbeddingMethod, valueToProcess, contentSyntax);
-        }else {
-		    logger.error(ValidatorException.message_contentToValidate);    			    
-			throw new ValidatorException(ValidatorException.message_contentToValidate);  
+			if (explicitEmbeddingMethod == null) {
+				explicitEmbeddingMethod = FileContent.fromValueEmbeddingEnumeration(content.getEmbeddingMethod());
+			}
+			if (explicitEmbeddingMethod == null) {
+				// Embedding method not provided as input nor as parameter.
+				throw new ValidatorException(ValidatorException.message_contentToValidate);
+			}
+			String valueToProcess = content.getValue();
+			if (content.getEmbeddingMethod() == ValueEmbeddingEnumeration.BASE_64 && !FileContent.embedding_BASE64.equals(explicitEmbeddingMethod)) {
+				// This is a URI or a plain text string encoded as BASE64.
+				valueToProcess = new String(Base64.getDecoder().decode(valueToProcess));
+			}
+	    	return validatorContent.getContentToValidate(explicitEmbeddingMethod, valueToProcess, contentSyntax);
+        } else {
+        	throw new ValidatorException(ValidatorException.message_contentToValidate);
         }
     }
-    
-    private String getEmbeddingMethodString(ValueEmbeddingEnumeration embeddingMethod) {
-    	String value = "";
-    	if(embeddingMethod.equals(ValueEmbeddingEnumeration.URI)) value = FileContent.embedding_URL;
-    	if(embeddingMethod.equals(ValueEmbeddingEnumeration.BASE_64)) value = FileContent.embedding_BASE64;
-    	if(embeddingMethod.equals(ValueEmbeddingEnumeration.STRING)) value = FileContent.embedding_STRING;
-    	
-    	return value;
-    }
-    
+
     /**
      * Validation of the external shapes.
      * @param validateRequest The request's parameters.
@@ -274,9 +265,9 @@ public class ValidationServiceImpl implements ValidationService {
     	if(!listInput.isEmpty()) {
 	    	AnyContent listRuleSets = listInput.get(0);
 
-    		FileContent ruleFileContent = getFileContent(listRuleSets);    		
+    		FileContent ruleFileContent = getFileContent(listRuleSets);
 	    	if(!StringUtils.isEmpty(ruleFileContent.getContent())) filesContent.add(ruleFileContent);
-	    	
+
 	    	for(AnyContent content : listRuleSets.getItem()) {
 				FileContent fileContent = getFileContent(content);
 
@@ -293,32 +284,32 @@ public class ValidationServiceImpl implements ValidationService {
     
     private FileContent getFileContent(AnyContent content) {
 		FileContent fileContent = new FileContent();
-		String embeddingMethod = "";
-		String contentEmbeddingMethod = "";
-		
-    	for(AnyContent ruleSet : content.getItem()) {
-    		if(StringUtils.equals(ruleSet.getName(), ValidationConstants.INPUT_RULE_SET)) {
-    			embeddingMethod = getEmbeddingMethodString(ruleSet.getEmbeddingMethod());
+		ValueEmbeddingEnumeration embeddingMethod = null;
+		String explicitEmbeddingMethod = null;
+    	for (AnyContent ruleSet : content.getItem()) {
+    		if (StringUtils.equals(ruleSet.getName(), ValidationConstants.INPUT_RULE_SET)) {
+    			embeddingMethod = ruleSet.getEmbeddingMethod();
         		fileContent.setContent(ruleSet.getValue());
-    		}		
-    		if(StringUtils.equals(ruleSet.getName(), ValidationConstants.INPUT_RULE_SYNTAX)) {
+    		}
+    		if (StringUtils.equals(ruleSet.getName(), ValidationConstants.INPUT_RULE_SYNTAX)) {
     			fileContent.setSyntax(ruleSet.getValue());
     		}
     		if(StringUtils.equals(ruleSet.getName(), ValidationConstants.INPUT_EMBEDDING_METHOD)) {
-    			contentEmbeddingMethod = getEmbeddingMethod(ruleSet);
+    			explicitEmbeddingMethod = getEmbeddingMethod(ruleSet);
     		}
     	}
-
-    	if (ValueEmbeddingEnumeration.URI.toString().equals(contentEmbeddingMethod)) {
-    		fileContent.setEmbeddingMethod(FileContent.embedding_URL);
-    	}else {
-    		if(StringUtils.isNotEmpty(contentEmbeddingMethod)) {
-    			fileContent.setEmbeddingMethod(contentEmbeddingMethod);
-    		}else {
-    			fileContent.setEmbeddingMethod(embeddingMethod);
-    		}
-    	}
-    	
+		if (explicitEmbeddingMethod == null) {
+			explicitEmbeddingMethod = FileContent.fromValueEmbeddingEnumeration(embeddingMethod);
+		}
+		if (explicitEmbeddingMethod == null) {
+			// Embedding method not provided as input nor as parameter.
+			throw new ValidatorException(ValidatorException.message_parameters);
+		}
+		if (embeddingMethod == ValueEmbeddingEnumeration.BASE_64 && !FileContent.embedding_BASE64.equals(explicitEmbeddingMethod)) {
+			// This is a URI or a plain text string encoded as BASE64.
+			fileContent.setContent(new String(Base64.getDecoder().decode(fileContent.getContent())));
+		}
+		fileContent.setEmbeddingMethod(explicitEmbeddingMethod);
     	return fileContent;
     }
 
