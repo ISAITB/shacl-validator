@@ -7,6 +7,7 @@ import eu.europa.ec.itb.shacl.DomainConfigCache;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.jena.rdf.model.Model;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFLanguages;
 import org.slf4j.Logger;
@@ -21,6 +22,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.StringWriter;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -311,6 +313,10 @@ public class FileManager {
 		return getContentLang(file, null);
 	}
 
+    public String getReportFileNameRdf(String uuid) {
+        return uuid+".rdf";
+    }
+
 	/**
 	 * Return the content type as Lang of the File
 	 * @return String content type as String
@@ -329,6 +335,29 @@ public class FileManager {
 		}
 		return stringLang;
 	}
+	
+	/**
+	 * Return the report as String using the specified syntax.
+	 * @param shaclReport Report
+	 * @param reportSyntax Syntax of the output
+	 * @return String
+	 */
+	public String getShaclReport(Model shaclReport, String reportSyntax) {
+		StringWriter writer = new StringWriter();		
+		Lang lang = RDFLanguages.contentTypeToLang(reportSyntax);
+		
+		if(lang == null) {
+			shaclReport.write(writer, null);
+		}else {
+			try {
+				shaclReport.write(writer, lang.getName());
+			}catch(Exception e) {
+				shaclReport.write(writer, null);
+			}
+		}
+		
+		return writer.toString();
+    }
 
 	@PostConstruct
 	public void init() {

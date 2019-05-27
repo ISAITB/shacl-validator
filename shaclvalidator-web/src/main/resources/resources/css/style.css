@@ -71,7 +71,7 @@ body {
     padding: 0px 10px 0px 10px;
     margin-top: 10px;
 }
-#inputFile {
+.inputFile {
     display: block;
     visibility: hidden;
     width: 0;

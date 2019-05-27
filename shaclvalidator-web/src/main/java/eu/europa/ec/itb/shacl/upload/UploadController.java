@@ -39,6 +39,7 @@ import eu.europa.ec.itb.shacl.DomainConfigCache;
 import eu.europa.ec.itb.shacl.ValidatorChannel;
 import eu.europa.ec.itb.shacl.upload.errors.NotFoundException;
 import eu.europa.ec.itb.shacl.util.Utils;
+import eu.europa.ec.itb.shacl.validation.FileInfo;
 import eu.europa.ec.itb.shacl.validation.FileManager;
 import eu.europa.ec.itb.shacl.validation.SHACLValidator;
 
@@ -70,7 +71,7 @@ public class UploadController {
         Map<String, Object> attributes = new HashMap<>();
         attributes.put("validationTypes", getValidationTypes(domainConfig));
         attributes.put("contentSyntax", getContentSyntax());
-        attributes.put("externalShapes", domainConfig.hasMultipleValidationTypes() ? getExternalShapes(domainConfig) : getExternalShape(domainConfig));
+        attributes.put("externalShapes", domainConfig.hasMultipleValidationTypes() ? includeExternalShapes(domainConfig) : includeExternalShape(domainConfig));
         attributes.put("config", domainConfig);
         attributes.put("appConfig", appConfig);
         
@@ -80,7 +81,9 @@ public class UploadController {
 	@PostMapping(value = "/{domain}/upload")
     public ModelAndView handleUpload(@PathVariable("domain") String domain, @RequestParam("file") MultipartFile file, 
     		@RequestParam(value = "validationType", defaultValue = "") String validationType, 
-    		@RequestParam(value = "contentSyntaxType", defaultValue="") String contentSyntaxType,
+    		@RequestParam(value = "contentSyntaxType", defaultValue = "") String contentSyntaxType,
+    		@RequestParam(value = "inputFile-externalShape", required= false) MultipartFile[] externalFiles,
+    		@RequestParam(value = "contentSyntaxType-externalShape", required = false) String[] externalFilesSyntaxType,
     		RedirectAttributes redirectAttributes) {
 		DomainConfig domainConfig = validateDomain(domain);	
 		
@@ -88,7 +91,7 @@ public class UploadController {
         Map<String, Object> attributes = new HashMap<>();
         attributes.put("validationTypes", getValidationTypes(domainConfig));
         attributes.put("contentSyntax", getContentSyntax());
-        attributes.put("externalShapes", domainConfig.hasMultipleValidationTypes() ? getExternalShapes(domainConfig) : getExternalShape(domainConfig));
+        attributes.put("externalShapes", domainConfig.hasMultipleValidationTypes() ? includeExternalShapes(domainConfig) : includeExternalShape(domainConfig));
         attributes.put("config", domainConfig);
         attributes.put("appConfig", appConfig);
 		
@@ -108,8 +111,9 @@ public class UploadController {
         }
 
         try {
-            if (inputFile != null) {            	
-        		SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile, validationType, contentSyntaxType, Collections.emptyList(), domainConfig);
+            if (inputFile != null) {
+            	List<FileInfo> extFiles = getExternalShapes(externalFiles, externalFilesSyntaxType);
+        		SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile, validationType, contentSyntaxType, extFiles, domainConfig);
         			
         		org.apache.jena.rdf.model.Model reportModel = validator.validateAll(); 
         		
@@ -117,6 +121,19 @@ public class UploadController {
                 attributes.put("report", TARreport);
                 attributes.put("date", TARreport.getDate().toString());
                 attributes.put("fileName", file.getOriginalFilename());
+                
+                // Cache detailed report.
+                try {
+                    String reportString = fileManager.getShaclReport(reportModel, domainConfig.getDefaultReportSyntax());
+                    File reportFile = fileManager.getStringFile(reportString, domainConfig.getDefaultReportSyntax());
+                    attributes.put("reportID", reportFile.getName());
+                    
+                    System.out.println("REPORT ID: " + reportFile.getName());
+                    
+                } catch (IOException e) {
+                    logger.error("Error generating detailed report [" + e.getMessage() + "]", e);
+                    attributes.put("message", "Error generating detailed report [" + e.getMessage() + "]");
+                }
             }
         } catch (Exception e) {
             logger.error("An error occurred during the validation [" + e.getMessage() + "]", e);
@@ -125,6 +142,23 @@ public class UploadController {
         
         return new ModelAndView("uploadForm", attributes);
     }
+	
+	private List<FileInfo> getExternalShapes(MultipartFile[] externalFiles, String[] externalFilesSyntaxType) throws IOException {
+		List<FileInfo> shaclFiles = new ArrayList<>();
+
+		if(externalFiles != null && externalFiles.length>0) {
+			for(int i=0; i<externalFiles.length; i++) {
+	        	File inputFile = this.fileManager.getInputStreamFile(externalFiles[i].getInputStream(), externalFilesSyntaxType[i]);
+	        	FileInfo fi = new FileInfo(inputFile, externalFilesSyntaxType[i]);
+	        	
+	        	shaclFiles.add(fi);
+			}			
+		}else {
+			shaclFiles = Collections.emptyList();
+		}
+		
+		return shaclFiles;
+	}
     
     /**
      * Validates that the domain exists.
@@ -141,13 +175,13 @@ public class UploadController {
         return config;
     }
     
-    public Boolean getExternalShape(DomainConfig config) {
+    public Boolean includeExternalShape(DomainConfig config) {
     	Map<String, Boolean> externalShapes = config.getExternalShapes();
     	
     	return externalShapes.get(config.getType().get(0));
     }
     
-    public List<UploadTypes> getExternalShapes(DomainConfig config){
+    public List<UploadTypes> includeExternalShapes(DomainConfig config){
         List<UploadTypes> types = new ArrayList<>();
     	Map<String, Boolean> externalShapes = config.getExternalShapes();
     	

@@ -3,8 +3,8 @@
 <head>
     <title th:text="${config.uploadTitle}">Validator</title>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <link rel="stylesheet" th:href="@{/webjars/font-awesome/4.5.0/css/font-awesome.min.css}"/>
-    <link rel="stylesheet" th:href="@{/webjars/bootstrap/3.3.6/css/bootstrap.min.css}"/>
+    <link rel="stylesheet" th:href="@{/webjars/font-awesome/5.7.2/css/all.min.css}"/>
+    <link rel="stylesheet" th:href="@{/webjars/bootstrap/3.4.1/css/bootstrap.min.css}"/>
     <link rel="stylesheet" th:href="@{/webjars/codemirror/5.11/lib/codemirror.css}"/>
     <link rel="stylesheet" th:href="@{/css/style.css}"/>
     <script th:src="@{/webjars/jquery/2.0.3/jquery.min.js}"></script>
@@ -17,7 +17,7 @@
     <script th:if="${report}" th:src="@{/js/itb-results.js}"></script>
     <script th:if="${report}" th:inline="text">
     /*<![CDATA[*/
-        getReportData("[[${xmlID}]]");
+        getReportData("[[${reportID}]]");
     /*]]>*/
     </script>
 </head>
@@ -62,9 +62,10 @@
                 <div class="row overview-button-row">
                     <div class="col-xs-12">
                         <div class="btn-group">
-                            <button type="button" class="btn btn-default" id="viewInputButton" onclick="setCode()" disabled="true" th:text="${config.label.viewAnnotatedInputButton}">View annotated input</button>
+                            <button type="button" class="btn btn-default" id="downloadReportButtonDefault" onclick="downloadReportRDF()" disabled="true" th:text="${config.label.downloadXMLReportButton}">Download report as RDF/XML</button>
+                            <!-- button type="button" class="btn btn-default" id="viewInputButton" onclick="setCode()" disabled="true" th:text="${config.label.viewAnnotatedInputButton}">View annotated input</button>
                             <button type="button" class="btn btn-default" id="downloadReportButtonXML" onclick="downloadReportXML()" disabled="true" th:text="${config.label.downloadXMLReportButton}">Download XML report</button>
-                            <button type="button" class="btn btn-default" id="downloadReportButtonPDF" onclick="downloadReportPDF()" disabled="true" th:text="${config.label.downloadPDFReportButton}">Download PDF report</button>
+                            <button type="button" class="btn btn-default" id="downloadReportButtonPDF" onclick="downloadReportPDF()" disabled="true" th:text="${config.label.downloadPDFReportButton}">Download PDF report</button -->
                         </div>
                     </div>
                 </div>
