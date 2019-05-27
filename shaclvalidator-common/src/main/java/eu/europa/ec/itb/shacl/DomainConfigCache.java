@@ -148,9 +148,10 @@ public class DomainConfigCache {
     private Map<String, String> parseMap(String key, CompositeConfiguration config, List<String> types) {
         Map<String, String> map = new HashMap<>();
         for (String type: types) {
-            String val = config.getString(key+"."+type, null);
+            String defaultValue = appConfig.getDefaultLabels().get(type);
+            String val = config.getString(key+"."+type, defaultValue);
             if (val != null) {
-                map.put(type, config.getString(key+"."+type).trim());
+                map.put(type, val.trim());
             }
         }
         return map;

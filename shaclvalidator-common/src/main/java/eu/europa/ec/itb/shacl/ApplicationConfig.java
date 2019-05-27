@@ -42,6 +42,14 @@ public class ApplicationConfig {
     private String resourceUpdateTimestamp;
     private String defaultReportSyntax;
 
+    private Map<String, String> defaultLabels = new HashMap<>();
+
+    private String defaultContentToValidateDescription;
+    private String defaultEmbeddingMethodDescription;
+    private String defaultContentSyntaxDescription;
+    private String defaultValidationTypeDescription;
+    private String defaultExternalRulesDescription;
+
     public String getTmpFolder() {
         return tmpFolder;
     }
@@ -98,12 +106,56 @@ public class ApplicationConfig {
         this.defaultReportSyntax = defaultReportSyntax;
     }
 
+    public String getDefaultContentToValidateDescription() {
+        return defaultContentToValidateDescription;
+    }
+
+    public String getDefaultEmbeddingMethodDescription() {
+        return defaultEmbeddingMethodDescription;
+    }
+
+    public String getDefaultContentSyntaxDescription() {
+        return defaultContentSyntaxDescription;
+    }
+
+    public String getDefaultValidationTypeDescription() {
+        return defaultValidationTypeDescription;
+    }
+
+    public String getDefaultExternalRulesDescription() {
+        return defaultExternalRulesDescription;
+    }
+
+    public void setDefaultContentToValidateDescription(String defaultContentToValidateDescription) {
+        this.defaultContentToValidateDescription = defaultContentToValidateDescription;
+    }
+
+    public void setDefaultEmbeddingMethodDescription(String defaultEmbeddingMethodDescription) {
+        this.defaultEmbeddingMethodDescription = defaultEmbeddingMethodDescription;
+    }
+
+    public void setDefaultContentSyntaxDescription(String defaultContentSyntaxDescription) {
+        this.defaultContentSyntaxDescription = defaultContentSyntaxDescription;
+    }
+
+    public void setDefaultValidationTypeDescription(String defaultValidationTypeDescription) {
+        this.defaultValidationTypeDescription = defaultValidationTypeDescription;
+    }
+
+    public void setDefaultExternalRulesDescription(String defaultExternalRulesDescription) {
+        this.defaultExternalRulesDescription = defaultExternalRulesDescription;
+    }
+
     public Map<String, String> getDomainIdToDomainName() {
         return domainIdToDomainName;
     }
 
     public Map<String, String> getDomainNameToDomainId() {
         return domainNameToDomainId;
+    }
+
+    public Map<String, String> getDefaultLabels() {
+        return defaultLabels;
     }
 
     @PostConstruct
@@ -140,6 +192,12 @@ public class ApplicationConfig {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss (XXX)");
         startupTimestamp = dtf.format(ZonedDateTime.now());
         resourceUpdateTimestamp = sdf.format(new Date(Paths.get(resourceRoot).toFile().lastModified()));
+        // Default labels.
+        defaultLabels.put("contentToValidate", defaultContentToValidateDescription);
+        defaultLabels.put("contentSyntax", defaultContentSyntaxDescription);
+        defaultLabels.put("embeddingMethod", defaultEmbeddingMethodDescription);
+        defaultLabels.put("externalRules", defaultExternalRulesDescription);
+        defaultLabels.put("validationType", defaultValidationTypeDescription);
     }
 
 }
