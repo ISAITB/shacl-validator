@@ -102,7 +102,7 @@ public class ShaclController {
 			@ApiResponse(code = 500, message = "Error (If a problem occurred with processing the request)", response = String.class),
 			@ApiResponse(code = 404, message = "Not found (for an invalid domain value)", response = String.class)
 	})
-	@RequestMapping(value = "/{domain}/api/validate", method = RequestMethod.POST, consumes = {MediaType.APPLICATION_JSON_VALUE, "application/ld+json"}, produces = MediaType.APPLICATION_JSON_VALUE)
+	@RequestMapping(value = "/{domain}/api/validate", method = RequestMethod.POST, consumes = {MediaType.APPLICATION_JSON_VALUE, "application/ld+json"})
 	public ResponseEntity<String> validate(
 			@ApiParam(required = true, name = "domain", value = "A fixed value corresponding to the specific validation domain.")
 			@PathVariable("domain") String domain,
