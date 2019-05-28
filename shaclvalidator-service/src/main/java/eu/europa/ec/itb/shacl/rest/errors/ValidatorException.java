@@ -1,15 +1,19 @@
 package eu.europa.ec.itb.shacl.rest.errors;
 
 public class ValidatorException extends RuntimeException {
-    public static final String message_contentToValidate	= "The provided content could not be successfully parsed.";
-    public static final String message_ruleSet     			= "The provided rules could not be successfully parsed.";
-    public static final String message_multiple     		= "The type of validation to perform must be specified.";
-    public static final String message_parameters    	 	= "Provided parameter value is invalid.";
-    public static final String message_support     			= "The requested feature is not supported yet.";
-    public static final String message_default     			= "An unexpected error was raised during validation.";
-    public static final String message_syntaxRequired       = "The syntax must be defined for the provided content.";
+
+    private static final String MESSAGE_DEFAULT = "An unexpected error was raised during validation.";
+
+    public ValidatorException(Throwable cause) {
+        this(MESSAGE_DEFAULT, cause);
+    }
 
 	public ValidatorException(String message) {
-		super(message, null, false, false);
-	}	
+		this(message, null);
+	}
+
+    public ValidatorException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
 }
