@@ -2,7 +2,7 @@ package eu.europa.ec.itb.shacl.rest;
 
 import eu.europa.ec.itb.shacl.*;
 import eu.europa.ec.itb.shacl.rest.errors.NotFoundException;
-import eu.europa.ec.itb.shacl.rest.errors.ValidatorException;
+import eu.europa.ec.itb.shacl.errors.ValidatorException;
 import eu.europa.ec.itb.shacl.rest.model.ApiInfo;
 import eu.europa.ec.itb.shacl.rest.model.Input;
 import eu.europa.ec.itb.shacl.rest.model.Output;

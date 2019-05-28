@@ -1,11 +1,7 @@
 package eu.europa.ec.itb.shacl.validation;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.List;
-
+import eu.europa.ec.itb.shacl.DomainConfig;
+import eu.europa.ec.itb.shacl.errors.ValidatorException;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.riot.Lang;
@@ -18,7 +14,11 @@ import org.springframework.stereotype.Component;
 import org.topbraid.jenax.util.JenaUtil;
 import org.topbraid.shacl.validation.ValidationUtil;
 
-import eu.europa.ec.itb.shacl.DomainConfig;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.List;
 
 /**
  * 
@@ -78,8 +78,7 @@ public class SHACLValidator {
             fileManager.signalValidationStart(domainConfig.getDomainName());
             List<FileInfo> shaclFiles = fileManager.getAllShaclFiles(domainConfig, validationType, filesInfo);
             if (shaclFiles.isEmpty()) {
-                logger.warn("No SHACL files to validate against");
-                throw new IllegalStateException("No SHACL files to validate against");
+                throw new ValidatorException("No SHACL files are defined for the validation.");
             } else {
                 return validateShacl(shaclFiles);
             }
@@ -94,23 +93,14 @@ public class SHACLValidator {
      * @return Model The Jena Model with the report
      */
     private Model validateShacl(List<FileInfo> shaclFiles){
-    	Model reportModel;
-    	
-    	try {
-			// Get data to validate from file
-    		this.aggregatedShapes = getShapesModel(shaclFiles);
-	        Model dataModel = getDataModel(inputFileToValidate, this.aggregatedShapes);
-	        
-			// Perform the validation of data, using the shapes model. Do not validate any shapes inside the data model.
-			Resource resource = ValidationUtil.validateModel(dataModel, this.aggregatedShapes, false);		
-			reportModel = resource.getModel();
-			reportModel.setNsPrefix("sh", "http://www.w3.org/ns/shacl#");
+        // Get data to validate from file
+        this.aggregatedShapes = getShapesModel(shaclFiles);
+        Model dataModel = getDataModel(inputFileToValidate, this.aggregatedShapes);
 
-    	}catch(Exception e){
-    		logger.error("Error during the SHACL validation. " + e.getMessage());
-            throw new IllegalStateException(e);
-    	}
-    	
+        // Perform the validation of data, using the shapes model. Do not validate any shapes inside the data model.
+        Resource resource = ValidationUtil.validateModel(dataModel, this.aggregatedShapes, false);
+        Model reportModel = resource.getModel();
+        reportModel.setNsPrefix("sh", "http://www.w3.org/ns/shacl#");
     	return reportModel;
     }
 
@@ -127,8 +117,7 @@ public class SHACLValidator {
                 fileModel.read(dataStream, null, shaclFile.getContentLang());
                 aggregateModel.add(fileModel);
             } catch (IOException e) {
-                logger.error("Error while reading SHACL file.", e);
-                throw new IllegalStateException("Error while reading SHACL file.");
+                throw new ValidatorException("An error occurred while reading a SHACL file.", e);
            }
         }
         return aggregateModel;
@@ -161,14 +150,12 @@ public class SHACLValidator {
             }
         }
         if (lang == null) {
-            logger.error("RDF Language could not be determined for data.");
-            throw new IllegalStateException("RDF Language could not be determined for data.");
+            throw new ValidatorException("The RDF language could not be determined for the provided content.");
         }
         try (InputStream dataStream = new FileInputStream(dataFile)) {
             dataModel.read(dataStream, null, lang.getName());
         } catch (IOException e) {
-            logger.error("Error while reading data.", e);
-            throw new IllegalStateException("Error while reading data.");
+            throw new ValidatorException("An error occurred while reading the provided content.", e);
         }
 		return dataModel;
 	}
