@@ -6,7 +6,7 @@ import com.gitb.vs.Void;
 import com.gitb.vs.*;
 import eu.europa.ec.itb.shacl.DomainConfig;
 import eu.europa.ec.itb.shacl.ValidatorContent;
-import eu.europa.ec.itb.shacl.rest.errors.ValidatorException;
+import eu.europa.ec.itb.shacl.errors.ValidatorException;
 import eu.europa.ec.itb.shacl.util.Utils;
 import eu.europa.ec.itb.shacl.validation.*;
 import org.apache.commons.lang.StringUtils;

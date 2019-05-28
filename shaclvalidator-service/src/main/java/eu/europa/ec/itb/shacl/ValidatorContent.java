@@ -1,6 +1,6 @@
 package eu.europa.ec.itb.shacl;
 
-import eu.europa.ec.itb.shacl.rest.errors.ValidatorException;
+import eu.europa.ec.itb.shacl.errors.ValidatorException;
 import eu.europa.ec.itb.shacl.validation.FileContent;
 import eu.europa.ec.itb.shacl.validation.FileManager;
 import org.springframework.beans.factory.annotation.Autowired;

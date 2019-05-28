@@ -1,4 +1,4 @@
-package eu.europa.ec.itb.shacl.rest.errors;
+package eu.europa.ec.itb.shacl.errors;
 
 public class ValidatorException extends RuntimeException {
 
