@@ -132,7 +132,7 @@
         {
           "property": "vocab:Input/embeddingMethod",
           "hydra:title": "embeddingMethod",
-          "hydra:description": "The way in which to interpret the contentToValidate (URI|BASE64). If not provided, the method will be determined from the contentToValidate value (i.e. check it is a valid URL)",
+          "hydra:description": "The way in which to interpret the contentToValidate (URL|BASE64). If not provided, the method will be determined from the contentToValidate value (i.e. check it is a valid URL)",
           "required": true,
           "readonly": false,
           "writeonly": false
