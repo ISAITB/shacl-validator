@@ -21,6 +21,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -170,14 +171,14 @@ public class FileManager {
 		return getBase64File(null, base64Convert);
 	}
 
-	private File getFileAsUrlOrBase64(File targetFolder, String content) {
+	private File getFileAsUrlOrBase64(File targetFolder, String content) throws IOException {
 		if (targetFolder == null) {
 			targetFolder = getTempFolder();
 		}
 		File outputFile;
 		try {
 			outputFile = getURLFile(targetFolder, content);
-		}catch(Exception e) {
+		} catch(MalformedURLException e) {
 			outputFile = getBase64File(targetFolder, content);
 		}
 		return outputFile;
@@ -188,7 +189,7 @@ public class FileManager {
 	 * @param content URL or BASE64 as String
 	 * @return File
 	 */
-	public File getFileAsUrlOrBase64(String content) {
+	public File getFileAsUrlOrBase64(String content) throws IOException {
 		return getFileAsUrlOrBase64(null, content);
 	}
 
@@ -205,12 +206,12 @@ public class FileManager {
 		return new File(getTempFolder(), "external_config");
 	}
 
-	public List<FileInfo> getRemoteExternalShapes(List<FileContent> externalRules) {
+	public List<FileInfo> getRemoteExternalShapes(List<FileContent> externalRules) throws IOException {
 		List<FileInfo> externalShapeFiles = new ArrayList<>();
     	if (externalRules != null && !externalRules.isEmpty()) {
     		File externalShapeFolder = new File(getExternalShapeFolder(), UUID.randomUUID().toString());
 			for (FileContent externalRule: externalRules) {
-				File contentFile = null;
+				File contentFile;
 				if (externalRule.getEmbeddingMethod() != null) {
 					switch(externalRule.getEmbeddingMethod()) {
 						case FileContent.embedding_URL:

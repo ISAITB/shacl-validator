@@ -21,6 +21,7 @@ import org.springframework.stereotype.Component;
 
 import javax.jws.WebParam;
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
@@ -106,7 +107,7 @@ public class ValidationServiceImpl implements ValidationService {
      *
      * The expected input is described for the service's client through the getModuleDefinition call.
      *
-     * @param parameters The input parameters and configuration for the validation.
+     * @param validateRequest The input parameters and configuration for the validation.
      * @return The response containing the validation report.
      */
     @Override
@@ -131,7 +132,7 @@ public class ValidationServiceImpl implements ValidationService {
     		throw e;
 		} catch (Exception e) {
 			logger.error("Unexpected error", e);
-			throw new ValidatorException(ValidatorException.message_default);
+			throw new ValidatorException(e);
 		}
     }
     
@@ -145,20 +146,9 @@ public class ValidationServiceImpl implements ValidationService {
      * @return The response containing the validation report.
      */
     private TAR executeValidation(File inputFile, String validationType, String contentSyntax, DomainConfig domainConfig, List<FileInfo> remoteShaclFiles) {
-    	TAR report;
-    	
-    	try {	
-			SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile, validationType, contentSyntax, remoteShaclFiles, domainConfig);
-			
-			Model reportModel = validator.validateAll();
-			
-			report = Utils.getTAR(reportModel, inputFile.toPath(), contentSyntax, validator.getAggregatedShapes());
-    	}catch(Exception e){
-            logger.error("Error during the validation", e);
-			throw new ValidatorException(ValidatorException.message_default);
-    	}
-		
-		return report;
+		SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile, validationType, contentSyntax, remoteShaclFiles, domainConfig);
+		Model reportModel = validator.validateAll();
+		return Utils.getTAR(reportModel, inputFile.toPath(), contentSyntax, validator.getAggregatedShapes());
     }
     
     /**
@@ -176,7 +166,7 @@ public class ValidationServiceImpl implements ValidationService {
 	    	if(content.getEmbeddingMethod()==ValueEmbeddingEnumeration.STRING) {
 	    		validationType = validatorContent.validateValidationType(content.getValue(), domainConfig);
 	    	}else {
-				throw new ValidatorException(ValidatorException.message_parameters);
+				throw new ValidatorException(String.format("The validation type to perform must be provided with a [STRING] embeddingMethod. This was provided as [%s].", content.getEmbeddingMethod()));
 	    	}
 	    	
 	    	return validationType;
@@ -217,7 +207,7 @@ public class ValidationServiceImpl implements ValidationService {
     	String value = content.getValue();
     	if (!StringUtils.isBlank(value)) {
 			if (!FileContent.isValid(value)) {
-				throw new ValidatorException(ValidatorException.message_parameters);
+				throw new ValidatorException(String.format("The provided embedding method [%s] is not valid.", value));
 			}
 		}
     	return value;
@@ -240,7 +230,7 @@ public class ValidationServiceImpl implements ValidationService {
 			}
 			if (explicitEmbeddingMethod == null) {
 				// Embedding method not provided as input nor as parameter.
-				throw new ValidatorException(ValidatorException.message_contentToValidate);
+				throw new ValidatorException(String.format("The embedding method needs to be provided either as input parameter [%s] or be set as an attribute on the [%s] input.", ValidationConstants.INPUT_EMBEDDING_METHOD, ValidationConstants.INPUT_CONTENT));
 			}
 			String valueToProcess = content.getValue();
 			if (content.getEmbeddingMethod() == ValueEmbeddingEnumeration.BASE_64 && !FileContent.embedding_BASE64.equals(explicitEmbeddingMethod)) {
@@ -249,7 +239,7 @@ public class ValidationServiceImpl implements ValidationService {
 			}
 	    	return validatorContent.getContentToValidate(explicitEmbeddingMethod, valueToProcess, contentSyntax);
         } else {
-        	throw new ValidatorException(ValidatorException.message_contentToValidate);
+        	throw new ValidatorException(String.format("No content was provided for validation (input parameter [%s]).", ValidationConstants.INPUT_CONTENT));
         }
     }
 
@@ -307,7 +297,7 @@ public class ValidationServiceImpl implements ValidationService {
 				}
 				if (explicitEmbeddingMethod == null) {
 					// Embedding method not provided as input nor as parameter.
-					throw new ValidatorException(ValidatorException.message_parameters);
+					throw new ValidatorException(String.format("For user-provided SHACL shapes the embedding method needs to be provided either as a separate input [%s] or as an attribute of the [%s] input.", ValidationConstants.INPUT_EMBEDDING_METHOD, ValidationConstants.INPUT_RULE_SET));
 				}
 				if (embeddingMethod == ValueEmbeddingEnumeration.BASE_64 && !FileContent.embedding_BASE64.equals(explicitEmbeddingMethod)) {
 					// This is a URI or a plain text string encoded as BASE64.
@@ -327,7 +317,11 @@ public class ValidationServiceImpl implements ValidationService {
     private List<FileInfo> getExternalShapes(List<FileContent> externalRules) {
 		List<FileInfo> shaclFiles;
 		if (externalRules != null) {
-			shaclFiles = fileManager.getRemoteExternalShapes(externalRules);
+			try {
+				shaclFiles = fileManager.getRemoteExternalShapes(externalRules);
+			} catch (IOException e) {
+				throw new ValidatorException("An error occurred while trying to read the provided external shapes.");
+			}
 		} else {
 			shaclFiles = Collections.emptyList();
 		}
