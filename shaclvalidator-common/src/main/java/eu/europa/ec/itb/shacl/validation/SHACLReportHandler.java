@@ -1,30 +1,23 @@
 package eu.europa.ec.itb.shacl.validation;
 
+import com.gitb.core.AnyContent;
+import com.gitb.core.ValueEmbeddingEnumeration;
+import com.gitb.tr.*;
+import eu.europa.ec.itb.shacl.util.Utils;
+import org.apache.jena.rdf.model.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.xml.bind.JAXBElement;
+import javax.xml.datatype.DatatypeConfigurationException;
 import java.io.StringWriter;
 import java.math.BigInteger;
 import java.util.ArrayList;
 
-import javax.xml.bind.JAXBElement;
-import javax.xml.datatype.DatatypeConfigurationException;
-
-import org.apache.jena.rdf.model.Model;
-import org.apache.jena.rdf.model.NodeIterator;
-import org.apache.jena.rdf.model.RDFNode;
-import org.apache.jena.rdf.model.Statement;
-import org.apache.jena.rdf.model.StmtIterator;
-
-import com.gitb.core.AnyContent;
-import com.gitb.core.ValueEmbeddingEnumeration;
-import com.gitb.tr.BAR;
-import com.gitb.tr.ObjectFactory;
-import com.gitb.tr.TAR;
-import com.gitb.tr.TestAssertionGroupReportsType;
-import com.gitb.tr.TestResultType;
-import com.gitb.tr.ValidationCounters;
-
-import eu.europa.ec.itb.shacl.util.Utils;
-
 public class SHACLReportHandler {
+
+    private static final Logger logger = LoggerFactory.getLogger(SHACLReportHandler.class);
+
 	private TAR report;
 	private Model shaclReport;
 
@@ -61,7 +54,25 @@ public class SHACLReportHandler {
 
         this.report.setContext(attachment);
 	}
-	
+
+	private String getStatementStringSafe(Statement statement) {
+        try {
+            return statement.getString();
+        } catch (Exception e) {
+            logger.warn("Error while getting statement string", e);
+            return "-";
+        }
+    }
+
+    private String getStatementResourceStringSafe(Statement statement) {
+        try {
+            return statement.getResource().toString();
+        } catch (Exception e) {
+            logger.warn("Error while getting statement resource string", e);
+            return "-";
+        }
+    }
+
 	public TAR createReport() {
         int infos = 0;
         int warnings = 0;
@@ -85,19 +96,19 @@ public class SHACLReportHandler {
             			Statement statement = it.next();
             			
             			if(statement.getPredicate().hasURI("http://www.w3.org/ns/shacl#resultMessage")) {
-            				error.setDescription(statement.getString());
+                            error.setDescription(getStatementStringSafe(statement));
             			}
             			if(statement.getPredicate().hasURI("http://www.w3.org/ns/shacl#focusNode")) {
-            				focusNode = statement.getResource().toString();
+            				focusNode = getStatementResourceStringSafe(statement);
             			}
             			if(statement.getPredicate().hasURI("http://www.w3.org/ns/shacl#resultPath")) {
-            				resultPath = statement.getResource().toString();
+            				resultPath = getStatementResourceStringSafe(statement);
             			}
             			if(statement.getPredicate().hasURI("http://www.w3.org/ns/shacl#sourceShape")) {
-            				error.setTest(statement.getResource().toString());
+            				error.setTest(getStatementResourceStringSafe(statement));
             			}
             			if(statement.getPredicate().hasURI("http://www.w3.org/ns/shacl#resultSeverity")) {
-            				severity = statement.getResource().toString();
+            				severity = getStatementResourceStringSafe(statement);
             			}
             		}
             		error.setLocation(resultPath + " " + focusNode);
