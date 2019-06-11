@@ -40,9 +40,9 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-thymeleaf</artifactId>
         </dependency>
-        <!-- dependency>
+        <dependency>
             <groupId>com.gitb</groupId>
             <artifactId>gitb-reports</artifactId>
-        </dependency -->
+        </dependency>
     </dependencies>
 </project>

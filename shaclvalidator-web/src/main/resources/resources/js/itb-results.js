@@ -2,36 +2,37 @@ var itbReportData;
 var itbResultReportXML;
 var itbResultReportPDF;
 var reportLoad = jQuery.Deferred();
-var resultLoadXML = jQuery.Deferred();
+var resultLoadRDF = jQuery.Deferred();
 var resultLoadPDF = jQuery.Deferred();
-function getReportData(xmlID) {
-	getReport(xmlID);
-	getResultReport(xmlID);
+function getReportData(reportID) {
+	//getReport(reportID);
+	getResultReport(reportID);
 }
-function getReport(xmlID) {
-	$.get("xml/"+xmlID, function(data) {
+function getReport(reportID) {
+	$.get("xml/"+reportID, function(data) {
 		itbReportData = data;
 		$.ajax({
-			url: "xml/"+xmlID,
+			url: "xml/"+reportID,
 			type: 'DELETE'
 		});
 		reportLoad.resolve();
 		$('#viewInputButton').prop('disabled', false);
 	});
 }
-function getResultReport(xmlID) {
+
+function getResultReport(reportID) {
 	$.ajax({
-		url: "report/"+xmlID+"/xml",
+		url: "report/"+reportID+"/rdf",
 		type: 'GET',
 		success: function(data) {
-			itbResultReportXML = new Blob([data], { type: 'application/xml' });
-            $('#downloadReportButtonXML').prop('disabled', false);
-			resultLoadXML.resolve();
+			itbResultReportRDF = new Blob([data], { type: 'application/rdf+xml' });
+            $('#downloadReportButtonDefault').prop('disabled', false);
+			resultLoadRDF.resolve();
 		}
 	});
 
     var ajax = new XMLHttpRequest();
-    ajax.open("GET", "report/"+xmlID+"/pdf", true);
+    ajax.open("GET", "report/"+reportID+"/pdf", true);
     ajax.onreadystatechange = function() {
         if (this.readyState == 4) {
             if (this.status == 200) {
@@ -48,16 +49,16 @@ function getResultReport(xmlID) {
         }
     };
     ajax.send(null);
-	$.when(resultLoadXML, resultLoadPDF).done(function () {
+	$.when(resultLoadRDF, resultLoadPDF).done(function () {
         $.ajax({
-            url: "report/"+xmlID,
+            url: "report/"+reportID,
             type: 'DELETE'
         });
 	})
 }
-function downloadReportXML() {
-	resultLoadXML.done(function() {
-		saveAs(itbResultReportXML, "report.xml");
+function downloadReportRDF() {
+	resultLoadRDF.done(function() {
+		saveAs(itbResultReportRDF, "report.rdf");
 	});
 }
 function downloadReportPDF() {

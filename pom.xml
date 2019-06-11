@@ -84,6 +84,21 @@
                 <artifactId>gitb-types</artifactId>
                 <version>1.6.0</version>
             </dependency>
+            <dependency>
+                <groupId>com.gitb</groupId>
+                <artifactId>gitb-reports</artifactId>
+                <version>1.0-SNAPSHOT</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-simple</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.bouncycastle</groupId>
+                        <artifactId>bcprov-jdk15on</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
             <!-- Spring Boot starters -->
             <dependency>
                 <groupId>org.springframework.boot</groupId>
@@ -129,22 +144,22 @@
             <dependency>
                 <groupId>org.webjars</groupId>
                 <artifactId>bootstrap</artifactId>
-                <version>3.3.6</version>
+                <version>3.4.1</version>
             </dependency>
             <dependency>
                 <groupId>org.webjars</groupId>
                 <artifactId>font-awesome</artifactId>
-                <version>4.5.0</version>
+                <version>5.7.2</version>
             </dependency>
             <dependency>
                 <groupId>org.webjars</groupId>
                 <artifactId>jquery</artifactId>
-                <version>2.0.3</version>
+                <version>2.2.4</version>
             </dependency>
             <dependency>
                 <groupId>org.webjars</groupId>
                 <artifactId>codemirror</artifactId>
-                <version>5.11</version>
+                <version>5.45.0</version>
             </dependency>
             <dependency>
                 <groupId>org.webjars</groupId>

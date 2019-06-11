@@ -5,12 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <link rel="stylesheet" th:href="@{/webjars/font-awesome/5.7.2/css/all.min.css}"/>
     <link rel="stylesheet" th:href="@{/webjars/bootstrap/3.4.1/css/bootstrap.min.css}"/>
-    <link rel="stylesheet" th:href="@{/webjars/codemirror/5.11/lib/codemirror.css}"/>
+    <link rel="stylesheet" th:href="@{/webjars/codemirror/5.45.0/lib/codemirror.css}"/>
     <link rel="stylesheet" th:href="@{/css/style.css}"/>
-    <script th:src="@{/webjars/jquery/2.0.3/jquery.min.js}"></script>
-    <script th:src="@{/webjars/bootstrap/3.3.6/js/bootstrap.min.js}"></script>
-    <script th:src="@{/webjars/codemirror/5.11/lib/codemirror.js}"></script>
-    <script th:src="@{/webjars/codemirror/5.11/mode/xml/xml.js}"></script>
+    <script th:src="@{/webjars/jquery/2.2.4/jquery.min.js}"></script>
+    <script th:src="@{/webjars/bootstrap/3.4.1/js/bootstrap.min.js}"></script>
+    <script th:src="@{/webjars/codemirror/5.45.0/lib/codemirror.js}"></script>
+    <script th:src="@{/webjars/codemirror/5.45.0/mode/xml/xml.js}"></script>
     <script th:src="@{/js/lib/busy.js}"></script>
     <script th:src="@{/js/lib/FileSaver.min.js}"></script>
     <script th:src="@{/js/itb-upload.js}"></script>
@@ -24,7 +24,7 @@
 <body>
 <div class="container view-section">
     <div class="view-section-input">
-        <h2 class="view-section-title" th:text="${config.label.inputSectionTitle}">Validation input</h2>
+        <h1 class="overall-title" onclick="window.location.href='upload'" th:text="${config.uploadTitle}">SHACL Validator</h1>
         <div class="alert alert-danger" th:if="${message}" th:text="${message}">A message</div>
         <div th:replace="${!validationTypes.isEmpty()}? 'fragments/multipleTypes':'fragments/singleType' :: form">Upload form</div>
     </div>
@@ -62,10 +62,10 @@
                 <div class="row overview-button-row">
                     <div class="col-xs-12">
                         <div class="btn-group">
-                            <button type="button" class="btn btn-default" id="downloadReportButtonDefault" onclick="downloadReportRDF()" disabled="true" th:text="${config.label.downloadXMLReportButton}">Download report as RDF/XML</button>
+                            <button type="button" class="btn btn-default" id="downloadReportButtonDefault" onclick="downloadReportRDF()" disabled="true" th:text="${config.label.downloadRDFReportButton}">Download report as RDF/XML</button>
                             <!-- button type="button" class="btn btn-default" id="viewInputButton" onclick="setCode()" disabled="true" th:text="${config.label.viewAnnotatedInputButton}">View annotated input</button>
-                            <button type="button" class="btn btn-default" id="downloadReportButtonXML" onclick="downloadReportXML()" disabled="true" th:text="${config.label.downloadXMLReportButton}">Download XML report</button>
-                            <button type="button" class="btn btn-default" id="downloadReportButtonPDF" onclick="downloadReportPDF()" disabled="true" th:text="${config.label.downloadPDFReportButton}">Download PDF report</button -->
+                            <button type="button" class="btn btn-default" id="downloadReportButtonXML" onclick="downloadReportXML()" disabled="true" th:text="${config.label.downloadXMLReportButton}">Download XML report</button -->
+                            <button type="button" class="btn btn-default" id="downloadReportButtonPDF" onclick="downloadReportPDF()" disabled="true" th:text="${config.label.downloadPDFReportButton}">Download PDF report</button>
                         </div>
                     </div>
                 </div>
@@ -87,6 +87,7 @@
                                 <span style="visibility: hidden" th:text="${item.value.location}" class="item-info-location">XML:0:0</span>
                             </div>
                         </div>
+                        <div class="col-xs-12 report-item-test" th:if="${item.value.location != null}"><span class="report-item-test-label">Location:</span><span th:text="${item.value.location}">Location</span></div>
                         <div class="col-xs-12 report-item-test" th:if="${item.value.test != null}"><span class="report-item-test-label" th:text="${config.label.resultTestLabel}">Test:</span><span th:text="${item.value.test}">Test</span></div>
                     </div>
                 </div>

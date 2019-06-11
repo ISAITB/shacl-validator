@@ -5,8 +5,8 @@
     <link rel="stylesheet" th:href="@{/webjars/font-awesome/5.7.2/css/all.min.css}"/>
     <link rel="stylesheet" th:href="@{/webjars/bootstrap/3.4.1/css/bootstrap.min.css}"/>
     <link rel="stylesheet" th:href="@{/css/style.css}"/>
-    <script th:src="@{/webjars/jquery/2.0.3/jquery.min.js}"></script>
-    <script th:src="@{/webjars/bootstrap/3.3.6/js/bootstrap.min.js}"></script>
+    <script th:src="@{/webjars/jquery/2.2.4/jquery.min.js}"></script>
+    <script th:src="@{/webjars/bootstrap/3.4.1/js/bootstrap.min.js}"></script>
     <script th:src="@{/js/lib/busy.js}"></script>
     <script th:src="@{/js/lib/FileSaver.min.js}"></script>
     <script th:src="@{/js/itb-upload.js}"></script>
@@ -16,22 +16,37 @@
     <div class="view-section-input">
         <form method="POST" enctype="multipart/form-data" th:action="@{upload}" class="form-horizontal" th:fragment="form">
             <div class="form-group">
-                <label for="fileToValidate" class="col-sm-2 control-label" th:text="${config.label.fileInputLabel}">File to validate</label>
-                <div class="col-sm-10">
-                    <div class="input-group" id="fileToValidate">
-                        <div class="input-group-btn">
-                            <button class="btn btn-default" type="button" onclick="triggerFileUpload()"><i class="fa fa-folder-open"></i></button>
-                        </div>
-                        <input type="text" id="inputFileName" class="form-control" th:placeholder="${config.label.fileInputPlaceholder}" onclick="triggerFileUpload()" readonly="readonly"/>
-                    </div>
-                    <input type="file" class="inputFile" id="inputFile" name="file" onchange="fileInputChanged()"/>
+                <label for="fileToValidate" class="col-sm-2 control-label" th:text="${config.label.fileInputLabel}">Content to validate</label>
+                <div class="col-sm-2">
+                	<select class="form-control" id="contentType" name="contentType" onchange="contentTypeChanged()">
+                		<option th:each="type : ${contentType}" th:text="${type.label}" th:attr="value=${type.key}">Type</option>
+	                </select>
+                </div>
+                <div class="col-sm-8" id="fileToValidate">
+                	<div class='input-group'>
+	                    <div class="input-group-btn">
+	                        <button class="btn btn-default" type="button" onclick="triggerFileUpload()"><i class="far fa-folder-open"></i></button>
+	                    </div>
+                    	<input type="text" id="inputFileName" class="form-control" th:placeholder="${config.label.fileInputPlaceholder}" onclick="triggerFileUpload()" readonly="readonly"/>
+                	</div>
+                </div>
+                <input type="file" class="inputFile" id="inputFile" name="file" onchange="fileInputChanged()"/>
+                <div class="col-sm-8  hidden" id="uriToValidate">
+                	<input type="url" class="form-control" id="uri" name="uri" onchange="fileInputChanged()">
+                </div>
+                <div class="col-sm-8 hidden" id="stringToValidate">
+                	<textarea id="text-editor" name="text-editor" class="form-control" rows="10" onchange="fileInputChanged()"></textarea>
                 </div>
             </div>
             <div class="form-group">
-                <label for="contentSyntaxType" class="col-sm-2 control-label" th:text="${config.label.contentSyntaxLabel}">Content syntax of the input</label>
+                <div class="col-sm-2" align="right">
+	                <label for="contentSyntaxType" class="control-label" th:text="${config.label.contentSyntaxLabel}">Content syntax of the input</label>
+	                <span data-toggle="tooltip" data-placement="right" title="In case of to upload a File or URI to validate, the content syntax can be empty"><i class="far fa-question-circle"></i></span>
+                </div>
+                
                 <div class="col-sm-10">
-                    <select class="form-control" id="contentSyntaxType" name="contentSyntaxType">
-                        <option value="" selected="true" disabled="true"></option>
+                    <select class="form-control" id="contentSyntaxType" name="contentSyntaxType" onchange="contentSyntaxChanged()">
+                        <option value="" selected="true"></option>
                         <option th:each="type : ${contentSyntax}" th:text="${type.key}" th:attr="value=${type.label}">Type</option>
                     </select>
                 </div>
@@ -43,7 +58,8 @@
 					    <label>
 					        <input type="checkbox" id="externalRulesCheck" onclick="toggleExternalShapesClassCheck()"> Include external shapes
 					    </label>
-					</div>
+						<span data-toggle="tooltip" data-placement="right" title="Select to include shapes externally provided"><i class="far fa-question-circle"></i></span>
+                    </div>
 				</div>
             </div>
             <div class="form-group externalShapesClass">

@@ -85,11 +85,11 @@ public class FileManager {
 	}
 	
 	private File getInputStreamFile(String targetFolder, InputStream stream, String contentSyntax) throws IOException {
-		Lang langExtension = RDFLanguages.contentTypeToLang(contentSyntax);
+		String lang = getLanguage(contentSyntax);
 		String extension = null;
 
-		if(langExtension!=null) {
-			extension = "." + langExtension.getName();
+		if(lang!=null) {
+			extension = "." + lang;
 		}
 
 		Path tmpPath = getFilePath(targetFolder, extension);
@@ -313,9 +313,30 @@ public class FileManager {
 		return getContentLang(file, null);
 	}
 
-    public String getReportFileNameRdf(String uuid) {
-        return uuid+".rdf";
+    public String getReportFileNameRdf(String uuid, String contentSyntax) {
+    	String lang = getLanguage(contentSyntax);
+    	
+    	if(lang!=null) {
+    		return uuid + "." + lang;
+    	}else {
+    		return uuid;
+    	}
     }
+    
+    public String getReportFileNamePdf(String uuid) {
+		return uuid + ".pdf";
+    }
+	
+	public String getLanguage(String contentSyntax) {
+		String lang = null;
+		Lang langExtension = RDFLanguages.contentTypeToLang(contentSyntax);
+
+		if(langExtension!=null) {
+			lang = langExtension.getName();
+		}
+		
+		return lang;
+	}
 
 	/**
 	 * Return the content type as Lang of the File

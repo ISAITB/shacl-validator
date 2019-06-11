@@ -87,6 +87,7 @@ public class DomainConfigCache {
                 domainConfig.setChannels(Arrays.stream(StringUtils.split(config.getString("validator.channels", ValidatorChannel.REST_API.getName()+","+ValidatorChannel.SOAP_API.getName()), ',')).map(String::trim).map(ValidatorChannel::byName).collect(Collectors.toSet()));
                 domainConfig.setShaclFile(parseShaclMap("validator.shaclFile", config, domainConfig.getType()));
                 domainConfig.setDefaultReportSyntax(config.getString("validator.defaultReportSyntax", appConfig.getDefaultReportSyntax()));
+                domainConfig.setWebContentSyntax(Arrays.stream(StringUtils.split(config.getString("validator.contentSyntax", domainConfig.getDefaultReportSyntax()), ',')).map(String::trim).collect(Collectors.toList()));                
                 domainConfig.setExternalShapes(parseBooleanMap("validator.externalShapes", config, domainConfig.getType()));
                 domainConfig.setWebServiceId(config.getString("validator.webServiceId", "ValidatorService"));
                 domainConfig.setWebServiceDescription(parseMap("validator.webServiceDescription", config, Arrays.asList(ValidationConstants.INPUT_CONTENT, ValidationConstants.INPUT_SYNTAX, ValidationConstants.INPUT_VALIDATION_TYPE, ValidationConstants.INPUT_EXTERNAL_RULES, ValidationConstants.INPUT_EMBEDDING_METHOD)));
@@ -103,7 +104,7 @@ public class DomainConfigCache {
         // If the required labels ever increase the following code should be transformed into proper resource management.
         domainConfig.getLabel().setInputSectionTitle(config.getString("validator.label.inputSectionTitle", "Validation input"));
         domainConfig.getLabel().setResultSectionTitle(config.getString("validator.label.resultSectionTitle", "Validation result"));
-        domainConfig.getLabel().setFileInputLabel(config.getString("validator.label.fileInputLabel", "File to validate"));
+        domainConfig.getLabel().setFileInputLabel(config.getString("validator.label.fileInputLabel", "Content to validate"));
         domainConfig.getLabel().setFileInputPlaceholder(config.getString("validator.label.fileInputPlaceholder", "Select file..."));
         domainConfig.getLabel().setTypeLabel(config.getString("validator.label.typeLabel", "Validate as"));
         domainConfig.getLabel().setContentSyntaxLabel(config.getString("validator.label.contentSyntaxLabel", "Content syntax"));
@@ -117,7 +118,7 @@ public class DomainConfigCache {
         domainConfig.getLabel().setResultWarningsLabel(config.getString("validator.label.resultWarningsLabel", "Warnings:"));
         domainConfig.getLabel().setResultMessagesLabel(config.getString("validator.label.resultMessagesLabel", "Messages:"));
         domainConfig.getLabel().setViewAnnotatedInputButton(config.getString("validator.label.viewAnnotatedInputButton", "View annotated input"));
-        domainConfig.getLabel().setDownloadXMLReportButton(config.getString("validator.label.downloadXMLReportButton", "Download XML report"));
+        domainConfig.getLabel().setDownloadRDFReportButton(config.getString("validator.label.downloadRDFReportButton", "Download RDF/XML report"));
         domainConfig.getLabel().setDownloadPDFReportButton(config.getString("validator.label.downloadPDFReportButton", "Download PDF report"));
         domainConfig.getLabel().setResultSubSectionDetailsTitle(config.getString("validator.label.resultSubSectionDetailsTitle", "Details"));
         domainConfig.getLabel().setResultTestLabel(config.getString("validator.label.resultTestLabel", "Test:"));

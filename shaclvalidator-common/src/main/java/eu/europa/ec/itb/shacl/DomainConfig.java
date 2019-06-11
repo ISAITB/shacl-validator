@@ -21,6 +21,8 @@ public class DomainConfig {
     private String webServiceId = "SHACLValidationService";
     private Map<String, String> webServiceDescription;
     //UI
+    private List<String> webContentSyntax;
+    private String reportTitle = "Validation report";
     private String uploadTitle = "Validator";
     private Label label = new Label();
     private boolean showAbout;
@@ -109,6 +111,15 @@ public class DomainConfig {
         this.defaultReportSyntax = defaultReportSyntax;
     }
 
+    public String getReportTitle() {
+        return reportTitle;
+    }
+
+    public void setReportTitle(String reportTitle) {
+        this.reportTitle = reportTitle;
+    }
+
+
     public Label getLabel() {
         return label;
     }
@@ -150,7 +161,16 @@ public class DomainConfig {
     }
     
     
-    public static class ShaclFileInfo {
+    public List<String> getWebContentSyntax() {
+		return webContentSyntax;
+	}
+
+	public void setWebContentSyntax(List<String> webContentSyntax) {
+		this.webContentSyntax = webContentSyntax;
+	}
+
+
+	public static class ShaclFileInfo {
     	String localFolder;
     	List<RemoteInfo> remote;
     	
@@ -210,7 +230,7 @@ public class DomainConfig {
         private String resultWarningsLabel;
         private String resultMessagesLabel;
         private String viewAnnotatedInputButton;
-        private String downloadXMLReportButton;
+        private String downloadRDFReportButton;
         private String downloadPDFReportButton;
         private String resultSubSectionDetailsTitle;
         private String resultTestLabel;
@@ -337,12 +357,12 @@ public class DomainConfig {
             this.viewAnnotatedInputButton = viewAnnotatedInputButton;
         }
 
-        public String getDownloadXMLReportButton() {
-            return downloadXMLReportButton;
+        public String getDownloadRDFReportButton() {
+            return downloadRDFReportButton;
         }
 
-        public void setDownloadXMLReportButton(String downloadXMLReportButton) {
-            this.downloadXMLReportButton = downloadXMLReportButton;
+        public void setDownloadRDFReportButton(String downloadRDFReportButton) {
+            this.downloadRDFReportButton = downloadRDFReportButton;
         }
 
         public String getDownloadPDFReportButton() {

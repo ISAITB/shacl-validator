@@ -1,18 +1,76 @@
+function contentTypeChanged(){
+	var type = $('#contentType').val();
+	$('#inputFileSubmit').prop('disabled', true);
+	
+	if(type == "uriType"){
+		$("#uriToValidate").removeClass('hidden');
+		$("#fileToValidate").addClass('hidden');
+		$("#stringToValidate").addClass('hidden');
+	}
+	if(type == "fileType"){
+		$("#fileToValidate").removeClass('hidden');
+		$("#uriToValidate").addClass('hidden');
+		$("#stringToValidate").addClass('hidden');
+	}
+	if(type == "stringType"){
+		$("#stringToValidate").removeClass('hidden');
+		$("#uriToValidate").addClass('hidden');
+		$("#fileToValidate").addClass('hidden');
+	}
+}
+
 function fileInputChanged() {
-	$('#inputFileName').val($('#inputFile')[0].files[0].name);
+	if($('#contentType').val()=="fileType"){
+		$('#inputFileName').val($('#inputFile')[0].files[0].name);
+	}
 	checkForSubmit();
 }
 function fileInputChangedShapes(type){
 	$("#inputFileName-"+type+"").val($("#inputFile-"+type+"")[0].files[0].name);
 }
-function validationTypeChanged() {
+function contentSyntaxChanged() {
 	checkForSubmit();
 }
 function checkForSubmit() {
-	var inputFile = $("#inputFileName");
-	var inputType = $('#validationType');
-	$('#inputFileSubmit').prop('disabled', (inputFile.val() && (!inputType.length || inputType.val()))?false:true);
+	var type = $('#contentType').val();
+	$('#inputFileSubmit').prop('disabled', true);
+	
+	if(type == "fileType"){
+		var inputFile = $("#inputFileName");
+		$('#inputFileSubmit').prop('disabled', (inputFile.val())?false:true);
+	}
+	if(type == "uriType"){
+		var uriInput = $("#uri");
+		$('#inputFileSubmit').prop('disabled', (uriInput.val())?false:true);		
+	}
+	if(type == "stringType"){
+		var stringType = getCodeMirrorNative('#text-editor').getDoc();	
+		var contentType = $("#contentSyntaxType");
+		
+		$('#inputFileSubmit').prop('disabled', (stringType.getValue() && (!contentType.length || contentType.val()))?false:true);		
+	}
 }
+
+function getCodeMirrorNative(target) {
+    var _target = target;
+    if (typeof _target === 'string') {
+        _target = document.querySelector(_target);
+    }
+    if (_target === null || !_target.tagName === undefined) {
+        throw new Error('Element does not reference a CodeMirror instance.');
+    }
+    
+    if (_target.className.indexOf('CodeMirror') > -1) {
+        return _target.CodeMirror;
+    }
+
+    if (_target.tagName === 'TEXTAREA') {
+        return _target.nextSibling.CodeMirror;
+    }
+    
+    return null;
+};
+
 function triggerFileUpload() {
 	$('#inputFile').click();
 }
@@ -27,30 +85,51 @@ function removeElement(elementId) {
     $("#"+elementId).remove();
 }
 
+function contentTypeChangedShapes(elementId){
+	var type = $('#contentType-'+elementId).val();
+	
+	if(type == "uriType"){
+		$("#uriToValidate-"+elementId).removeClass('hidden');
+		$("#fileToValidate-"+elementId).addClass('hidden');
+	}
+	if(type == "fileType"){
+		$("#fileToValidate-"+elementId).removeClass('hidden');
+		$("#uriToValidate-"+elementId).addClass('hidden');
+	}
+}
+
 function addElement(type) {
     var elements = $("."+type+"Div").length;
     var elementId = type+"-"+elements;
     var options = $( "#contentSyntaxType" ).html();
     
-    $("<ul class='input-group "+type+"Div row-sm item' id='"+elementId+"'>" +
-    		"<div class='col-sm-6'>" +
-    	    	"<div class='input-group' id='fileToValidate"+ type +"'>" +
-    	    		"<div class='input-group-btn'>" +
-    	    			"<button class='btn btn-default' type='button' onclick='triggerFileUploadShapes(\"inputFile-"+elementId+"\")'><i class='fa fa-folder-open'></i></button>" +
-    	    		"</div>" +
-    	    		"<input type='text' id='inputFileName-"+elementId+"' class='form-control' onclick='triggerFileUploadShapes(\"inputFile-"+elementId+"\")' readonly='readonly'/>" +
-    	    	"</div>"+
-	    		"<input type='file' class='inputFile' id='inputFile-"+elementId+"' name='inputFile-"+type+"' onchange='fileInputChangedShapes(\""+elementId+"\")'/>" +
-	    	"</div>" +
-	    	"<div class='col-sm-6'>" +
+    
+    $("<div class='form-group "+type+"Div' id='"+elementId+"'>" +
+    	"<div class='col-sm-2'>"+
+			"<select class='form-control' id='contentType-"+elementId+"' name='contentType-"+type+"' onchange='contentTypeChangedShapes(\""+elementId+"\")'>"+
+				"<option value='fileType' selected='true'>File</option>"+
+				"<option value='uriType'>URI</option>"+
+		    "</select>"+
+		"</div>"+
+		"<div class='input-group col-sm-10'>" +
+			"<div class='col-sm-8' id='fileToValidate-"+elementId+"'>" +
+		    	"<div class='input-group-btn'>" +
+					"<button class='btn btn-default' type='button' onclick='triggerFileUploadShapes(\"inputFile-"+elementId+"\")'><i class='far fa-folder-open'></i></button>" +
+				"</div>" +
+				"<input type='text' id='inputFileName-"+elementId+"' class='form-control' onclick='triggerFileUploadShapes(\"inputFile-"+elementId+"\")' readonly='readonly'/>" +
+			"</div>" +
+			"<div class='col-sm-8 hidden' id='uriToValidate-"+elementId+"'>"+
+	        	"<input type='url' class='form-control' id='uri-"+elementId+"' name='uri-"+type+"'>"+
+	        "</div>"+
+			"<input type='file' class='inputFile' id='inputFile-"+elementId+"' name='inputFile-"+type+"' onchange='fileInputChangedShapes(\""+elementId+"\")'/>" +
+			"<div class='col-sm-4'>" +
 				"<select class='form-control' id='contentSyntaxType-"+elementId+"' name='contentSyntaxType-"+type+"'>" + options + "</select>" +
-		    "</div>" +
-    		"<div class='input-group-btn'>" +
-    			"<button class='btn btn-default' type='button' onclick='removeElement(\""+elementId+"\")'>" +
-    					"<i class='far fa-trash-alt'></i>" +
-    			"</button>" +
-    		"</div>" +
-    "</ul>").insertBefore("#"+type+"AddButton");
+	    		"<div class='input-group-btn'>" +
+					"<button class='btn btn-default' type='button' onclick='removeElement(\""+elementId+"\")'><i class='far fa-trash-alt'></i></button>" +
+				"</div>" +
+			"</div>" +	
+		"</div>"+
+    "</div>").insertBefore("#"+type+"AddButton");
 
     $("#"+elementId+" input").focus();
 }
@@ -65,4 +144,17 @@ function toggleExternalShapesClassCheck() {
 
 $(document).ready(function() {
 	toggleExternalShapesClassCheck();
+
+	var editableCodeMirror = CodeMirror.fromTextArea(document.getElementById('text-editor'), {
+        mode: "xml",
+        autoRefresh: true,
+        gutter: true,
+        lineWrapping: true,
+        autoFormatOnStart: true,
+        styleActiveLine: true,
+        lineNumbers: true
+    }).on('change', function(){
+    	contentSyntaxChanged();
+    });
+    
 });
