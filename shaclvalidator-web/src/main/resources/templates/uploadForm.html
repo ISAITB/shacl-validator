@@ -20,6 +20,11 @@
         getReportData("[[${reportID}]]");
     /*]]>*/
     </script>
+    <script>
+        $(document).ready(function() {
+            $("body").tooltip({ selector: '[data-toggle=tooltip]' });
+        });
+    </script>
 </head>
 <body>
 <div class="container view-section">

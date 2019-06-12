@@ -102,35 +102,37 @@ function addElement(type) {
     var elements = $("."+type+"Div").length;
     var elementId = type+"-"+elements;
     var options = $( "#contentSyntaxType" ).html();
-    
-    
-    $("<div class='form-group "+type+"Div' id='"+elementId+"'>" +
+
+    $("<div class='row form-group "+type+"Div' id='"+elementId+"'>" +
     	"<div class='col-sm-2'>"+
 			"<select class='form-control' id='contentType-"+elementId+"' name='contentType-"+type+"' onchange='contentTypeChangedShapes(\""+elementId+"\")'>"+
 				"<option value='fileType' selected='true'>File</option>"+
 				"<option value='uriType'>URI</option>"+
 		    "</select>"+
 		"</div>"+
-		"<div class='input-group col-sm-10'>" +
-			"<div class='col-sm-8' id='fileToValidate-"+elementId+"'>" +
-		    	"<div class='input-group-btn'>" +
-					"<button class='btn btn-default' type='button' onclick='triggerFileUploadShapes(\"inputFile-"+elementId+"\")'><i class='far fa-folder-open'></i></button>" +
-				"</div>" +
-				"<input type='text' id='inputFileName-"+elementId+"' class='form-control' onclick='triggerFileUploadShapes(\"inputFile-"+elementId+"\")' readonly='readonly'/>" +
-			"</div>" +
-			"<div class='col-sm-8 hidden' id='uriToValidate-"+elementId+"'>"+
-	        	"<input type='url' class='form-control' id='uri-"+elementId+"' name='uri-"+type+"'>"+
-	        "</div>"+
-			"<input type='file' class='inputFile' id='inputFile-"+elementId+"' name='inputFile-"+type+"' onchange='fileInputChangedShapes(\""+elementId+"\")'/>" +
-			"<div class='col-sm-4'>" +
-				"<select class='form-control' id='contentSyntaxType-"+elementId+"' name='contentSyntaxType-"+type+"'>" + options + "</select>" +
-	    		"<div class='input-group-btn'>" +
-					"<button class='btn btn-default' type='button' onclick='removeElement(\""+elementId+"\")'><i class='far fa-trash-alt'></i></button>" +
-				"</div>" +
-			"</div>" +	
+		"<div class='col-sm-10'>" +
+		    "<div class='row'>" +
+                "<div class='col-md-8 col-sm-7'>" +
+                    "<div class='input-group' id='fileToValidate-"+elementId+"'>" +
+                        "<div class='input-group-btn'>" +
+                            "<button class='btn btn-default' type='button' onclick='triggerFileUploadShapes(\"inputFile-"+elementId+"\")'><i class='far fa-folder-open'></i></button>" +
+                        "</div>" +
+                        "<input type='text' id='inputFileName-"+elementId+"' class='form-control clickable' onclick='triggerFileUploadShapes(\"inputFile-"+elementId+"\")' readonly='readonly'/>" +
+                    "</div>" +
+                "</div>" +
+                "<div class='col-md-8 col-sm-7 hidden' id='uriToValidate-"+elementId+"'>"+
+                    "<input type='url' class='form-control' id='uri-"+elementId+"' name='uri-"+type+"'>"+
+                "</div>"+
+                "<input type='file' class='inputFile' id='inputFile-"+elementId+"' name='inputFile-"+type+"' onchange='fileInputChangedShapes(\""+elementId+"\")'/>" +
+                "<div class='col-md-3 col-sm-3'>" +
+                    "<select class='form-control' id='contentSyntaxType-"+elementId+"' name='contentSyntaxType-"+type+"'>" + options + "</select>" +
+                "</div>" +
+                "<div class='col-md-1 col-sm-2'>" +
+                    "<button class='btn btn-default' type='button' onclick='removeElement(\""+elementId+"\")'><i class='far fa-trash-alt'></i></button>" +
+                "</div>" +
+    		"</div>"+
 		"</div>"+
     "</div>").insertBefore("#"+type+"AddButton");
-
     $("#"+elementId+" input").focus();
 }
 
