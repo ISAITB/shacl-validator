@@ -45,9 +45,9 @@
             <div class="form-group">
                 <div class="col-sm-2" align="right">
 	                <label for="contentSyntaxType" class="control-label" th:text="${config.label.contentSyntaxLabel}">Content syntax of the input</label>
-	                <span data-toggle="tooltip" data-container="body" data-placement="right" title="In case of to upload a File or URI to validate, the content syntax can be empty"><i class="far fa-question-circle"></i></span>
+	                <span data-toggle="tooltip" data-container="body" data-placement="right" title="Specifying the content syntax for a file or URI is optional"><i class="far fa-question-circle"></i></span>
                 </div>
-                
+
                 <div class="col-sm-3">
                     <select class="form-control" id="contentSyntaxType" name="contentSyntaxType" onchange="contentSyntaxChanged()">
                         <option value="" selected="true"></option>
@@ -62,7 +62,7 @@
 					    <label>
 					        <input type="checkbox" id="externalRulesCheck" onclick="toggleExternalShapesClassCheck()"> Include external shapes
 					    </label>
-						<span data-toggle="tooltip" data-container="body" data-placement="right" title="Select to include shapes externally provided"><i class="far fa-question-circle"></i></span>
+						<span data-toggle="tooltip" data-container="body" data-placement="right" title="Include additional shapes to be considered for the validation"><i class="far fa-question-circle"></i></span>
                     </div>
 				</div>
             </div>
