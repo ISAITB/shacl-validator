@@ -52,7 +52,8 @@ body {
     float: right;
 }
 .CodeMirror {
-    height: 80vh;
+    height: 50vh;
+    border: 1px solid rgb(237, 237, 237);
 }
 .indicator-editor-widget {
     font-size: 12px;

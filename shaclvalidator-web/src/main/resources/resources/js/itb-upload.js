@@ -3,19 +3,52 @@ function contentTypeChanged(){
 	$('#inputFileSubmit').prop('disabled', true);
 	
 	if(type == "uriType"){
+		addEmptyOption();
 		$("#uriToValidate").removeClass('hidden');
 		$("#fileToValidate").addClass('hidden');
 		$("#stringToValidate").addClass('hidden');
 	}
 	if(type == "fileType"){
+		addEmptyOption();
 		$("#fileToValidate").removeClass('hidden');
 		$("#uriToValidate").addClass('hidden');
 		$("#stringToValidate").addClass('hidden');
 	}
-	if(type == "stringType"){
+	if(type == "stringType"){	
+		removeEmptyOption();	
 		$("#stringToValidate").removeClass('hidden');
 		$("#uriToValidate").addClass('hidden');
 		$("#fileToValidate").addClass('hidden');
+	}
+}
+
+function removeEmptyOption(){
+	var contentType = document.getElementById("contentSyntaxType");
+	
+	for (var i=0; i<contentType.length; i++){
+		 if (contentType[i].value == 'empty'){
+			 contentType.remove(i);
+		 }
+	}
+}
+
+function addEmptyOption(){
+	var contentType = document.getElementById("contentSyntaxType");
+	var exist = false;
+	
+	for (var i=0; i<contentType.length; i++){
+		 if (contentType[i].value == 'empty'){
+			 exist = true;
+		 }
+	}
+	
+	if(exist == false){
+		var option = document.createElement("option");
+		option.text = "";
+		option.value = "empty";
+		
+		contentType.add(option,0);
+		contentType.selectedIndex = 0;
 	}
 }
 
@@ -149,7 +182,7 @@ $(document).ready(function() {
 
 	var editableCodeMirror = CodeMirror.fromTextArea(document.getElementById('text-editor'), {
         mode: "xml",
-        autoRefresh: true,
+        autoRefresh: false,
         gutter: true,
         lineWrapping: true,
         autoFormatOnStart: true,

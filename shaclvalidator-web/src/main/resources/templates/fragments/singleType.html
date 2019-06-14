@@ -50,7 +50,7 @@
 
                 <div class="col-sm-3">
                     <select class="form-control" id="contentSyntaxType" name="contentSyntaxType" onchange="contentSyntaxChanged()">
-                        <option value="" selected="true"></option>
+                        <option value="empty" selected="true"></option>
                         <option th:each="type : ${contentSyntax}" th:text="${type.key}" th:attr="value=${type.label}">Type</option>
                     </select>
                 </div>
