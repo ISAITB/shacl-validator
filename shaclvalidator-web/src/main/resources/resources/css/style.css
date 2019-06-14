@@ -91,6 +91,10 @@ body {
 .view-section-title {
     padding-bottom: 10px;
 }
+.overall-title {
+    margin-bottom: 30px;
+    cursor: pointer;
+}
 .overview-button-row {
     padding-top: 10px;
 }
