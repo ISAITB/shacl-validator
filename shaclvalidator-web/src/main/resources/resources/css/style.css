@@ -108,3 +108,7 @@ body {
     margin-bottom: 15px;
     box-shadow: 5px 5px 5px #0E0E0E;
 }
+.clickable {
+    cursor: pointer;
+    cursor: hand;
+}
