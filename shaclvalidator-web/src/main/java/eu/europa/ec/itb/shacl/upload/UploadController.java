@@ -292,13 +292,16 @@ public class UploadController {
 
 		types.add(new UploadTypes(contentType_file, "File"));
 		types.add(new UploadTypes(contentType_uri, "URI"));
-		types.add(new UploadTypes(contentType_string, "String"));
+		types.add(new UploadTypes(contentType_string, "Direct input"));
 		
 		return types;        
     }
     
     private List<UploadTypes> getContentSyntax(DomainConfig config) {
-    	List<String> contentSyntax = config.getWebContentSyntax();    	
+    	List<String> contentSyntax = config.getWebContentSyntax();    
+    	if(contentSyntax.isEmpty()) {
+    		contentSyntax = new ArrayList<>(appConfig.getContentSyntax());
+    	}
         List<UploadTypes> types = new ArrayList<>();
     	
         for(String cs : contentSyntax) {

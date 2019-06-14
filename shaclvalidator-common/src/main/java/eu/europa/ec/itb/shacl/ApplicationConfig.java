@@ -41,6 +41,7 @@ public class ApplicationConfig {
     private String startupTimestamp;
     private String resourceUpdateTimestamp;
     private String defaultReportSyntax;
+    private Set<String> contentSyntax;
 
     public String getTmpFolder() {
         return tmpFolder;
@@ -105,6 +106,14 @@ public class ApplicationConfig {
     public Map<String, String> getDomainNameToDomainId() {
         return domainNameToDomainId;
     }
+
+	public Set<String> getContentSyntax() {
+		return contentSyntax;
+	}
+
+	public void setContentSyntax(Set<String> contentSyntax) {
+		this.contentSyntax = contentSyntax;
+	}
 
     @PostConstruct
     public void init() {
