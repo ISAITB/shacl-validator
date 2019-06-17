@@ -143,12 +143,14 @@ public class UploadController {
     			TAR TARreport = Utils.getTAR(reportModel, inputFile.toPath(), contentSyntaxType, validator.getAggregatedShapes());
                 attributes.put("report", TARreport);
                 attributes.put("date", TARreport.getDate().toString());
+                
                 if(contentType.equals(contentType_file)) {
                 	attributes.put("fileName", file.getOriginalFilename());
                 }
                 if(contentType.equals(contentType_uri)) {
                 	attributes.put("fileName", uri);
                 }
+                attributes.put("inputContentId", inputFile.getName());
             }
         } catch (Exception e) {
             logger.error("An error occurred during the validation [" + e.getMessage() + "]", e);
@@ -159,8 +161,9 @@ public class UploadController {
         try {
             String reportString = fileManager.getShaclReport(reportModel, domainConfig.getDefaultReportSyntax());
             File reportFile = fileManager.getStringFile(reportString, domainConfig.getDefaultReportSyntax());
+            String reportID =  FilenameUtils.removeExtension(reportFile.getName());
             
-            attributes.put("reportID", FilenameUtils.removeExtension(reportFile.getName()));            
+            attributes.put("reportID", reportID);            
         } catch (IOException e) {
             logger.error("Error generating detailed report [" + e.getMessage() + "]", e);
             attributes.put("message", "Error generating detailed report [" + e.getMessage() + "]");

@@ -1,11 +1,15 @@
 package eu.europa.ec.itb.shacl.upload;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.jena.rdf.model.Model;
+import org.apache.jena.riot.RDFLanguages;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import org.topbraid.jenax.util.JenaUtil;
 
 import eu.europa.ec.itb.shacl.ApplicationConfig;
 import eu.europa.ec.itb.shacl.DomainConfig;
@@ -16,6 +20,8 @@ import eu.europa.ec.itb.shacl.validation.FileManager;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 
 @RestController
 public class FileController {
@@ -28,8 +34,8 @@ public class FileController {
     DomainConfigCache domainConfigCache;
     @Autowired
     ReportGeneratorBean reportGenerator;
-/*
-    @RequestMapping(value = "/{domain}/xml/{id}", method = RequestMethod.GET, produces = MediaType.TEXT_PLAIN_VALUE)
+
+ /*   @RequestMapping(value = "/{domain}/shacl/{id}", method = RequestMethod.GET, produces = MediaType.TEXT_PLAIN_VALUE)
     @ResponseBody
     public FileSystemResource getXML(@PathVariable String domain, @PathVariable String id) {
         DomainConfig domainConfig = domainConfigCache.getConfigForDomain(domain);
@@ -43,51 +49,69 @@ public class FileController {
         } else {
             throw new NotFoundException();
         }
-    }
-*/
-    @GetMapping(value = "/{domain}/report/{id}/rdf", produces = MediaType.TEXT_PLAIN_VALUE)
+    }*/
+
+    @GetMapping(value = "/{domain}/report/{id}/{contentid}/{type}/{syntax}", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
-    public FileSystemResource getReportRDF(@PathVariable String domain, @PathVariable String id, HttpServletResponse response) {
+    public FileSystemResource getReport(@PathVariable String domain, @PathVariable String id, @PathVariable String contentid, @PathVariable String type, @PathVariable String syntax, HttpServletResponse response) {
         DomainConfig domainConfig = domainConfigCache.getConfigForDomain(domain);
         if (domainConfig == null || !domainConfig.getChannels().contains(ValidatorChannel.FORM)) {
             throw new NotFoundException();
         }
         MDC.put("domain", domain);
+        
+        syntax = syntax.replace("_", "/");
         
         File reportFile = new File(config.getTmpFolder(), fileManager.getReportFileNameRdf(id, domainConfig.getDefaultReportSyntax()));
+
+        try {
+	        if (reportFile.exists() && reportFile.isFile()) {
+	            if(type.equals("reportType")) {
+	            	if(!domainConfig.getDefaultReportSyntax().equals(syntax) && !syntax.equals("pdfType")) {	
+		                reportFile = getReportAsSyntax(reportFile, syntax, domainConfig.getDefaultReportSyntax());
+		            }
+
+	            	if(syntax.equals("pdfType")) {
+	            		reportFile = getReportPdf(reportFile, id, domainConfig);
+	            	}
+	            }
+	            if(type.equals("contentType") && !domainConfig.getDefaultReportSyntax().equals(syntax)) {
+	            	reportFile = new File(config.getTmpFolder(), contentid);
+		            reportFile = getReportAsSyntax(reportFile, syntax, FilenameUtils.getExtension(contentid));
+	            }
+	            
+	            
+	            if (response != null) {
+	                response.setHeader("Content-Disposition", "attachment; filename=report_" + id + "." + fileManager.getLanguage(domainConfig.getDefaultReportSyntax()));
+	            }
+	            return new FileSystemResource(reportFile);
+	        } else {
+	            throw new NotFoundException();
+	        }
+       }catch(Exception e) {
+           throw new NotFoundException();
+	   }
+    }
+    
+    private File getReportAsSyntax(File reportFile, String syntax, String defaultSyntax) throws IOException {
+    	Model fileModel = JenaUtil.createMemoryModel();    	
+        fileModel.read(new FileInputStream(reportFile), null, defaultSyntax);        
+        String stringReport = fileManager.getShaclReport(fileModel, syntax);
         
-        if (reportFile.exists() && reportFile.isFile()) {
-            if (response != null) {
-                response.setHeader("Content-Disposition", "attachment; filename=report_" + id + "." + fileManager.getLanguage(domainConfig.getDefaultReportSyntax()));
-            }
-            return new FileSystemResource(reportFile);
-        } else {
-            throw new NotFoundException();
-        }
+        return fileManager.getStringFile(stringReport, syntax);
     }
 
-    @GetMapping(value = "/{domain}/report/{id}/pdf", produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
-    @ResponseBody
-    public FileSystemResource getReportPdf(@PathVariable String domain, @PathVariable String id, HttpServletResponse response) {
-        DomainConfig domainConfig = domainConfigCache.getConfigForDomain(domain);
-        if (domainConfig == null || !domainConfig.getChannels().contains(ValidatorChannel.FORM)) {
-            throw new NotFoundException();
-        }
-        MDC.put("domain", domain);
-        File reportFile = new File(config.getTmpFolder(), fileManager.getReportFileNamePdf(id));
+    public File getReportPdf(File reportFile, String id, DomainConfig domainConfig) throws IOException {
+        File reportPDFFile = new File(config.getTmpFolder(), fileManager.getReportFileNamePdf(id));
+        
+        File RDFXMLFile = getReportAsSyntax(reportFile, RDFLanguages.RDFXML.getContentType().getContentType(), domainConfig.getDefaultReportSyntax());
+
         if (!(reportFile.exists() && reportFile.isFile())) {
             // Generate the PDF.
-            File reportFileRdf = new File(config.getTmpFolder(), fileManager.getReportFileNameRdf(id, domainConfig.getDefaultReportSyntax()));
-            if (reportFileRdf.exists() && reportFileRdf.isFile()) {
-                reportGenerator.writeReport(domainConfig, reportFileRdf, reportFile);
-            } else {
-                throw new NotFoundException();
-            }
+            reportGenerator.writeReport(domainConfig, RDFXMLFile, reportPDFFile);
         }
-        if (response != null) {
-            response.setHeader("Content-Disposition", "attachment; filename=report_"+id+".pdf");
-        }
-        return new FileSystemResource(reportFile);
+        
+        return reportPDFFile;
     }
 
    /* public FileSystemResource getReportXml(String domain, String id) {

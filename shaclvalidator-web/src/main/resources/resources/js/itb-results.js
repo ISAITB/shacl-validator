@@ -4,15 +4,20 @@ var itbResultReportPDF;
 var reportLoad = jQuery.Deferred();
 var resultLoadRDF = jQuery.Deferred();
 var resultLoadPDF = jQuery.Deferred();
-function getReportData(reportID) {
+var resultReportID;
+var inputContentID;
+
+function getReportData(reportID, inputContentId) {
+	resultReportID = reportID;
+	inputContentID = inputContentId;
 	//getReport(reportID);
-	getResultReport(reportID);
+	//getResultReport(reportID);
 }
 function getReport(reportID) {
-	$.get("xml/"+reportID, function(data) {
+	$.get("shacl/"+reportID, function(data) {
 		itbReportData = data;
 		$.ajax({
-			url: "xml/"+reportID,
+			url: "shacl/"+reportID,
 			type: 'DELETE'
 		});
 		reportLoad.resolve();
@@ -26,11 +31,11 @@ function getResultReport(reportID) {
 		type: 'GET',
 		success: function(data) {
 			itbResultReportRDF = new Blob([data], { type: 'application/rdf+xml' });
-            $('#downloadReportButtonDefault').prop('disabled', false);
+            $('#downloadButton').prop('disabled', false);
 			resultLoadRDF.resolve();
 		}
 	});
-
+/*
     var ajax = new XMLHttpRequest();
     ajax.open("GET", "report/"+reportID+"/pdf", true);
     ajax.onreadystatechange = function() {
@@ -54,11 +59,25 @@ function getResultReport(reportID) {
             url: "report/"+reportID,
             type: 'DELETE'
         });
-	})
+	})*/
 }
-function downloadReportRDF() {
+function downloadResult() {
+	var type = $('#downloadType').val();
+	var syntaxType = $('#downloadSyntaxType').val();
+	var selectedIndex = document.getElementById("downloadSyntaxType").selectedIndex;
+	var selectedSyntax = document.getElementById("downloadSyntaxType")[selectedIndex].text;
+
+	$.ajax({
+		url: "report/"+resultReportID+"/"+inputContentID+"/"+type+"/"+syntaxType.replace("/", "_"),
+		type: 'GET',
+		success: function(data) {
+			itbResultReportRDF = new Blob([data], { type: syntaxType.replace("_", "/") });
+			resultLoadRDF.resolve();
+		}
+	});
+	
 	resultLoadRDF.done(function() {
-		saveAs(itbResultReportRDF, "report.rdf");
+		saveAs(itbResultReportRDF, "report."+selectedSyntax);
 	});
 }
 function downloadReportPDF() {
