@@ -80,7 +80,7 @@ public class DomainConfigCache {
                 }
                 domainConfig = new DomainConfig();
                 domainConfig.setDomain(domain);
-                domainConfig.setUploadTitle(config.getString("validator.uploadTitle", "Validator"));
+                domainConfig.setUploadTitle(config.getString("validator.uploadTitle", "SHACL Validator"));
                 domainConfig.setDomainName(appConfig.getDomainIdToDomainName().get(domain));
                 domainConfig.setType(Arrays.stream(StringUtils.split(config.getString("validator.type"), ',')).map(String::trim).collect(Collectors.toList()));
                 domainConfig.setTypeLabel(parseMap("validator.typeLabel", config, domainConfig.getType()));

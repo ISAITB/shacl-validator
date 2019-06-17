@@ -100,7 +100,7 @@ public class SHACLReportHandler {
             				severity = statement.getResource().toString();
             			}
             		}
-            		error.setLocation(resultPath + " " + focusNode);
+            		error.setLocation("Focus node [" + resultPath + "] - Result path [" + focusNode + "]");
             		
                     JAXBElement element;
                     if (severity.equals("http://www.w3.org/ns/shacl#Info")) {
