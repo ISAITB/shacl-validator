@@ -108,7 +108,7 @@ public class UploadController {
         attributes.put("appConfig", appConfig);
 		
         try {
-        	if(StringUtils.isEmpty(contentSyntaxType)) {
+        	if(StringUtils.isEmpty(contentSyntaxType) || contentSyntaxType.equals("empty")) {
         		if(!contentType.equals(contentType_string)) {
         			contentSyntaxType = getExtensionContentType((contentType.equals(contentType_file) ? file.getOriginalFilename() : uri));
         		}else {
@@ -135,8 +135,9 @@ public class UploadController {
         try {
             if (inputFile != null) {
             	List<FileInfo> extFiles = getExternalShapes(externalContentType, externalFiles, externalUri, externalFilesSyntaxType);
-        		SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile, validationType, contentSyntaxType, extFiles, domainConfig);
-        			
+
+            	SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile, validationType, contentSyntaxType, extFiles, domainConfig);
+
         		reportModel = validator.validateAll(); 
         		
     			TAR TARreport = Utils.getTAR(reportModel, inputFile.toPath(), contentSyntaxType, validator.getAggregatedShapes());
@@ -214,7 +215,7 @@ public class UploadController {
 				switch(externalContentType[i]) {
 					case contentType_file:
 						if(!externalFiles[i].isEmpty()) {
-							if(StringUtils.isEmpty(contentSyntaxType)) {
+							if(StringUtils.isEmpty(contentSyntaxType) || contentSyntaxType.equals("empty")) {
 				        		contentSyntaxType = getExtensionContentType(externalFiles[i].getOriginalFilename());
 				        	}
 							
@@ -223,7 +224,7 @@ public class UploadController {
 						break;
 					case contentType_uri:					
 						if(externalUri.length>i && !externalUri[i].isEmpty()) {
-							if(StringUtils.isEmpty(contentSyntaxType)) {
+							if(StringUtils.isEmpty(contentSyntaxType) || contentSyntaxType.equals("empty")) {
 				        		contentSyntaxType = getExtensionContentType(externalUri[i]);
 				        	}
 							inputFile = this.fileManager.getURLFile(externalUri[i]);

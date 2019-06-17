@@ -1,3 +1,21 @@
+function validationTypeChanged() {
+	var type = $('#validationType').val();
+	var ext = document.getElementById("externalShapes");
+	
+	for (var i=0; i<ext.length; i++){
+		if (ext[i].text == type){
+			if(ext[i].value == "true"){
+				$(".includeExternalShapes").removeClass('hidden');
+			}
+			if(ext[i].value == "false"){
+				$(".includeExternalShapes").addClass('hidden');
+			}
+		 }
+	}
+		
+	checkForSubmit();
+}
+
 function contentTypeChanged(){
 	var type = $('#contentType').val();
 	$('#inputFileSubmit').prop('disabled', true);
@@ -66,21 +84,22 @@ function contentSyntaxChanged() {
 }
 function checkForSubmit() {
 	var type = $('#contentType').val();
+	var inputType = $('#validationType');
 	$('#inputFileSubmit').prop('disabled', true);
 	
 	if(type == "fileType"){
 		var inputFile = $("#inputFileName");
-		$('#inputFileSubmit').prop('disabled', (inputFile.val())?false:true);
+		$('#inputFileSubmit').prop('disabled', (inputFile.val() && (!inputType.length || inputType.val()))?false:true);
 	}
 	if(type == "uriType"){
 		var uriInput = $("#uri");
-		$('#inputFileSubmit').prop('disabled', (uriInput.val())?false:true);		
+		$('#inputFileSubmit').prop('disabled', (uriInput.val() && (!inputType.length || inputType.val()))?false:true);		
 	}
 	if(type == "stringType"){
 		var stringType = getCodeMirrorNative('#text-editor').getDoc();	
 		var contentType = $("#contentSyntaxType");
 		
-		$('#inputFileSubmit').prop('disabled', (stringType.getValue() && (!contentType.length || contentType.val()))?false:true);		
+		$('#inputFileSubmit').prop('disabled', (stringType.getValue() && (!contentType.length || contentType.val()) && (!inputType.length || inputType.val()))?false:true);		
 	}
 }
 
