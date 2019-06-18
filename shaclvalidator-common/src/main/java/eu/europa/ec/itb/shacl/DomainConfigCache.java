@@ -84,7 +84,7 @@ public class DomainConfigCache {
                 domainConfig.setDomainName(appConfig.getDomainIdToDomainName().get(domain));
                 domainConfig.setType(Arrays.stream(StringUtils.split(config.getString("validator.type"), ',')).map(String::trim).collect(Collectors.toList()));
                 domainConfig.setTypeLabel(parseMap("validator.typeLabel", config, domainConfig.getType()));
-                domainConfig.setChannels(Arrays.stream(StringUtils.split(config.getString("validator.channels", ValidatorChannel.REST_API.getName()+","+ValidatorChannel.SOAP_API.getName()), ',')).map(String::trim).map(ValidatorChannel::byName).collect(Collectors.toSet()));
+                domainConfig.setChannels(Arrays.stream(StringUtils.split(config.getString("validator.channels", ValidatorChannel.REST_API.getName()+","+ValidatorChannel.SOAP_API.getName()+","+ValidatorChannel.FORM.getName()), ',')).map(String::trim).map(ValidatorChannel::byName).collect(Collectors.toSet()));
                 domainConfig.setShaclFile(parseShaclMap("validator.shaclFile", config, domainConfig.getType()));
                 domainConfig.setDefaultReportSyntax(config.getString("validator.defaultReportSyntax", appConfig.getDefaultReportSyntax()));
                 domainConfig.setWebContentSyntax(Arrays.stream(StringUtils.split(config.getString("validator.contentSyntax", ""), ',')).map(String::trim).collect(Collectors.toList()));    
