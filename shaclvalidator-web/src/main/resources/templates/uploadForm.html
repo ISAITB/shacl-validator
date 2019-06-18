@@ -86,6 +86,12 @@
 	                
                 	<div class="col-sm-3">
 	                	<button type="button" class="btn btn-default" id="downloadButton" onclick="downloadResult()">Download</button>
+                        <form id="resultForm" name="resultForm" method="GET" th:action="report">
+                            <input id="resultFormId" name="id" type="hidden"/>
+                            <input id="resultFormContentId" name="contentid" type="hidden"/>
+                            <input id="resultFormType" name="type" type="hidden"/>
+                            <input id="resultFormSyntax" name="syntax" type="hidden"/>
+                        </form>
                 	</div>
                 </div>
             </div>

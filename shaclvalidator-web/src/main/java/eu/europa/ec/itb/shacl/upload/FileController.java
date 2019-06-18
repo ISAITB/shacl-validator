@@ -51,10 +51,10 @@ public class FileController {
         }
     }*/
 
-    @GetMapping(value = "/{domain}/report/{id}/{contentid}/{type}/{syntax}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/{domain}/report", produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
     @ResponseBody
-    public FileSystemResource getReport(@PathVariable String domain, @PathVariable String id, @PathVariable String contentid, @PathVariable String type, @PathVariable String syntax, HttpServletResponse response) {
-        DomainConfig domainConfig = domainConfigCache.getConfigForDomain(domain);
+    public FileSystemResource getReport(@PathVariable String domain, @RequestParam String id, @RequestParam String contentid, @RequestParam String type, @RequestParam String syntax, HttpServletResponse response) {
+        DomainConfig domainConfig = domainConfigCache.getConfigForDomainName(domain);
         if (domainConfig == null || !domainConfig.getChannels().contains(ValidatorChannel.FORM)) {
             throw new NotFoundException();
         }
