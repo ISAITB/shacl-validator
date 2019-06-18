@@ -17,7 +17,7 @@
     <script th:if="${report}" th:src="@{/js/itb-results.js}"></script>
     <script th:if="${report}" th:inline="text">
     /*<![CDATA[*/
-        getReportData("[[${reportID}]]");
+        getReportData("[[${reportID}]]", "[[${inputContentId}]]");
     /*]]>*/
     </script>
     <script>
@@ -65,14 +65,28 @@
                     <div class="col-xs-4" th:text="${report.counters.nrOfAssertions}">0</div>
                 </div>
                 <div class="row overview-button-row">
-                    <div class="col-xs-12">
-                        <div class="btn-group">
-                            <button type="button" class="btn btn-default" id="downloadReportButtonDefault" onclick="downloadReportRDF()" disabled="true" th:text="${config.label.downloadRDFReportButton}">Download report as RDF/XML</button>
-                            <!-- button type="button" class="btn btn-default" id="viewInputButton" onclick="setCode()" disabled="true" th:text="${config.label.viewAnnotatedInputButton}">View annotated input</button>
-                            <button type="button" class="btn btn-default" id="downloadReportButtonXML" onclick="downloadReportXML()" disabled="true" th:text="${config.label.downloadXMLReportButton}">Download XML report</button -->
-                            <button type="button" class="btn btn-default" id="downloadReportButtonPDF" onclick="downloadReportPDF()" disabled="true" th:text="${config.label.downloadPDFReportButton}">Download PDF report</button>
-                        </div>
+                    <label class="col-xs-2 control-label">Download:</label>
+                    
+	                <div class="col-sm-3">
+	                    <select class="form-control" id="downloadType" name="downloadType">
+	                        <option value="reportType">Report</option>
+	                        <option value="shapeType">Shapes</option>
+	                        <option value="contentType">Content</option>
+	                    </select>
                     </div>
+                    
+                    <label class="col-xs-1 control-label center" style="text-align:center;"> as </label>
+                
+	                <div class="col-sm-3">
+	                    <select class="form-control" id="downloadSyntaxType" name="downloadSyntaxType">
+	                        <option value="pdfType">PDF</option>
+	                        <option th:each="type : ${contentSyntax}" th:text="${type.key}" th:attr="value=${type.label}">Type</option>
+	                    </select>
+	                </div>
+	                
+                	<div class="col-sm-3">
+	                	<button type="button" class="btn btn-default" id="downloadButton" onclick="downloadResult()">Download</button>
+                	</div>
                 </div>
             </div>
         </div>
