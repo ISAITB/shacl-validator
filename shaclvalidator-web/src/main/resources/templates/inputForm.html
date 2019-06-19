@@ -21,7 +21,7 @@
                 	<select class="form-control" id="contentType" name="contentType" onchange="contentTypeChanged()">
                 		<option th:each="type : ${contentType}" th:text="${type.label}" th:attr="value=${type.key}">Type</option>
 	                </select>
-                </div>
+                </div>    
                 <div class="col-sm-8">
                     <div class="row">
                         <div class="col-sm-12" id="fileToValidate">
@@ -42,6 +42,15 @@
                     </div>
                 </div>
             </div>
+            <div class="form-group" th:if="${!validationTypes.isEmpty()}">
+                <label for="validationType" class="col-sm-2 control-label" th:text="${config.label.typeLabel}">Validate as</label>
+                <div class="col-sm-10">
+                    <select class="form-control" id="validationType" onchange="validationTypeChanged()" name="validationType">
+                        <option value="" selected="true" disabled="true"></option>
+                        <option th:each="type : ${validationTypes}" th:text="${type.label}" th:attr="value=${type.key}">Type</option>
+                    </select>
+                </div>
+            </div>
             <div class="form-group">
                 <div class="col-sm-2" align="right">
 	                <label for="contentSyntaxType" class="control-label" th:text="${config.label.contentSyntaxLabel}">Content syntax of the input</label>
@@ -55,8 +64,7 @@
                     </select>
                 </div>
             </div>
-            
-            <div class="form-group" th:if="${externalShapes}" th:fragment="externalRules_list">
+            <div class="form-group includeExternalShapes hidden">
                 <div class="col-sm-offset-2 col-sm-10">
 					<div class="checkbox">
 					    <label>
@@ -72,12 +80,16 @@
                     <button id="externalShapeAddButton" class="btn btn-default" type="button" onclick="addExternalShapes()"><i class="fas fa-plus"></i></button>
                 </div>
             </div>
-            
             <div class="form-group">
                 <div class="col-sm-offset-2 col-sm-10">
                     <button type="submit" id="inputFileSubmit" class="btn btn-primary" disabled="true" onclick="uploadFile()" th:text="${config.label.uploadButton}">Upload</button>
                 </div>
             </div>
+		    <div style="display: none;">
+		        <select class="form-control" id="externalShapes" name="externalShapes">
+		        	<option th:each="type : ${externalShapes}" th:text="${type.key}" th:attr="value=${type.label}">Type</option>
+		       	</select>    
+		    </div>
         </form>
     </div>
 </div>

@@ -76,7 +76,7 @@ public class UploadController {
         attributes.put("validationTypes", getValidationTypes(domainConfig));
         attributes.put("contentType", getContentType());
         attributes.put("contentSyntax", getContentSyntax(domainConfig));
-        attributes.put("externalShapes", domainConfig.hasMultipleValidationTypes() ? includeExternalShapes(domainConfig) : includeExternalShape(domainConfig));
+        attributes.put("externalShapes", includeExternalShapes(domainConfig));
         attributes.put("config", domainConfig);
         attributes.put("appConfig", appConfig);
         
@@ -103,7 +103,7 @@ public class UploadController {
         attributes.put("validationTypes", getValidationTypes(domainConfig));
         attributes.put("contentType", getContentType());
         attributes.put("contentSyntax", getContentSyntax(domainConfig));
-        attributes.put("externalShapes", domainConfig.hasMultipleValidationTypes() ? includeExternalShapes(domainConfig) : includeExternalShape(domainConfig));
+        attributes.put("externalShapes", includeExternalShapes(domainConfig));
         attributes.put("config", domainConfig);
         attributes.put("appConfig", appConfig);
 		
@@ -264,12 +264,6 @@ public class UploadController {
         return config;
     }
     
-    public Boolean includeExternalShape(DomainConfig config) {
-    	Map<String, Boolean> externalShapes = config.getExternalShapes();
-    	
-    	return externalShapes.get(config.getType().get(0));
-    }
-    
     public List<UploadTypes> includeExternalShapes(DomainConfig config){
         List<UploadTypes> types = new ArrayList<>();
     	Map<String, Boolean> externalShapes = config.getExternalShapes();
@@ -288,7 +282,7 @@ public class UploadController {
                 types.add(new UploadTypes(type, config.getTypeLabel().get(type)));
             }
         }
-        return types;
+        return types.stream().sorted(Comparator.comparing(UploadTypes::getKey)).collect(Collectors.toList());
     }
     
     public List<UploadTypes> getContentType(){
@@ -313,7 +307,7 @@ public class UploadController {
 			types.add(new UploadTypes(lang.getLabel(), lang.getContentType().getContentType()));
         }
     	
-    	return types.stream().sorted(Comparator.comparing(UploadTypes::getLabel)).collect(Collectors.toList());
+    	return types.stream().sorted(Comparator.comparing(UploadTypes::getKey)).collect(Collectors.toList());
     }
 
 }

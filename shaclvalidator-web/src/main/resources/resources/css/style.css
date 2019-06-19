@@ -34,8 +34,6 @@ body {
     margin-bottom: 10px;
     padding-top: 5px;
     padding-bottom: 5px;
-    cursor: pointer;
-    cursor: hand;
 }
 .report-item-error {
     background-color: #f2dede;

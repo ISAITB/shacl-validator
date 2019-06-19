@@ -3,7 +3,7 @@ function validationTypeChanged() {
 	var ext = document.getElementById("externalShapes");
 	
 	for (var i=0; i<ext.length; i++){
-		if (ext[i].text == type){
+		if (ext[i].text == type || ext.length == 1){
 			if(ext[i].value == "true"){
 				$(".includeExternalShapes").removeClass('hidden');
 			}
@@ -198,6 +198,7 @@ function toggleExternalShapesClassCheck() {
 
 $(document).ready(function() {
 	toggleExternalShapesClassCheck();
+	validationTypeChanged();
 
 	var editableCodeMirror = CodeMirror.fromTextArea(document.getElementById('text-editor'), {
         mode: "xml",
