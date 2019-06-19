@@ -68,7 +68,7 @@
                     <label class="col-xs-2 control-label">Download:</label>
                     
 	                <div class="col-sm-3">
-	                    <select class="form-control" id="downloadType" name="downloadType">
+	                    <select class="form-control" id="downloadType" name="downloadType" onchange="downloadTypeChange()">
 	                        <option th:each="type : ${downloadType}" th:text="${type.label}" th:attr="value=${type.key}">Download Type</option>
 	                    </select>
                     </div>
@@ -78,7 +78,7 @@
 	                <div class="col-sm-3">
 	                    <select class="form-control" id="downloadSyntaxType" name="downloadSyntaxType">
 	                        <option value="pdfType">PDF</option>
-	                        <option value="notSelected">-----------------------</option>
+	                        <option value="notSelect">-----------------------</option>
 	                        <option th:each="type : ${contentSyntax}" th:text="${type.key}" th:attr="value=${type.label}">Type</option>
 	                    </select>
 	                </div>
