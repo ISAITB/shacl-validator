@@ -69,9 +69,7 @@
                     
 	                <div class="col-sm-3">
 	                    <select class="form-control" id="downloadType" name="downloadType">
-	                        <option value="reportType">Report</option>
-	                        <option value="shapeType">Shapes</option>
-	                        <option value="contentType">Content</option>
+	                        <option th:each="type : ${downloadType}" th:text="${type.label}" th:attr="value=${type.key}">Download Type</option>
 	                    </select>
                     </div>
                     
@@ -80,6 +78,7 @@
 	                <div class="col-sm-3">
 	                    <select class="form-control" id="downloadSyntaxType" name="downloadSyntaxType">
 	                        <option value="pdfType">PDF</option>
+	                        <option value="notSelected">-----------------------</option>
 	                        <option th:each="type : ${contentSyntax}" th:text="${type.key}" th:attr="value=${type.label}">Type</option>
 	                    </select>
 	                </div>

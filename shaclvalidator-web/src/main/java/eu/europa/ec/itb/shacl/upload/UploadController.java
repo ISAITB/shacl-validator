@@ -52,6 +52,10 @@ public class UploadController {
     public static final String contentType_file     	= "fileType" ;
     public static final String contentType_uri     		= "uriType" ;
     public static final String contentType_string     	= "stringType" ;
+    
+    public static final String downloadType_report		= "reportType";
+    public static final String downloadType_shapes		= "shapesType";
+    public static final String downloadType_content		= "contentType";
 
     @Autowired
     FileManager fileManager;
@@ -77,6 +81,7 @@ public class UploadController {
         attributes.put("contentType", getContentType());
         attributes.put("contentSyntax", getContentSyntax(domainConfig));
         attributes.put("externalShapes", includeExternalShapes(domainConfig));
+        attributes.put("downloadType", getDownloadType());
         attributes.put("config", domainConfig);
         attributes.put("appConfig", appConfig);
         
@@ -104,6 +109,7 @@ public class UploadController {
         attributes.put("contentType", getContentType());
         attributes.put("contentSyntax", getContentSyntax(domainConfig));
         attributes.put("externalShapes", includeExternalShapes(domainConfig));
+        attributes.put("downloadType", getDownloadType());
         attributes.put("config", domainConfig);
         attributes.put("appConfig", appConfig);
 		
@@ -291,6 +297,16 @@ public class UploadController {
 		types.add(new UploadTypes(contentType_file, "File"));
 		types.add(new UploadTypes(contentType_uri, "URI"));
 		types.add(new UploadTypes(contentType_string, "Direct input"));
+		
+		return types;        
+    }
+    
+    public List<UploadTypes> getDownloadType(){
+        List<UploadTypes> types = new ArrayList<>();
+
+		types.add(new UploadTypes(downloadType_report, "Validation Report"));
+		types.add(new UploadTypes(downloadType_shapes, "Shapes"));
+		types.add(new UploadTypes(downloadType_content, "Validation Content"));
 		
 		return types;        
     }
