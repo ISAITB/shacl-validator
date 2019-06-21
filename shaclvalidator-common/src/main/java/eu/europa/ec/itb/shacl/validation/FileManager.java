@@ -245,7 +245,9 @@ public class FileManager {
 
 	public List<FileInfo> getAllShaclFiles(DomainConfig domainConfig, String validationType, List<FileInfo> filesInfo){
 		List<FileInfo> shaclFiles = new ArrayList<>();
-		shaclFiles.addAll(getLocalShaclFiles(getShaclFile(domainConfig, validationType)));
+		for (File localFile: getShaclFiles(domainConfig, validationType)) {
+			shaclFiles.addAll(getLocalShaclFiles(localFile));
+		}
 		shaclFiles.addAll(getRemoteShaclFiles(domainConfig, validationType));
 		shaclFiles.addAll(filesInfo);
 		return shaclFiles;
@@ -255,13 +257,16 @@ public class FileManager {
 	 * Return the SHACL files loaded for a given validation type
 	 * @return File
 	 */
-	private File getShaclFile(DomainConfig domainConfig, String validationType) {
-		String localFolder = domainConfig.getShaclFile().get(validationType).getLocalFolder();
-		File f = null;
-		if (StringUtils.isNotEmpty(localFolder)) {
-			f = Paths.get(config.getResourceRoot(), domainConfig.getDomain(), domainConfig.getShaclFile().get(validationType).getLocalFolder()).toFile();
+	private List<File> getShaclFiles(DomainConfig domainConfig, String validationType) {
+		List<File> localFileReferences = new ArrayList<>();
+		String localFolderConfigValue = domainConfig.getShaclFile().get(validationType).getLocalFolder();
+		if (StringUtils.isNotEmpty(localFolderConfigValue)) {
+			String[] localFiles = StringUtils.split(localFolderConfigValue, ',');
+			for (String localFile: localFiles) {
+				localFileReferences.add(Paths.get(config.getResourceRoot(), domainConfig.getDomain(), localFile.trim()).toFile());
+			}
 		}
-		return f;
+		return localFileReferences;
 	}
 
 	/**
