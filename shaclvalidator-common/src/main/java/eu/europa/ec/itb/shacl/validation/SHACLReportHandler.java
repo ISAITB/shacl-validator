@@ -92,6 +92,8 @@ public class SHACLReportHandler {
         			String focusNode = "";
         			String resultPath = "";
         			String severity = "";
+                    String value = "";
+                    String shape = "";
             		while(it.hasNext()) {
             			Statement statement = it.next();
             			
@@ -105,13 +107,17 @@ public class SHACLReportHandler {
             				resultPath = getStatementResourceStringSafe(statement);
             			}
             			if(statement.getPredicate().hasURI("http://www.w3.org/ns/shacl#sourceShape")) {
-            				error.setTest(getStatementResourceStringSafe(statement));
+            				shape = getStatementResourceStringSafe(statement);
             			}
             			if(statement.getPredicate().hasURI("http://www.w3.org/ns/shacl#resultSeverity")) {
             				severity = getStatementResourceStringSafe(statement);
             			}
+                        if(statement.getPredicate().hasURI("http://www.w3.org/ns/shacl#value")) {
+                            value = getStatementStringSafe(statement);
+                        }
             		}
-            		error.setLocation(resultPath + " " + focusNode);
+            		error.setLocation("Focus node ["+focusNode+"] - Result path [" + resultPath + "]");
+            		error.setTest("Shape ["+shape+"] - Value ["+value+"]");
             		
                     JAXBElement element;
                     if (severity.equals("http://www.w3.org/ns/shacl#Info")) {
