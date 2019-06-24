@@ -154,8 +154,8 @@ public class SHACLValidator {
         }
         try (InputStream dataStream = new FileInputStream(dataFile)) {
             dataModel.read(dataStream, null, lang.getName());
-        } catch (IOException e) {
-            throw new ValidatorException("An error occurred while reading the provided content.", e);
+        } catch (Exception e) {
+            throw new ValidatorException("An error occurred while reading the provided content: "+e.getMessage(), e);
         }
 		return dataModel;
 	}
