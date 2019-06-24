@@ -89,6 +89,7 @@ public class DomainConfigCache {
                 domainConfig.setExternalShapes(parseBooleanMap("validator.externalShapes", config, domainConfig.getType()));
                 domainConfig.setWebServiceId(config.getString("validator.webServiceId", "ValidatorService"));
                 domainConfig.setWebServiceDescription(parseMap("validator.webServiceDescription", config, Arrays.asList(ValidationConstants.INPUT_CONTENT, ValidationConstants.INPUT_SYNTAX, ValidationConstants.INPUT_VALIDATION_TYPE, ValidationConstants.INPUT_EXTERNAL_RULES, ValidationConstants.INPUT_EMBEDDING_METHOD)));
+                domainConfig.setReportsOrdered(config.getBoolean("validator.reportsOrdered", false));
                 domainConfigs.put(domain, domainConfig);
                 logger.info("Loaded configuration for domain ["+domain+"]");
             }

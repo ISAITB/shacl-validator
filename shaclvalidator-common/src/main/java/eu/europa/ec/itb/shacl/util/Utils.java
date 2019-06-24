@@ -1,5 +1,7 @@
 package eu.europa.ec.itb.shacl.util;
 
+import com.gitb.tr.TAR;
+import eu.europa.ec.itb.shacl.validation.SHACLReportHandler;
 import org.apache.jena.rdf.model.Model;
 import org.springframework.util.StreamUtils;
 import org.w3c.dom.Document;
@@ -9,10 +11,6 @@ import org.xml.sax.Attributes;
 import org.xml.sax.Locator;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
-
-import com.gitb.tr.TAR;
-
-import eu.europa.ec.itb.shacl.validation.SHACLReportHandler;
 
 import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeFactory;
@@ -24,7 +22,6 @@ import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -144,12 +141,12 @@ public class Utils {
         return new ByteArrayInputStream(inputBytes);
     }
 
-    public static TAR getTAR(Model report, Path inputFilePath, String contentSyntax, Model aggregatedShapes) {    	
+    public static TAR getTAR(Model report, Path inputFilePath, Model aggregatedShapes, boolean reportsOrdered) {
     	//SHACL report: from Model to TAR
 		try {
 			String contentToValidateString = new String(Files.readAllBytes(inputFilePath));
 	    	
-	    	SHACLReportHandler reportHandler = new SHACLReportHandler(contentToValidateString, contentSyntax, aggregatedShapes, report);
+	    	SHACLReportHandler reportHandler = new SHACLReportHandler(contentToValidateString, aggregatedShapes, report, reportsOrdered);
 	    	
 	    	return reportHandler.createReport();
 		} catch (IOException e) {
