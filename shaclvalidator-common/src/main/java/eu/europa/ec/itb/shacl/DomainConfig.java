@@ -20,6 +20,7 @@ public class DomainConfig {
     private Map<String, Boolean> externalShapes;
     private String webServiceId = "SHACLValidationService";
     private Map<String, String> webServiceDescription;
+    private boolean reportsOrdered;
 
     public DomainConfig() {
         this(true);
@@ -120,8 +121,15 @@ public class DomainConfig {
     public void setWebServiceDescription(Map<String, String> webServiceDescription) {
         this.webServiceDescription = webServiceDescription;
     }
-    
-    
+
+    public boolean isReportsOrdered() {
+        return reportsOrdered;
+    }
+
+    public void setReportsOrdered(boolean reportsOrdered) {
+        this.reportsOrdered = reportsOrdered;
+    }
+
     public static class ShaclFileInfo {
     	String localFolder;
     	List<RemoteInfo> remote;

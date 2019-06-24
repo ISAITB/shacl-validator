@@ -13,6 +13,8 @@ import javax.xml.datatype.DatatypeConfigurationException;
 import java.io.StringWriter;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 
 public class SHACLReportHandler {
 
@@ -20,11 +22,13 @@ public class SHACLReportHandler {
 
 	private TAR report;
 	private Model shaclReport;
+	private boolean reportsOrdered;
 
     private ObjectFactory objectFactory = new ObjectFactory();
 
-	public SHACLReportHandler(String inputFile, String contentSyntax, Model shapes, Model shaclReport) {
+	public SHACLReportHandler(String inputFile, Model shapes, Model shaclReport, boolean reportsOrdered) {
 		this.shaclReport = shaclReport;
+		this.reportsOrdered = reportsOrdered;
 		report = new TAR();
         report.setResult(TestResultType.SUCCESS);
         try {
@@ -147,8 +151,11 @@ public class SHACLReportHandler {
         report.getCounters().setNrOfErrors(BigInteger.valueOf(errors));
         report.getCounters().setNrOfAssertions(BigInteger.valueOf(infos));
         report.getCounters().setNrOfWarnings(BigInteger.valueOf(warnings));
-        
-        if(errors>0) {
+
+        if (reportsOrdered) {
+            Collections.sort(this.report.getReports().getInfoOrWarningOrError(), new ReportItemComparator());
+        }
+        if(errors > 0) {
             this.report.setResult(TestResultType.FAILURE);
         }else {
             this.report.setResult(TestResultType.SUCCESS);
@@ -164,4 +171,35 @@ public class SHACLReportHandler {
 		
 		return writer.toString();
     }
+
+    private static class ReportItemComparator implements Comparator<JAXBElement<TestAssertionReportType>> {
+
+        @Override
+        public int compare(JAXBElement<TestAssertionReportType> o1, JAXBElement<TestAssertionReportType> o2) {
+            if (o1 == null && o2 == null) {
+                return 0;
+            } else if (o1 == null) {
+                return -1;
+            } else if (o2 == null) {
+                return 1;
+            } else {
+                String name1 = o1.getName().getLocalPart();
+                String name2 = o2.getName().getLocalPart();
+                if (name1.equals(name2)) {
+                    return 0;
+                } else if ("error".equals(name1)) {
+                    return -1;
+                } else if ("error".equals(name2)) {
+                    return 1;
+                } else if ("warning".equals(name1)) {
+                    return -1;
+                } else if ("warning".equals(name2)) {
+                    return 1;
+                } else {
+                    return 0;
+                }
+            }
+        }
+    }
+
 }
