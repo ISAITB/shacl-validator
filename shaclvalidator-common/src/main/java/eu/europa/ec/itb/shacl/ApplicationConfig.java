@@ -34,7 +34,7 @@ public class ApplicationConfig {
 
     private String resourceRoot;
     private String tmpFolder;
-    private Set<String> acceptedSHACLExtensions;
+    private Set<String> acceptedShaclExtensions;
     private Set<String> domain;
     private Map<String, String> domainIdToDomainName = new HashMap<>();
     private Map<String, String> domainNameToDomainId = new HashMap<>();
@@ -66,12 +66,12 @@ public class ApplicationConfig {
         this.resourceRoot = resourceRoot;
     }
     
-    public Set<String> getAcceptedSHACLExtensions() {
-        return acceptedSHACLExtensions;
+    public Set<String> getAcceptedShaclExtensions() {
+        return acceptedShaclExtensions;
     }
 
-    public void setAcceptedSHACLExtensions(Set<String> acceptedSHACLExtensions) {
-        this.acceptedSHACLExtensions = acceptedSHACLExtensions;
+    public void setAcceptedShaclExtensions(Set<String> acceptedShaclExtensions) {
+        this.acceptedShaclExtensions = acceptedShaclExtensions;
     }
 
     public Set<String> getDomain() {

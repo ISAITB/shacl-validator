@@ -106,7 +106,7 @@ defined.
 | `validator.domainName.XYZ` | The name to display for a given domain folder. | String | The folder name is used |  
 | `logging.path` | Logging path. | String | `/validator/logs` |
 | `validator.tmpFolder` | Temp folder path. | String | `/validator/tmp` |
-| `validator.acceptedSHACLExtensions` | Accepted SHACL extensions.  | Comma-separated Strings | `ttl,rdf` |
+| `validator.acceptedShaclExtensions` | Accepted SHACL extensions.  | Comma-separated Strings | `ttl,rdf` |
 | `validator.defaultReportSyntax ` | The default report syntax (mime type) if none is requested. | `application/rdf+xml`
 
 ## Domain-level configuration
