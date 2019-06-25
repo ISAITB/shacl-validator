@@ -285,7 +285,9 @@ public class FileManager {
 				if (files != null) {
 					for (File aShaclFile: files) {
 						if (aShaclFile.isFile()) {
-							fileInfo.add(new FileInfo(aShaclFile, getContentLang(aShaclFile)));
+							if (config.getAcceptedShaclExtensions().contains(FilenameUtils.getExtension(aShaclFile.getName().toLowerCase()))) {
+								fileInfo.add(new FileInfo(aShaclFile, getContentLang(aShaclFile)));
+							}
 						}
 					}
 				}

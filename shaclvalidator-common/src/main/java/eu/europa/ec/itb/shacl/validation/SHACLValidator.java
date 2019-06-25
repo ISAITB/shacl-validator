@@ -112,6 +112,9 @@ public class SHACLValidator {
         Model aggregateModel = JenaUtil.createMemoryModel();
         for (FileInfo shaclFile: shaclFiles) {
             logger.info("Validating against ["+shaclFile.getFile().getName()+"]");
+            if (shaclFile.getContentLang() == null) {
+                throw new ValidatorException("Unable to determine the content type of a SHACL shape file.");
+            }
             try (InputStream dataStream = new FileInputStream(shaclFile.getFile())) {
                 Model fileModel = JenaUtil.createMemoryModel();
                 fileModel.read(dataStream, null, shaclFile.getContentLang());
