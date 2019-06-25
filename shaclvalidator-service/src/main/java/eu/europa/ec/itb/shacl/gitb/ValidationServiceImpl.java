@@ -319,7 +319,7 @@ public class ValidationServiceImpl implements ValidationService {
 		if (externalRules != null) {
 			try {
 				shaclFiles = fileManager.getRemoteExternalShapes(externalRules);
-			} catch (IOException e) {
+			} catch (Exception e) {
 				throw new ValidatorException("An error occurred while trying to read the provided external shapes.");
 			}
 		} else {

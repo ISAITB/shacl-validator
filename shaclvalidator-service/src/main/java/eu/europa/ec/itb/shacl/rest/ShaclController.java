@@ -328,7 +328,7 @@ public class ShaclController {
 		if (externalRules != null) {
 			try {
 				shaclFiles = fileManager.getRemoteExternalShapes(externalRules.stream().map(RuleSet::toFileContent).collect(Collectors.toList()));
-			} catch (IOException e) {
+			} catch (Exception e) {
 				throw new ValidatorException("An error occurred while trying to read the provided external shapes.");
 			}
 		} else {
