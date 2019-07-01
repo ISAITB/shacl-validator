@@ -12,12 +12,11 @@
     <script th:src="@{/webjars/codemirror/5.45.0/lib/codemirror.js}"></script>
     <script th:src="@{/webjars/codemirror/5.45.0/mode/xml/xml.js}"></script>
     <script th:src="@{/js/lib/busy.js}"></script>
-    <script th:src="@{/js/lib/FileSaver.min.js}"></script>
     <script th:src="@{/js/itb-upload.js}"></script>
     <script th:if="${report}" th:src="@{/js/itb-results.js}"></script>
     <script th:if="${report}" th:inline="text">
     /*<![CDATA[*/
-        getReportData("[[${reportID}]]", "[[${inputContentId}]]");
+        getReportData("[[${reportID}]]");
     /*]]>*/
     </script>
     <script>
@@ -64,8 +63,10 @@
                     <label class="col-xs-2 control-label" th:text="${config.label.resultMessagesLabel}">Messages:</label>
                     <div class="col-xs-4" th:text="${report.counters.nrOfAssertions}">0</div>
                 </div>
-                <div class="row overview-button-row">
-                    <label class="col-xs-2 control-label">Download:</label>
+            </div>
+            <div class="panel-footer">
+                <div class="row form-group overview-button-row align-items-center">
+                    <label class="col-sm-2 control-label">Download</label>
                     
 	                <div class="col-sm-3">
 	                    <select class="form-control" id="downloadType" name="downloadType" onchange="downloadTypeChange()">
@@ -73,7 +74,7 @@
 	                    </select>
                     </div>
                     
-                    <label class="col-xs-1 control-label center" style="text-align:center;"> as </label>
+                    <label class="col-sm-1 control-label center" style="text-align:center;"> as </label>
                 
 	                <div class="col-sm-3">
 	                    <select class="form-control" id="downloadSyntaxType" name="downloadSyntaxType">
@@ -84,10 +85,9 @@
 	                </div>
 	                
                 	<div class="col-sm-3">
-	                	<button type="button" class="btn btn-default" id="downloadButton" onclick="downloadResult()">Download</button>
+                        <button class="btn btn-default" type="button" id="downloadButton" onclick="downloadResult()"><i class="fas fa-download"></i></button>
                         <form id="resultForm" name="resultForm" method="GET" th:action="report">
                             <input id="resultFormId" name="id" type="hidden"/>
-                            <input id="resultFormContentId" name="contentid" type="hidden"/>
                             <input id="resultFormType" name="type" type="hidden"/>
                             <input id="resultFormSyntax" name="syntax" type="hidden"/>
                         </form>
@@ -95,6 +95,7 @@
                 </div>
             </div>
         </div>
+
         <div class="panel panel-default">
             <div class="panel-heading">
                 <h3 class="panel-title" th:text="${config.label.resultSubSectionDetailsTitle}">Details</h3>

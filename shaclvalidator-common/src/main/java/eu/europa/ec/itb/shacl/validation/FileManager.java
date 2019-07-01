@@ -46,19 +46,20 @@ public class FileManager {
 
 	private ConcurrentHashMap<String, ReadWriteLock> externalDomainFileCacheLocks = new ConcurrentHashMap<>();
 
-	private File getURLFile(File targetFolder, String URLConvert) throws IOException {
-		return getURLFile(targetFolder.getAbsolutePath(), URLConvert);
-	}
-
-	private File getURLFile(String targetFolder, String URLConvert) throws IOException {
+	public File getURLFile(String targetFolder, String URLConvert, String fileName) throws IOException {
 		URL url = new URL(URLConvert);
 		String extension = FilenameUtils.getExtension(url.getFile());
+		Path tmpPath;
 
 		if(extension!=null) {
 			extension = "." + extension;
 		}
 
-		Path tmpPath = getFilePath(targetFolder, extension);
+		if(fileName == null || fileName.isEmpty()) {
+			tmpPath = getFilePath(targetFolder, extension);
+		}else {
+			tmpPath = getFilePath(targetFolder, extension, fileName);
+		}
 
 		try(InputStream in = new URL(URLConvert).openStream()){
 			Files.copy(in, tmpPath, StandardCopyOption.REPLACE_EXISTING);
@@ -67,15 +68,20 @@ public class FileManager {
 		return tmpPath.toFile();
 	}
 
-	private File getStringFile(String targetFolder, String stringConvert, String contentSyntax) throws IOException {
+	public File getStringFile(String targetFolder, String stringConvert, String contentSyntax, String fileName) throws IOException {
 		Lang langExtension = RDFLanguages.contentTypeToLang(contentSyntax);
 		String extension = null;
+		Path tmpPath;
 
 		if(langExtension!=null) {
-			extension = "." + langExtension.getName();
+			extension = "." + langExtension.getFileExtensions().get(0);
 		}
-
-		Path tmpPath = getFilePath(targetFolder, extension);
+		
+		if(fileName == null || fileName.isEmpty()) {
+			tmpPath = getFilePath(targetFolder, extension);
+		}else {
+			tmpPath = getFilePath(targetFolder, extension, fileName);
+		}
 
 		try(InputStream in = new ByteArrayInputStream(stringConvert.getBytes())){
 			Files.copy(in, tmpPath, StandardCopyOption.REPLACE_EXISTING);
@@ -84,15 +90,20 @@ public class FileManager {
 		return tmpPath.toFile();
 	}
 	
-	private File getInputStreamFile(String targetFolder, InputStream stream, String contentSyntax) throws IOException {
+	public File getInputStreamFile(String targetFolder, InputStream stream, String contentSyntax, String fileName) throws IOException {
 		String lang = getLanguage(contentSyntax);
 		String extension = null;
+		Path tmpPath;
 
 		if(lang!=null) {
 			extension = "." + lang;
 		}
 
-		Path tmpPath = getFilePath(targetFolder, extension);
+		if(fileName == null || fileName.isEmpty()) {
+			tmpPath = getFilePath(targetFolder, extension);
+		}else {
+			tmpPath = getFilePath(targetFolder, extension, fileName);
+		}
 		Files.copy(stream, tmpPath, StandardCopyOption.REPLACE_EXISTING);
 		
 		return tmpPath.toFile();
@@ -104,18 +115,21 @@ public class FileManager {
      * @throws IOException 
      */
     public File getURLFile(String url) throws IOException {
-    	return getURLFile(config.getTmpFolder(), url);
+    	return getURLFile(config.getTmpFolder(), url, null);
     }
+	private File getURLFile(File targetFolder, String URLConvert) throws IOException {
+		return getURLFile(targetFolder.getAbsolutePath(), URLConvert, null);
+	}
     
     public File getStringFile(String contentToValidate, String contentSyntax) throws IOException {
-    	return getStringFile(config.getTmpFolder(), contentToValidate, contentSyntax);
+    	return getStringFile(config.getTmpFolder(), contentToValidate, contentSyntax, null);
     }
     public File getStringFile(File targetFolder, String contentToValidate, String contentSyntax) throws IOException {
-    	return getStringFile(targetFolder.getAbsolutePath(), contentToValidate, contentSyntax);
+    	return getStringFile(targetFolder.getAbsolutePath(), contentToValidate, contentSyntax, null);
     }
     
     public File getInputStreamFile(InputStream stream, String contentSyntax) throws IOException {
-    	return getInputStreamFile(config.getTmpFolder(), stream, contentSyntax);
+    	return getInputStreamFile(config.getTmpFolder(), stream, contentSyntax, null);
     }
     
     /**
@@ -127,8 +141,15 @@ public class FileManager {
     	return getFilePath(config.getTmpFolder(), extension);
     }
 
-	private Path getFilePath(String folder, String extension) {
+	private Path getFilePath(String folder, String extension) {		
 		Path tmpPath = Paths.get(folder, UUID.randomUUID().toString() + extension);
+		tmpPath.toFile().getParentFile().mkdirs();
+
+		return tmpPath;
+	}
+
+	private Path getFilePath(String folder, String extension, String fileName) {		
+		Path tmpPath = Paths.get(folder, fileName + extension);
 		tmpPath.toFile().getParentFile().mkdirs();
 
 		return tmpPath;
@@ -332,7 +353,7 @@ public class FileManager {
 		Lang langExtension = RDFLanguages.contentTypeToLang(contentSyntax);
 
 		if(langExtension!=null) {
-			lang = langExtension.getName();
+			lang = langExtension.getFileExtensions().get(0);
 		}
 		
 		return lang;
@@ -409,7 +430,7 @@ public class FileManager {
 					if (ri != null) {
 						try {
 							for (DomainConfig.RemoteInfo info: ri) {
-								getURLFile(remoteConfigFolder.getAbsolutePath(), info.getUrl());
+								getURLFile(remoteConfigFolder.getAbsolutePath(), info.getUrl(), null);
 							}
 						} catch (IOException e) {
 							logger.error("Error to load the remote SHACL file", e);

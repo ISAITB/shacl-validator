@@ -1,6 +1,7 @@
 package eu.europa.ec.itb.shacl.upload;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -9,9 +10,9 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
-import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFLanguages;
@@ -31,6 +32,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import com.gitb.reports.ReportGenerator;
 import com.gitb.tr.TAR;
 
 import eu.europa.ec.itb.shacl.ApplicationConfig;
@@ -56,7 +58,11 @@ public class UploadController {
     public static final String downloadType_report		= "reportType";
     public static final String downloadType_shapes		= "shapesType";
     public static final String downloadType_content		= "contentType";
-
+    
+    public static final String fileName_input			= "inputFile";
+    public static final String fileName_report			= "reportFile";
+    public static final String fileName_shapes			= "shapesFile";
+    
     @Autowired
     FileManager fileManager;
 
@@ -101,7 +107,10 @@ public class UploadController {
     		@RequestParam(value = "uri-externalShape", required = false) String[] externalUri,
     		@RequestParam(value = "contentSyntaxType-externalShape", required = false) String[] externalFilesSyntaxType,
     		RedirectAttributes redirectAttributes) {
-		DomainConfig domainConfig = validateDomain(domain);	
+		DomainConfig domainConfig = validateDomain(domain);
+		String folderName = UUID.randomUUID().toString();
+		String tmpFolder = this.appConfig.getTmpFolder() + "/web/" + folderName;
+		
 		
 		File inputFile = null;
         Map<String, Object> attributes = new HashMap<>();
@@ -122,7 +131,7 @@ public class UploadController {
                     attributes.put("message", "Provided content syntax type is not valid");
         		}
         	}
-        	inputFile = getInputFile(contentType, file.getInputStream(), uri, string, contentSyntaxType);
+        	inputFile = getInputFile(contentType, file.getInputStream(), uri, string, contentSyntaxType, tmpFolder);
         	
         } catch (IOException e) {
             logger.error("Error while reading uploaded file [" + e.getMessage() + "]", e);
@@ -138,17 +147,24 @@ public class UploadController {
         }
 
         org.apache.jena.rdf.model.Model reportModel = null;
+		org.apache.jena.rdf.model.Model agrregatedShapes = null;
         try {
             if (inputFile != null) {
             	List<FileInfo> extFiles = getExternalShapes(externalContentType, externalFiles, externalUri, externalFilesSyntaxType);
 
             	SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile, validationType, contentSyntaxType, extFiles, domainConfig);
 
-        		reportModel = validator.validateAll(); 
+        		reportModel = validator.validateAll();
+        		agrregatedShapes =  validator.getAggregatedShapes();
         		
-    			TAR TARreport = Utils.getTAR(reportModel, inputFile.toPath(), contentSyntaxType, validator.getAggregatedShapes());
+    			TAR TARreport = Utils.getTAR(reportModel, inputFile.toPath(), contentSyntaxType, agrregatedShapes);
                 attributes.put("report", TARreport);
                 attributes.put("date", TARreport.getDate().toString());
+
+                File pdfReport = new File(tmpFolder, fileName_report+"PDF.pdf");
+                
+                ReportGenerator reportGenerator = new ReportGenerator();
+                reportGenerator.writeTARReport(TARreport, fileName_report, new FileOutputStream(pdfReport));
                 
                 if(contentType.equals(contentType_file)) {
                 	attributes.put("fileName", file.getOriginalFilename());
@@ -156,7 +172,6 @@ public class UploadController {
                 if(contentType.equals(contentType_uri)) {
                 	attributes.put("fileName", uri);
                 }
-                attributes.put("inputContentId", inputFile.getName());
             }
         } catch (Exception e) {
             logger.error("An error occurred during the validation [" + e.getMessage() + "]", e);
@@ -166,10 +181,12 @@ public class UploadController {
         // Cache detailed report.
         try {
             String reportString = fileManager.getShaclReport(reportModel, domainConfig.getDefaultReportSyntax());
-            File reportFile = fileManager.getStringFile(reportString, domainConfig.getDefaultReportSyntax());
-            String reportID =  FilenameUtils.removeExtension(reportFile.getName());
-            
-            attributes.put("reportID", reportID);            
+            fileManager.getStringFile(tmpFolder, reportString, domainConfig.getDefaultReportSyntax(), fileName_report);
+
+            String shapesString = fileManager.getShaclReport(agrregatedShapes, domainConfig.getDefaultReportSyntax());
+            fileManager.getStringFile(tmpFolder, shapesString, domainConfig.getDefaultReportSyntax(), fileName_shapes);
+           
+            attributes.put("reportID", folderName);            
         } catch (IOException e) {
             logger.error("Error generating detailed report [" + e.getMessage() + "]", e);
             attributes.put("message", "Error generating detailed report [" + e.getMessage() + "]");
@@ -178,20 +195,20 @@ public class UploadController {
         return new ModelAndView("uploadForm", attributes);
     }
 	
-	private File getInputFile(String contentType, InputStream inputStream, String uri, String string, String contentSyntaxType) throws IOException {
+	private File getInputFile(String contentType, InputStream inputStream, String uri, String string, String contentSyntaxType, String tmpFolder) throws IOException {
 		File inputFile = null;
 		
 		switch(contentType) {
 			case contentType_file:
-		    	inputFile = this.fileManager.getInputStreamFile(inputStream, contentSyntaxType);
+		    	inputFile = this.fileManager.getInputStreamFile(tmpFolder, inputStream, contentSyntaxType, fileName_input);
 				break;
 			
 			case contentType_uri:
-				inputFile = this.fileManager.getURLFile(uri);
+				inputFile = this.fileManager.getURLFile(tmpFolder, uri, fileName_input);
 				break;
 				
 			case contentType_string:
-				inputFile = this.fileManager.getStringFile(string, contentSyntaxType);
+				inputFile = this.fileManager.getStringFile(tmpFolder, string, contentSyntaxType, fileName_input);
 				break;
 		}
 

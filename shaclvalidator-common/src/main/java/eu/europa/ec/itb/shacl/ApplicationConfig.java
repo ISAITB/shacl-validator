@@ -41,6 +41,7 @@ public class ApplicationConfig {
     private String startupTimestamp;
     private String resourceUpdateTimestamp;
     private String defaultReportSyntax;
+    private long cleanupWebRate;
     private Set<String> contentSyntax;
 
     public String getTmpFolder() {
@@ -113,6 +114,14 @@ public class ApplicationConfig {
 
 	public void setContentSyntax(Set<String> contentSyntax) {
 		this.contentSyntax = contentSyntax;
+	}
+
+	public long getCleanupWebRate() {
+		return cleanupWebRate;
+	}
+
+	public void setCleanupWebRate(long cleanupWebRate) {
+		this.cleanupWebRate = cleanupWebRate;
 	}
 
     @PostConstruct

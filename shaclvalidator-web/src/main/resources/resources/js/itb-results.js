@@ -1,9 +1,7 @@
 var resultReportID;
-var inputContentID;
 
-function getReportData(reportID, inputContentId) {
+function getReportData(reportID) {
 	resultReportID = reportID;
-	inputContentID = inputContentId;
 }
 function downloadResult() {
 	var type = $('#downloadType').val();
@@ -11,7 +9,6 @@ function downloadResult() {
 	var selectedIndex = document.getElementById("downloadSyntaxType").selectedIndex;
 	var selectedSyntax = document.getElementById("downloadSyntaxType")[selectedIndex].text;
     $('#resultFormId').val(resultReportID);
-    $('#resultFormContentId').val(inputContentID);
     $('#resultFormType').val(type);
     $('#resultFormSyntax').val(syntaxType.replace("/", "_"));
     $('#resultForm').submit();
