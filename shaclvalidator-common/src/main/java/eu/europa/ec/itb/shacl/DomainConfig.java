@@ -245,6 +245,33 @@ public class DomainConfig {
         private String resultTestLabel;
         private String popupTitle;
         private String popupCloseButton;
+        private String optionDownloadReport;
+        private String optionDownloadContent;
+        private String optionDownloadShapes;
+
+        public String getOptionDownloadReport() {
+            return optionDownloadReport;
+        }
+
+        public void setOptionDownloadReport(String optionDownloadReport) {
+            this.optionDownloadReport = optionDownloadReport;
+        }
+
+        public String getOptionDownloadContent() {
+            return optionDownloadContent;
+        }
+
+        public void setOptionDownloadContent(String optionDownloadContent) {
+            this.optionDownloadContent = optionDownloadContent;
+        }
+
+        public String getOptionDownloadShapes() {
+            return optionDownloadShapes;
+        }
+
+        public void setOptionDownloadShapes(String optionDownloadShapes) {
+            this.optionDownloadShapes = optionDownloadShapes;
+        }
 
         public String getInputSectionTitle() {
             return inputSectionTitle;

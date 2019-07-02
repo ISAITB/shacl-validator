@@ -67,9 +67,6 @@ public class UploadController {
     FileManager fileManager;
 
     @Autowired
-    BeanFactory beans;
-
-    @Autowired
     DomainConfigCache domainConfigs;
 
     @Autowired
@@ -77,6 +74,9 @@ public class UploadController {
 
     @Autowired
     ApplicationContext ctx;
+
+    @Autowired
+    ReportGeneratorBean reportGenerator;
     
     @GetMapping(value = "/{domain}/upload")
     public ModelAndView upload(@PathVariable("domain") String domain, Model model) {
@@ -92,7 +92,6 @@ public class UploadController {
         attributes.put("contentType", getContentType());
         attributes.put("contentSyntax", getContentSyntax(domainConfig));
         attributes.put("externalShapes", includeExternalShapes(domainConfig));
-        attributes.put("downloadType", getDownloadType());
         attributes.put("config", domainConfig);
         attributes.put("appConfig", appConfig);
         
@@ -128,7 +127,7 @@ public class UploadController {
         attributes.put("contentType", getContentType());
         attributes.put("contentSyntax", getContentSyntax(domainConfig));
         attributes.put("externalShapes", includeExternalShapes(domainConfig));
-        attributes.put("downloadType", getDownloadType());
+        attributes.put("downloadType", getDownloadType(domainConfig));
         attributes.put("config", domainConfig);
         attributes.put("appConfig", appConfig);
 		
@@ -172,16 +171,15 @@ public class UploadController {
                 attributes.put("date", TARreport.getDate().toString());
 
                 File pdfReport = new File(tmpFolder, fileName_report+"PDF.pdf");
-                
-                ReportGenerator reportGenerator = new ReportGenerator();
-                reportGenerator.writeTARReport(TARreport, fileName_report, new FileOutputStream(pdfReport));
-                
+                reportGenerator.writeReport(domainConfig, TARreport, pdfReport);
+
                 if(contentType.equals(contentType_file)) {
                 	attributes.put("fileName", file.getOriginalFilename());
-                }
-                if(contentType.equals(contentType_uri)) {
+                } else if(contentType.equals(contentType_uri)) {
                 	attributes.put("fileName", uri);
-                }
+                } else {
+					attributes.put("fileName", "-");
+				}
             }
         } catch (Exception e) {
             logger.error("An error occurred during the validation [" + e.getMessage() + "]", e);
@@ -328,14 +326,12 @@ public class UploadController {
 		return types;        
     }
     
-    public List<UploadTypes> getDownloadType(){
+    public List<UploadTypes> getDownloadType(DomainConfig config){
         List<UploadTypes> types = new ArrayList<>();
-
-		types.add(new UploadTypes(downloadType_report, "Validation Report"));
-		types.add(new UploadTypes(downloadType_shapes, "Shapes"));
-		types.add(new UploadTypes(downloadType_content, "Validation Content"));
-		
-		return types;        
+		types.add(new UploadTypes(downloadType_report, config.getLabel().getOptionDownloadReport()));
+		types.add(new UploadTypes(downloadType_shapes, config.getLabel().getOptionDownloadShapes()));
+		types.add(new UploadTypes(downloadType_content, config.getLabel().getOptionDownloadContent()));
+		return types;
     }
     
     private List<UploadTypes> getContentSyntax(DomainConfig config) {

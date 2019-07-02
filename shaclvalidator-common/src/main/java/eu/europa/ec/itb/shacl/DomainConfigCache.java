@@ -81,6 +81,7 @@ public class DomainConfigCache {
                 domainConfig = new DomainConfig();
                 domainConfig.setDomain(domain);
                 domainConfig.setUploadTitle(config.getString("validator.uploadTitle", "SHACL Validator"));
+                domainConfig.setReportTitle(config.getString("validator.reportTitle", "Validation report"));
                 domainConfig.setDomainName(appConfig.getDomainIdToDomainName().get(domain));
                 domainConfig.setType(Arrays.stream(StringUtils.split(config.getString("validator.type"), ',')).map(String::trim).collect(Collectors.toList()));
                 domainConfig.setTypeLabel(parseMap("validator.typeLabel", config, domainConfig.getType()));
@@ -125,6 +126,9 @@ public class DomainConfigCache {
         domainConfig.getLabel().setResultTestLabel(config.getString("validator.label.resultTestLabel", "Test:"));
         domainConfig.getLabel().setPopupTitle(config.getString("validator.label.popupTitle", "XML content"));
         domainConfig.getLabel().setPopupCloseButton(config.getString("validator.label.popupCloseButton", "Close"));
+        domainConfig.getLabel().setOptionDownloadReport(config.getString("validator.label.optionDownloadReport", "Validation report"));
+        domainConfig.getLabel().setOptionDownloadContent(config.getString("validator.label.optionDownloadContent", "Validated content"));
+        domainConfig.getLabel().setOptionDownloadShapes(config.getString("validator.label.optionDownloadShapes", "Shapes"));
     }
 
     private Map<String, ShaclFileInfo> parseShaclMap(String key, CompositeConfiguration config, List<String> types){

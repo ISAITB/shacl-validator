@@ -109,7 +109,7 @@ defined.
 | `logging.path` | Logging path. | String | `/validator/logs` |
 | `validator.tmpFolder` | Temp folder path. | String | `/validator/tmp` |
 | `validator.acceptedShaclExtensions` | Accepted SHACL extensions.  | Comma-separated Strings | `ttl,rdf` |
-| `validator.acceptedHeaderAcceptTypes` | Accepted content types requested via the Accepts header.  | Comma-separated Strings | `application/rdf+xml` |
+| `validator.acceptedHeaderAcceptTypes` | Accepted content types requested via the Accepts header.  | Comma-separated Strings | `application/ld+json, application/rdf+xml, text/turtle, application/n-triples` |
 | `validator.defaultReportSyntax ` | The default report syntax (mime type) if none is requested. | `application/rdf+xml`
 
 ## Domain-level configuration
@@ -129,7 +129,7 @@ The properties here define how a specific validation domain is configured. They 
 | `validator.includeTestDefinition` | Whether tests should be included in the resulting reports. | Boolean | `true` |
 | `validator.reportsOrdered` | Whether the reports are ordered. | Boolean | `false` |
 | `validator.defaultReportSyntax` | The default report syntax (mime type) if none is requested (otherwise the global default applies). | `application/rdf+xml` |
-| `validator.contentSyntax` | The accepted content syntax (mime type) in the web form. | `application/rdf+xml` |
+| `validator.contentSyntax` | The accepted content syntaxes (mime types) in the web form. | `application/ld+json, application/rdf+xml, text/turtle, application/n-triples` |
 | `validator.webServiceId` | The ID of the web service. | String | `ValidatorService` |
 | `validator.webServiceDescription.contentToValidate` | The description of the web service for element "contentToValidate". | String | - |
 | `validator.webServiceDescription.contentSyntax` | The description of the web service for element "contentSyntax". | String | - |

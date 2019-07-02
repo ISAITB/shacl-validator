@@ -41,62 +41,56 @@
             <div class="panel-body">
                 <div class="row">
                     <label class="col-xs-2 control-label" th:text="${config.label.resultDateLabel}">Date:</label>
-                    <div class="col-xs-4" th:text="${report.date}">17/12/2016</div>
+                    <div class="col-xs-10" th:text="${report.date}">17/12/2016</div>
                 </div>
                 <div class="row">
                     <label class="col-xs-2 control-label" th:text="${config.label.resultFileNameLabel}">File name:</label>
-                    <div class="col-xs-4" th:text="${fileName}">file.xml</div>
+                    <div class="col-xs-10" th:text="${fileName}">file.xml</div>
                 </div>
                 <div class="row">
                     <label class="col-xs-2 control-label" th:text="${config.label.resultResultLabel}">Result:</label>
-                    <div class="col-xs-4" th:text="${report.result}">Success</div>
+                    <div class="col-xs-10" th:text="${report.result}">Success</div>
                 </div>
                 <div class="row">
                     <label class="col-xs-2 control-label" th:text="${config.label.resultErrorsLabel}">Errors:</label>
-                    <div class="col-xs-4" th:text="${report.counters.nrOfErrors}">0</div>
+                    <div class="col-xs-10" th:text="${report.counters.nrOfErrors}">0</div>
                 </div>
                 <div class="row">
                     <label class="col-xs-2 control-label" th:text="${config.label.resultWarningsLabel}">Warnings:</label>
-                    <div class="col-xs-4" th:text="${report.counters.nrOfWarnings}">0</div>
+                    <div class="col-xs-10" th:text="${report.counters.nrOfWarnings}">0</div>
                 </div>
                 <div class="row">
                     <label class="col-xs-2 control-label" th:text="${config.label.resultMessagesLabel}">Messages:</label>
-                    <div class="col-xs-4" th:text="${report.counters.nrOfAssertions}">0</div>
+                    <div class="col-xs-10" th:text="${report.counters.nrOfAssertions}">0</div>
                 </div>
             </div>
             <div class="panel-footer">
-                <div class="row form-group overview-button-row align-items-center">
-                    <label class="col-sm-2 control-label">Download</label>
-                    
-	                <div class="col-sm-3">
-	                    <select class="form-control" id="downloadType" name="downloadType" onchange="downloadTypeChange()">
-	                        <option th:each="type : ${downloadType}" th:text="${type.label}" th:attr="value=${type.key}">Download Type</option>
-	                    </select>
+                <div class="form-inline">
+                    <div class="form-group">
+                        <label for="downloadType" style="padding-right:10px;">Download</label>
+                        <select class="form-control downloadSelect" id="downloadType" name="downloadType" onchange="downloadTypeChange()">
+                            <option th:each="type : ${downloadType}" th:text="${type.label}" th:attr="value=${type.key}">Download Type</option>
+                        </select>
                     </div>
-                    
-                    <label class="col-sm-1 control-label center" style="text-align:center;"> as </label>
-                
-	                <div class="col-sm-3">
-	                    <select class="form-control" id="downloadSyntaxType" name="downloadSyntaxType">
-	                        <option value="pdfType">PDF</option>
-	                        <option value="notSelect">-----------------------</option>
-	                        <option th:each="type : ${contentSyntax}" th:text="${type.key}" th:attr="value=${type.label}">Type</option>
-	                    </select>
-	                </div>
-	                
-                	<div class="col-sm-3">
-                        <button class="btn btn-default" type="button" id="downloadButton" onclick="downloadResult()"><i class="fas fa-download"></i></button>
-                        <form id="resultForm" name="resultForm" method="GET" th:action="report">
-                            <input id="resultFormId" name="id" type="hidden"/>
-                            <input id="resultFormType" name="type" type="hidden"/>
-                            <input id="resultFormSyntax" name="syntax" type="hidden"/>
-                        </form>
-                	</div>
+                    <div class="form-group" style="padding-right:10px;">
+                        <label for="downloadSyntaxType" style="padding-right:10px;padding-left:10px;"> as </label>
+                        <select class="form-control downloadSelect" id="downloadSyntaxType" name="downloadSyntaxType">
+                            <option value="pdfType">PDF</option>
+                            <option value="notSelect">----------------------------</option>
+                            <option th:each="type : ${contentSyntax}" th:text="${type.key}" th:attr="value=${type.label}">Type</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-default" type="button" id="downloadButton" onclick="downloadResult()"><i class="fas fa-download"></i></button>
+                    <form id="resultForm" name="resultForm" method="GET" th:action="report">
+                        <input id="resultFormId" name="id" type="hidden"/>
+                        <input id="resultFormType" name="type" type="hidden"/>
+                        <input id="resultFormSyntax" name="syntax" type="hidden"/>
+                    </form>
                 </div>
             </div>
         </div>
 
-        <div class="panel panel-default">
+        <div class="panel panel-default" th:if="${report.reports.infoOrWarningOrError.size() > 0}">
             <div class="panel-heading">
                 <h3 class="panel-title" th:text="${config.label.resultSubSectionDetailsTitle}">Details</h3>
             </div>
