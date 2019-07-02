@@ -3,7 +3,6 @@ package eu.europa.ec.itb.shacl.validation;
 import eu.europa.ec.itb.shacl.ApplicationConfig;
 import eu.europa.ec.itb.shacl.DomainConfig;
 import eu.europa.ec.itb.shacl.DomainConfigCache;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -17,12 +16,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
-
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.StringWriter;
+import java.io.*;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -76,7 +71,7 @@ public class FileManager {
 		if(langExtension!=null) {
 			extension = "." + langExtension.getFileExtensions().get(0);
 		}
-		
+
 		if(fileName == null || fileName.isEmpty()) {
 			tmpPath = getFilePath(targetFolder, extension);
 		}else {
@@ -89,7 +84,7 @@ public class FileManager {
 
 		return tmpPath.toFile();
 	}
-	
+
 	public File getInputStreamFile(String targetFolder, InputStream stream, String contentSyntax, String fileName) throws IOException {
 		String lang = getLanguage(contentSyntax);
 		String extension = null;
@@ -105,7 +100,7 @@ public class FileManager {
 			tmpPath = getFilePath(targetFolder, extension, fileName);
 		}
 		Files.copy(stream, tmpPath, StandardCopyOption.REPLACE_EXISTING);
-		
+
 		return tmpPath.toFile();
 	}
 
@@ -120,14 +115,14 @@ public class FileManager {
 	private File getURLFile(File targetFolder, String URLConvert) throws IOException {
 		return getURLFile(targetFolder.getAbsolutePath(), URLConvert, null);
 	}
-    
+
     public File getStringFile(String contentToValidate, String contentSyntax) throws IOException {
     	return getStringFile(config.getTmpFolder(), contentToValidate, contentSyntax, null);
     }
     public File getStringFile(File targetFolder, String contentToValidate, String contentSyntax) throws IOException {
     	return getStringFile(targetFolder.getAbsolutePath(), contentToValidate, contentSyntax, null);
     }
-    
+
     public File getInputStreamFile(InputStream stream, String contentSyntax) throws IOException {
     	return getInputStreamFile(config.getTmpFolder(), stream, contentSyntax, null);
     }
@@ -141,14 +136,14 @@ public class FileManager {
     	return getFilePath(config.getTmpFolder(), extension);
     }
 
-	private Path getFilePath(String folder, String extension) {		
+	private Path getFilePath(String folder, String extension) {
 		Path tmpPath = Paths.get(folder, UUID.randomUUID().toString() + extension);
 		tmpPath.toFile().getParentFile().mkdirs();
 
 		return tmpPath;
 	}
 
-	private Path getFilePath(String folder, String extension, String fileName) {		
+	private Path getFilePath(String folder, String extension, String fileName) {
 		Path tmpPath = Paths.get(folder, fileName + extension);
 		tmpPath.toFile().getParentFile().mkdirs();
 
@@ -211,14 +206,14 @@ public class FileManager {
 		return getBase64File(null, base64Convert);
 	}
 
-	private File getFileAsUrlOrBase64(File targetFolder, String content) {
+	private File getFileAsUrlOrBase64(File targetFolder, String content) throws IOException {
 		if (targetFolder == null) {
 			targetFolder = getTempFolder();
 		}
 		File outputFile;
 		try {
 			outputFile = getURLFile(targetFolder, content);
-		}catch(Exception e) {
+		} catch(MalformedURLException e) {
 			outputFile = getBase64File(targetFolder, content);
 		}
 		return outputFile;
@@ -229,7 +224,7 @@ public class FileManager {
 	 * @param content URL or BASE64 as String
 	 * @return File
 	 */
-	public File getFileAsUrlOrBase64(String content) {
+	public File getFileAsUrlOrBase64(String content) throws IOException {
 		return getFileAsUrlOrBase64(null, content);
 	}
 
@@ -246,12 +241,12 @@ public class FileManager {
 		return new File(getTempFolder(), "external_config");
 	}
 
-	public List<FileInfo> getRemoteExternalShapes(List<FileContent> externalRules) {
+	public List<FileInfo> getRemoteExternalShapes(List<FileContent> externalRules) throws IOException {
 		List<FileInfo> externalShapeFiles = new ArrayList<>();
     	if (externalRules != null && !externalRules.isEmpty()) {
     		File externalShapeFolder = new File(getExternalShapeFolder(), UUID.randomUUID().toString());
 			for (FileContent externalRule: externalRules) {
-				File contentFile = null;
+				File contentFile;
 				if (externalRule.getEmbeddingMethod() != null) {
 					switch(externalRule.getEmbeddingMethod()) {
 						case FileContent.embedding_URL:
@@ -285,7 +280,9 @@ public class FileManager {
 
 	public List<FileInfo> getAllShaclFiles(DomainConfig domainConfig, String validationType, List<FileInfo> filesInfo){
 		List<FileInfo> shaclFiles = new ArrayList<>();
-		shaclFiles.addAll(getLocalShaclFiles(getShaclFile(domainConfig, validationType)));
+		for (File localFile: getShaclFiles(domainConfig, validationType)) {
+			shaclFiles.addAll(getLocalShaclFiles(localFile));
+		}
 		shaclFiles.addAll(getRemoteShaclFiles(domainConfig, validationType));
 		shaclFiles.addAll(filesInfo);
 		return shaclFiles;
@@ -295,13 +292,16 @@ public class FileManager {
 	 * Return the SHACL files loaded for a given validation type
 	 * @return File
 	 */
-	private File getShaclFile(DomainConfig domainConfig, String validationType) {
-		String localFolder = domainConfig.getShaclFile().get(validationType).getLocalFolder();
-		File f = null;
-		if (StringUtils.isNotEmpty(localFolder)) {
-			f = Paths.get(config.getResourceRoot(), domainConfig.getDomain(), domainConfig.getShaclFile().get(validationType).getLocalFolder()).toFile();
+	private List<File> getShaclFiles(DomainConfig domainConfig, String validationType) {
+		List<File> localFileReferences = new ArrayList<>();
+		String localFolderConfigValue = domainConfig.getShaclFile().get(validationType).getLocalFolder();
+		if (StringUtils.isNotEmpty(localFolderConfigValue)) {
+			String[] localFiles = StringUtils.split(localFolderConfigValue, ',');
+			for (String localFile: localFiles) {
+				localFileReferences.add(Paths.get(config.getResourceRoot(), domainConfig.getDomain(), localFile.trim()).toFile());
+			}
 		}
-		return f;
+		return localFileReferences;
 	}
 
 	/**
@@ -320,7 +320,9 @@ public class FileManager {
 				if (files != null) {
 					for (File aShaclFile: files) {
 						if (aShaclFile.isFile()) {
-							fileInfo.add(new FileInfo(aShaclFile, getContentLang(aShaclFile)));
+							if (config.getAcceptedShaclExtensions().contains(FilenameUtils.getExtension(aShaclFile.getName().toLowerCase()))) {
+								fileInfo.add(new FileInfo(aShaclFile, getContentLang(aShaclFile)));
+							}
 						}
 					}
 				}
@@ -336,18 +338,18 @@ public class FileManager {
 
     public String getReportFileNameRdf(String uuid, String contentSyntax) {
     	String lang = getLanguage(contentSyntax);
-    	
+
     	if(lang!=null) {
     		return uuid + "." + lang;
     	}else {
     		return uuid;
     	}
     }
-    
+
     public String getReportFileNamePdf(String uuid) {
 		return uuid + ".pdf";
     }
-	
+
 	public String getLanguage(String contentSyntax) {
 		String lang = null;
 		Lang langExtension = RDFLanguages.contentTypeToLang(contentSyntax);
@@ -355,7 +357,7 @@ public class FileManager {
 		if(langExtension!=null) {
 			lang = langExtension.getFileExtensions().get(0);
 		}
-		
+
 		return lang;
 	}
 
@@ -377,7 +379,7 @@ public class FileManager {
 		}
 		return stringLang;
 	}
-	
+
 	/**
 	 * Return the report as String using the specified syntax.
 	 * @param shaclReport Report
@@ -385,9 +387,9 @@ public class FileManager {
 	 * @return String
 	 */
 	public String getShaclReport(Model shaclReport, String reportSyntax) {
-		StringWriter writer = new StringWriter();		
+		StringWriter writer = new StringWriter();
 		Lang lang = RDFLanguages.contentTypeToLang(reportSyntax);
-		
+
 		if(lang == null) {
 			shaclReport.write(writer, null);
 		}else {
@@ -397,7 +399,7 @@ public class FileManager {
 				shaclReport.write(writer, null);
 			}
 		}
-		
+
 		return writer.toString();
     }
 

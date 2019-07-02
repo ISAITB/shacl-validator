@@ -87,13 +87,14 @@ public class DomainConfigCache {
                 domainConfig.setChannels(Arrays.stream(StringUtils.split(config.getString("validator.channels", ValidatorChannel.REST_API.getName()+","+ValidatorChannel.SOAP_API.getName()+","+ValidatorChannel.FORM.getName()), ',')).map(String::trim).map(ValidatorChannel::byName).collect(Collectors.toSet()));
                 domainConfig.setShaclFile(parseShaclMap("validator.shaclFile", config, domainConfig.getType()));
                 domainConfig.setDefaultReportSyntax(config.getString("validator.defaultReportSyntax", appConfig.getDefaultReportSyntax()));
-                domainConfig.setWebContentSyntax(Arrays.stream(StringUtils.split(config.getString("validator.contentSyntax", ""), ',')).map(String::trim).collect(Collectors.toList()));    
+                domainConfig.setWebContentSyntax(Arrays.stream(StringUtils.split(config.getString("validator.contentSyntax", ""), ',')).map(String::trim).collect(Collectors.toList()));
                 domainConfig.setExternalShapes(parseBooleanMap("validator.externalShapes", config, domainConfig.getType()));
                 domainConfig.setWebServiceId(config.getString("validator.webServiceId", "ValidatorService"));
                 domainConfig.setWebServiceDescription(parseMap("validator.webServiceDescription", config, Arrays.asList(ValidationConstants.INPUT_CONTENT, ValidationConstants.INPUT_SYNTAX, ValidationConstants.INPUT_VALIDATION_TYPE, ValidationConstants.INPUT_EXTERNAL_RULES, ValidationConstants.INPUT_EMBEDDING_METHOD)));
+                domainConfig.setReportsOrdered(config.getBoolean("validator.reportsOrdered", false));
+                domainConfigs.put(domain, domainConfig);
                 domainConfig.setShowAbout(config.getBoolean("validator.showAbout", true));
                 setLabels(domainConfig, config);
-                domainConfigs.put(domain, domainConfig);
                 logger.info("Loaded configuration for domain ["+domain+"]");
             }
         }
@@ -125,7 +126,7 @@ public class DomainConfigCache {
         domainConfig.getLabel().setPopupTitle(config.getString("validator.label.popupTitle", "XML content"));
         domainConfig.getLabel().setPopupCloseButton(config.getString("validator.label.popupCloseButton", "Close"));
     }
-    
+
     private Map<String, ShaclFileInfo> parseShaclMap(String key, CompositeConfiguration config, List<String> types){
         Map<String, DomainConfig.ShaclFileInfo> map = new HashMap<>();
         for (String type: types) {
@@ -178,9 +179,10 @@ public class DomainConfigCache {
     private Map<String, String> parseMap(String key, CompositeConfiguration config, List<String> types) {
         Map<String, String> map = new HashMap<>();
         for (String type: types) {
-            String val = config.getString(key+"."+type, null);
+            String defaultValue = appConfig.getDefaultLabels().get(type);
+            String val = config.getString(key+"."+type, defaultValue);
             if (val != null) {
-                map.put(type, config.getString(key+"."+type).trim());
+                map.put(type, val.trim());
             }
         }
         return map;

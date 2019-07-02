@@ -20,6 +20,7 @@ public class DomainConfig {
     private Map<String, Boolean> externalShapes;
     private String webServiceId = "SHACLValidationService";
     private Map<String, String> webServiceDescription;
+    private boolean reportsOrdered;
     //UI
     private List<String> webContentSyntax;
     private String reportTitle = "Validation report";
@@ -152,6 +153,14 @@ public class DomainConfig {
         this.webServiceDescription = webServiceDescription;
     }
 
+    public boolean isReportsOrdered() {
+        return reportsOrdered;
+    }
+
+    public void setReportsOrdered(boolean reportsOrdered) {
+        this.reportsOrdered = reportsOrdered;
+    }
+
     public boolean isShowAbout() {
         return showAbout;
     }
@@ -159,8 +168,8 @@ public class DomainConfig {
     public void setShowAbout(boolean showAbout) {
         this.showAbout = showAbout;
     }
-    
-    
+
+
     public List<String> getWebContentSyntax() {
 		return webContentSyntax;
 	}

@@ -1,12 +1,8 @@
 package eu.europa.ec.itb.shacl.rest;
 
-import eu.europa.ec.itb.shacl.ApplicationConfig;
-import eu.europa.ec.itb.shacl.DomainConfig;
-import eu.europa.ec.itb.shacl.DomainConfigCache;
-import eu.europa.ec.itb.shacl.ValidatorChannel;
-import eu.europa.ec.itb.shacl.ValidatorContent;
+import eu.europa.ec.itb.shacl.*;
 import eu.europa.ec.itb.shacl.rest.errors.NotFoundException;
-import eu.europa.ec.itb.shacl.rest.errors.ValidatorException;
+import eu.europa.ec.itb.shacl.errors.ValidatorException;
 import eu.europa.ec.itb.shacl.rest.model.ApiInfo;
 import eu.europa.ec.itb.shacl.rest.model.Input;
 import eu.europa.ec.itb.shacl.rest.model.Output;
@@ -21,8 +17,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFLanguages;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -51,8 +45,6 @@ import java.util.stream.Collectors;
 @RestController
 public class ShaclController {
 
-    private static final Logger logger = LoggerFactory.getLogger(ShaclController.class);
-    
     @Autowired
     ApplicationContext ctx;
     @Autowired
@@ -102,7 +94,7 @@ public class ShaclController {
 			@ApiResponse(code = 500, message = "Error (If a problem occurred with processing the request)", response = String.class),
 			@ApiResponse(code = 404, message = "Not found (for an invalid domain value)", response = String.class)
 	})
-	@RequestMapping(value = "/{domain}/api/validate", method = RequestMethod.POST, consumes = {MediaType.APPLICATION_JSON_VALUE, "application/ld+json"}, produces = MediaType.APPLICATION_JSON_VALUE)
+	@RequestMapping(value = "/{domain}/api/validate", method = RequestMethod.POST, consumes = {MediaType.APPLICATION_JSON_VALUE, "application/ld+json"})
 	public ResponseEntity<String> validate(
 			@ApiParam(required = true, name = "domain", value = "A fixed value corresponding to the specific validation domain.")
 			@PathVariable("domain") String domain,
@@ -115,7 +107,7 @@ public class ShaclController {
 
 		//Start validation process of the Input
 		String shaclResult = executeValidationProcess(in, domainConfig, reportSyntax);
-		
+
 		HttpHeaders responseHeaders = new HttpHeaders();
 		responseHeaders.setContentType(MediaType.parseMediaType(reportSyntax));
 		return new ResponseEntity<>(shaclResult, responseHeaders, HttpStatus.OK);
@@ -159,8 +151,7 @@ public class ShaclController {
 		} else {
 			if (!validReportSyntax(reportSyntax)) {
 				// The requested syntax is invalid.
-				logger.error(ValidatorException.message_parameters, reportSyntax);
-				throw new ValidatorException(ValidatorException.message_parameters);
+				throw new ValidatorException(String.format("The requested report syntax [%s] is not supported.", reportSyntax));
 			}
 		}
 		
@@ -191,8 +182,7 @@ public class ShaclController {
 		} catch (ValidatorException | NotFoundException e) {
 			throw e;
 		} catch (Exception e) {
-			logger.error("Unexpected error occurred during processing", e);
-			throw new ValidatorException(ValidatorException.message_default);
+			throw new ValidatorException(e);
 		} finally {
 			// Remove temporary files
 			fileManager.removeContentToValidate(inputFile, remoteShaclFiles);
@@ -225,22 +215,22 @@ public class ShaclController {
 			@RequestBody Input[] inputs,
 			HttpServletRequest request
 	) {
-		DomainConfig domainConfig = validateDomain(domain);		
+		DomainConfig domainConfig = validateDomain(domain);
 		String acceptHeader = getFirstSupportedAcceptHeader(request);
-    	
-    	Output[] outputs = new Output[inputs.length];
-    	int i = 0;
+
+		Output[] outputs = new Output[inputs.length];
+		int i = 0;
 		for(Input input: inputs) {
-			Output output = new Output();			
+			Output output = new Output();
 			String reportSyntax = getValidateReportSyntax(input.getReportSyntax(), acceptHeader, domainConfig.getDefaultReportSyntax());
 
 			//Start validation process of the Input
 			String shaclResult = executeValidationProcess(input, domainConfig, reportSyntax);
 			output.setReport(Base64.getEncoder().encodeToString(shaclResult.getBytes()));
 			output.setReportSyntax(reportSyntax);
-			
+
 			outputs[i] = output;
-			
+
 			i++;
 		}
 		return outputs;
@@ -254,8 +244,7 @@ public class ShaclController {
     private DomainConfig validateDomain(String domain) {
 		DomainConfig config = domainConfigs.getConfigForDomainName(domain);
         if (config == null || !config.isDefined() || !config.getChannels().contains(ValidatorChannel.REST_API)) {
-            logger.error("The following domain does not exist: " + domain);
-			throw new NotFoundException();
+			throw new NotFoundException(domain);
         }
         MDC.put("domain", domain);
         return config;
@@ -270,18 +259,8 @@ public class ShaclController {
      * @return Model SHACL report
      */
     private Model executeValidation(File inputFile, Input input, DomainConfig domainConfig, List<FileInfo> remoteShaclFiles) {
-    	Model report = null;
-    	
-    	try {	
-			SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile, input.getValidationType(), input.getContentSyntax(), remoteShaclFiles, domainConfig);
-			
-			report = validator.validateAll();   
-    	}catch(Exception e){
-            logger.error("Error during the validation", e);
-			throw new ValidatorException(ValidatorException.message_default);
-    	}
-		
-		return report;
+		SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile, input.getValidationType(), input.getContentSyntax(), remoteShaclFiles, domainConfig);
+		return validator.validateAll();
     }
     
     /**
@@ -319,6 +298,10 @@ public class ShaclController {
     	String contentSyntax = input.getContentSyntax();
     	String validationType = input.getValidationType();
 
+    	if (StringUtils.isBlank(contentToValidate)) {
+    		throw new ValidatorException("No content was provided for validation");
+		}
+
     	//ValidationType validation
     	validationType = validatorContent.validateValidationType(validationType, domainConfig);
     	
@@ -326,13 +309,11 @@ public class ShaclController {
     	Boolean hasExternalShapes = domainConfig.getExternalShapes().get(validationType);
     	if (externalRules!=null) {
     		if (!externalRules.isEmpty() && !hasExternalShapes) {
-				logger.error("Loading external shape files is not supported in this domain.");
-				throw new ValidatorException("Loading external shape files is not supported in this domain.");
+				throw new ValidatorException(String.format("Loading external shape files is not supported for validation type [%s] of domain [%s].", validationType, domainConfig.getDomainName()));
 			} else {
 				for (RuleSet ruleSet: externalRules) {
 					if (FileContent.embedding_BASE64.equals(ruleSet.getEmbeddingMethod()) && StringUtils.isEmpty(ruleSet.getRuleSyntax())) {
-						logger.error(ValidatorException.message_syntaxRequired, "");
-						throw new ValidatorException(ValidatorException.message_syntaxRequired);
+						throw new ValidatorException("External shape files that are provided in BASE64 need to also define their syntax.");
 					}
 				}
 			}
@@ -345,7 +326,11 @@ public class ShaclController {
     private List<FileInfo> getExternalShapes(List<RuleSet> externalRules) {
 		List<FileInfo> shaclFiles;
 		if (externalRules != null) {
-			shaclFiles = fileManager.getRemoteExternalShapes(externalRules.stream().map(RuleSet::toFileContent).collect(Collectors.toList()));
+			try {
+				shaclFiles = fileManager.getRemoteExternalShapes(externalRules.stream().map(RuleSet::toFileContent).collect(Collectors.toList()));
+			} catch (Exception e) {
+				throw new ValidatorException("An error occurred while trying to read the provided external shapes.");
+			}
 		} else {
 			shaclFiles = Collections.emptyList();
 		}

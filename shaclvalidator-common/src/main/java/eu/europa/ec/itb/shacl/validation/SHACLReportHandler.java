@@ -1,37 +1,34 @@
 package eu.europa.ec.itb.shacl.validation;
 
-import java.io.StringWriter;
-import java.math.BigInteger;
-import java.util.ArrayList;
+import com.gitb.core.AnyContent;
+import com.gitb.core.ValueEmbeddingEnumeration;
+import com.gitb.tr.*;
+import eu.europa.ec.itb.shacl.util.Utils;
+import org.apache.jena.rdf.model.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.xml.bind.JAXBElement;
 import javax.xml.datatype.DatatypeConfigurationException;
-
-import org.apache.jena.rdf.model.Model;
-import org.apache.jena.rdf.model.NodeIterator;
-import org.apache.jena.rdf.model.RDFNode;
-import org.apache.jena.rdf.model.Statement;
-import org.apache.jena.rdf.model.StmtIterator;
-
-import com.gitb.core.AnyContent;
-import com.gitb.core.ValueEmbeddingEnumeration;
-import com.gitb.tr.BAR;
-import com.gitb.tr.ObjectFactory;
-import com.gitb.tr.TAR;
-import com.gitb.tr.TestAssertionGroupReportsType;
-import com.gitb.tr.TestResultType;
-import com.gitb.tr.ValidationCounters;
-
-import eu.europa.ec.itb.shacl.util.Utils;
+import java.io.StringWriter;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 
 public class SHACLReportHandler {
+
+    private static final Logger logger = LoggerFactory.getLogger(SHACLReportHandler.class);
+
 	private TAR report;
 	private Model shaclReport;
+	private boolean reportsOrdered;
 
     private ObjectFactory objectFactory = new ObjectFactory();
 
-	public SHACLReportHandler(String inputFile, String contentSyntax, Model shapes, Model shaclReport) {
+	public SHACLReportHandler(String inputFile, Model shapes, Model shaclReport, boolean reportsOrdered) {
 		this.shaclReport = shaclReport;
+		this.reportsOrdered = reportsOrdered;
 		report = new TAR();
         report.setResult(TestResultType.SUCCESS);
         try {
@@ -61,7 +58,25 @@ public class SHACLReportHandler {
 
         this.report.setContext(attachment);
 	}
-	
+
+	private String getStatementStringSafe(Statement statement) {
+        try {
+            return statement.getString();
+        } catch (Exception e) {
+            logger.warn("Error while getting statement string", e);
+            return "-";
+        }
+    }
+
+    private String getStatementResourceStringSafe(Statement statement) {
+        try {
+            return statement.getResource().toString();
+        } catch (Exception e) {
+            logger.warn("Error while getting statement resource string", e);
+            return "-";
+        }
+    }
+
 	public TAR createReport() {
         int infos = 0;
         int warnings = 0;
@@ -81,26 +96,32 @@ public class SHACLReportHandler {
         			String focusNode = "";
         			String resultPath = "";
         			String severity = "";
+                    String value = "";
+                    String shape = "";
             		while(it.hasNext()) {
             			Statement statement = it.next();
             			
             			if(statement.getPredicate().hasURI("http://www.w3.org/ns/shacl#resultMessage")) {
-            				error.setDescription(statement.getString());
+                            error.setDescription(getStatementStringSafe(statement));
             			}
             			if(statement.getPredicate().hasURI("http://www.w3.org/ns/shacl#focusNode")) {
-            				focusNode = statement.getResource().toString();
+            				focusNode = getStatementResourceStringSafe(statement);
             			}
             			if(statement.getPredicate().hasURI("http://www.w3.org/ns/shacl#resultPath")) {
-            				resultPath = statement.getResource().toString();
+            				resultPath = getStatementResourceStringSafe(statement);
             			}
             			if(statement.getPredicate().hasURI("http://www.w3.org/ns/shacl#sourceShape")) {
-            				error.setTest(statement.getResource().toString());
+            				shape = getStatementResourceStringSafe(statement);
             			}
             			if(statement.getPredicate().hasURI("http://www.w3.org/ns/shacl#resultSeverity")) {
-            				severity = statement.getResource().toString();
+            				severity = getStatementResourceStringSafe(statement);
             			}
+                        if(statement.getPredicate().hasURI("http://www.w3.org/ns/shacl#value")) {
+                            value = getStatementStringSafe(statement);
+                        }
             		}
-            		error.setLocation("Focus node [" + resultPath + "] - Result path [" + focusNode + "]");
+            		error.setLocation("Focus node ["+focusNode+"] - Result path [" + resultPath + "]");
+            		error.setTest("Shape ["+shape+"] - Value ["+value+"]");
             		
                     JAXBElement element;
                     if (severity.equals("http://www.w3.org/ns/shacl#Info")) {
@@ -130,8 +151,11 @@ public class SHACLReportHandler {
         report.getCounters().setNrOfErrors(BigInteger.valueOf(errors));
         report.getCounters().setNrOfAssertions(BigInteger.valueOf(infos));
         report.getCounters().setNrOfWarnings(BigInteger.valueOf(warnings));
-        
-        if(errors>0) {
+
+        if (reportsOrdered) {
+            Collections.sort(this.report.getReports().getInfoOrWarningOrError(), new ReportItemComparator());
+        }
+        if(errors > 0) {
             this.report.setResult(TestResultType.FAILURE);
         }else {
             this.report.setResult(TestResultType.SUCCESS);
@@ -147,4 +171,35 @@ public class SHACLReportHandler {
 		
 		return writer.toString();
     }
+
+    private static class ReportItemComparator implements Comparator<JAXBElement<TestAssertionReportType>> {
+
+        @Override
+        public int compare(JAXBElement<TestAssertionReportType> o1, JAXBElement<TestAssertionReportType> o2) {
+            if (o1 == null && o2 == null) {
+                return 0;
+            } else if (o1 == null) {
+                return -1;
+            } else if (o2 == null) {
+                return 1;
+            } else {
+                String name1 = o1.getName().getLocalPart();
+                String name2 = o2.getName().getLocalPart();
+                if (name1.equals(name2)) {
+                    return 0;
+                } else if ("error".equals(name1)) {
+                    return -1;
+                } else if ("error".equals(name2)) {
+                    return 1;
+                } else if ("warning".equals(name1)) {
+                    return -1;
+                } else if ("warning".equals(name2)) {
+                    return 1;
+                } else {
+                    return 0;
+                }
+            }
+        }
+    }
+
 }

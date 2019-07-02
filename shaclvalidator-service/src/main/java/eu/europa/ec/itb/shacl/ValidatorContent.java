@@ -1,30 +1,26 @@
 package eu.europa.ec.itb.shacl;
 
-import java.io.File;
-import java.io.IOException;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import eu.europa.ec.itb.shacl.errors.ValidatorException;
+import eu.europa.ec.itb.shacl.validation.FileContent;
+import eu.europa.ec.itb.shacl.validation.FileManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import eu.europa.ec.itb.shacl.rest.errors.ValidatorException;
-import eu.europa.ec.itb.shacl.validation.FileContent;
-import eu.europa.ec.itb.shacl.validation.FileManager;
+import java.io.File;
+import java.io.IOException;
 
 @Component
 public class ValidatorContent {
-    private static final Logger logger = LoggerFactory.getLogger(ValidatorContent.class);
-    
+
     @Autowired
 	FileManager fileManager;
 
     public String validateValidationType(String validationType, DomainConfig domainConfig) {
-    	if((validationType!=null && !domainConfig.getType().contains(validationType)) || (validationType==null && domainConfig.getType().size()!=1)) {
-		    logger.error(ValidatorException.message_parameters, validationType);    			    
-			throw new ValidatorException(ValidatorException.message_parameters);
-    	}
-    	
+    	if (validationType != null && !domainConfig.getType().contains(validationType)) {
+			throw new ValidatorException(String.format("The provided validation type [%s] is not valid for domain [%s].", validationType, domainConfig.getDomainName()));
+    	} else if (validationType == null && domainConfig.getType().size() != 1) {
+			throw new ValidatorException(String.format("A validation type must be provided for domain [%s]. Available types are [%s].", domainConfig.getDomainName(), String.join(", ", domainConfig.getType())));
+		}
     	return validationType==null ? domainConfig.getType().get(0) : validationType;
     }
     
@@ -38,8 +34,7 @@ public class ValidatorContent {
     				try{
     					contentFile = fileManager.getURLFile(contentToValidate);
     				}catch(IOException e) {
-						logger.error("Error when transforming the URL into File.", e);
-						throw new ValidatorException(ValidatorException.message_contentToValidate);
+						throw new ValidatorException("An error occurred while trying to read the content to validate from the provided URL.", e);
 					}
     				break;
     			case FileContent.embedding_BASE64:
@@ -49,17 +44,19 @@ public class ValidatorContent {
     				try{
         				contentFile = fileManager.getStringFile(contentToValidate, contentSyntax);
     				}catch(IOException e) {
-						logger.error("Error when transforming the STRING into File.", e);
-						throw new ValidatorException(ValidatorException.message_contentToValidate);
+						throw new ValidatorException(String.format("An error occurred while trying to read the content to validate as a string (provided syntax [%s]).", contentSyntax), e);
 					}
     				break;
     			default:
-    			    logger.error(ValidatorException.message_parameters, embeddingMethod);    			    
-    				throw new ValidatorException(ValidatorException.message_parameters);
+    				throw new ValidatorException(String.format("The provided embedding method [%s] is not supported.", embeddingMethod));
     		}
     	}else {
-			contentFile = fileManager.getFileAsUrlOrBase64(contentToValidate);
-    	}
+			try {
+				contentFile = fileManager.getFileAsUrlOrBase64(contentToValidate);
+			} catch (IOException e) {
+				throw new ValidatorException("An error occurred while trying to read the provided content.");
+			}
+		}
     	
     	return contentFile;
 	}
@@ -71,14 +68,12 @@ public class ValidatorContent {
      */
     private File getBase64File(String base64Convert, String contentSyntax) {
 		if (contentSyntax == null) {
-			logger.error(ValidatorException.message_parameters, "");
-			throw new ValidatorException(ValidatorException.message_parameters);
+			throw new ValidatorException("No content syntax was provided. This is required when a file is provided as BASE64.");
 		}
 		try {
 			return fileManager.getBase64File(base64Convert);
 		} catch (Exception e) {
-			logger.error("Error when transforming the Base64 into File.", e);
-			throw new ValidatorException(ValidatorException.message_contentToValidate);
+			throw new ValidatorException("An error occurred while trying to read a file from a BASE64 text", e);
 		}
     }
 }
