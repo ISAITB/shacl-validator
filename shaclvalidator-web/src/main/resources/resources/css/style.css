@@ -1,0 +1,124 @@
+body {
+    font-family: "Open Sans", Arial, sans-serif;
+	background-color: #234E73;
+}
+.view-section {
+	background-color: white;
+	border-radius: 5px;
+	padding-bottom: 15px;
+	margin-top: 15px;
+	margin-bottom: 15px;
+	box-shadow: 5px 5px 5px #0E0E0E;
+}
+.report-item-icon.error-icon {
+    color: #c9302c;
+}
+.report-item-icon.warning-icon {
+    color: #F0AD4E;
+}
+.report-item-icon.info-icon {
+    color: #5cb85c;
+}
+.report-item-icon {
+    padding: 0 4px;
+}
+.report-item-test {
+    padding-top: 10px;
+}
+.report-item-test-label {
+    margin-right: 5px;
+    font-weight: bold;
+}
+.report-item {
+    margin-top: 5px;
+    margin-bottom: 10px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+}
+.report-item-error {
+    background-color: #f2dede;
+}
+.report-item-warning {
+    background-color: #fcf8e3;
+}
+.report-item-info {
+    background-color: #EDEDED;
+}
+.report-item-info {
+}
+.popup-close {
+    float: right;
+}
+.CodeMirror {
+    height: 50vh;
+    border: 1px solid rgb(237, 237, 237);
+}
+.indicator-editor-widget {
+    font-size: 12px;
+    line-height: 16px;
+}
+.indicator-line-widget {
+    background-color: #EDEDED;
+}
+.selected-editor-line {
+    background-color: #C9C9C9;
+}
+.selected-editor-line-text {
+    font-weight: bold;
+}
+.report-item-container {
+    padding: 0px 10px 0px 10px;
+    margin-top: 10px;
+}
+.inputFile {
+    display: block;
+    visibility: hidden;
+    width: 0;
+    height: 0;
+}
+#inputFileName {
+    cursor: pointer;
+    cursor: hand;
+}
+.view-section-input {
+    padding-bottom: 20px;
+}
+.view-section-result {
+    border-top: thick double rgb(237, 237, 237);
+    margin-top: 10px;
+}
+.view-section-title {
+    padding-bottom: 10px;
+}
+.overall-title {
+    margin-bottom: 30px;
+    cursor: pointer;
+}
+.overview-button-row {
+    padding-top: 10px;
+}
+.error-details {
+    border-top: thick double rgb(237, 237, 237);
+    padding-top: 20px;
+}
+.about-section {
+    font-size: x-small;
+    font-style: italic;
+    background-color: white;
+    border-radius: 5px;
+    padding: 10px 10px 10px 10px;
+    margin-top: 30px;
+    margin-bottom: 15px;
+    box-shadow: 5px 5px 5px #0E0E0E;
+}
+.clickable {
+    cursor: pointer;
+    cursor: hand;
+}
+.downloadSelect {
+    width: 200px !important;
+}
+.CodeMirror {
+    border-radius: 5px;
+    height: 400px;
+}
