@@ -80,7 +80,12 @@ public class UploadController {
     
     @GetMapping(value = "/{domain}/upload")
     public ModelAndView upload(@PathVariable("domain") String domain, Model model) {
-		DomainConfig domainConfig = validateDomain(domain);	
+    	DomainConfig domainConfig;
+		try {
+			domainConfig = validateDomain(domain);
+		} catch (Exception e) {
+			throw new NotFoundException();
+		}
 		
         Map<String, Object> attributes = new HashMap<>();
         attributes.put("validationTypes", getValidationTypes(domainConfig));
@@ -107,7 +112,12 @@ public class UploadController {
     		@RequestParam(value = "uri-externalShape", required = false) String[] externalUri,
     		@RequestParam(value = "contentSyntaxType-externalShape", required = false) String[] externalFilesSyntaxType,
     		RedirectAttributes redirectAttributes) {
-		DomainConfig domainConfig = validateDomain(domain);
+		DomainConfig domainConfig;
+		try {
+			domainConfig = validateDomain(domain);
+		} catch (Exception e) {
+			throw new NotFoundException();
+		}
 		String folderName = UUID.randomUUID().toString();
 		String tmpFolder = this.appConfig.getTmpFolder() + "/web/" + folderName;
 		
@@ -277,7 +287,7 @@ public class UploadController {
      * @param domain The domain where the SHACL validator is executed as String.
      * @return DomainConfig
      */
-    private DomainConfig validateDomain(String domain) {
+    private DomainConfig validateDomain(String domain) throws Exception {
 		DomainConfig config = domainConfigs.getConfigForDomainName(domain);
         if (config == null || !config.isDefined() || !config.getChannels().contains(ValidatorChannel.REST_API)) {
             logger.error("The following domain does not exist: " + domain);
