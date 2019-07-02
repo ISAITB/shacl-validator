@@ -3,10 +3,10 @@ package eu.europa.ec.itb.shacl.validation;
 import eu.europa.ec.itb.shacl.ApplicationConfig;
 import eu.europa.ec.itb.shacl.DomainConfig;
 import eu.europa.ec.itb.shacl.DomainConfigCache;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.jena.rdf.model.Model;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFLanguages;
 import org.slf4j.Logger;
@@ -16,11 +16,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
-
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Files;
@@ -45,19 +41,20 @@ public class FileManager {
 
 	private ConcurrentHashMap<String, ReadWriteLock> externalDomainFileCacheLocks = new ConcurrentHashMap<>();
 
-	private File getURLFile(File targetFolder, String URLConvert) throws IOException {
-		return getURLFile(targetFolder.getAbsolutePath(), URLConvert);
-	}
-
-	private File getURLFile(String targetFolder, String URLConvert) throws IOException {
+	public File getURLFile(String targetFolder, String URLConvert, String fileName) throws IOException {
 		URL url = new URL(URLConvert);
 		String extension = FilenameUtils.getExtension(url.getFile());
+		Path tmpPath;
 
 		if(extension!=null) {
 			extension = "." + extension;
 		}
 
-		Path tmpPath = getFilePath(targetFolder, extension);
+		if(fileName == null || fileName.isEmpty()) {
+			tmpPath = getFilePath(targetFolder, extension);
+		}else {
+			tmpPath = getFilePath(targetFolder, extension, fileName);
+		}
 
 		try(InputStream in = new URL(URLConvert).openStream()){
 			Files.copy(in, tmpPath, StandardCopyOption.REPLACE_EXISTING);
@@ -66,19 +63,43 @@ public class FileManager {
 		return tmpPath.toFile();
 	}
 
-	private File getStringFile(String targetFolder, String stringConvert, String contentSyntax) throws IOException {
+	public File getStringFile(String targetFolder, String stringConvert, String contentSyntax, String fileName) throws IOException {
 		Lang langExtension = RDFLanguages.contentTypeToLang(contentSyntax);
 		String extension = null;
+		Path tmpPath;
 
 		if(langExtension!=null) {
-			extension = "." + langExtension.getName();
+			extension = "." + langExtension.getFileExtensions().get(0);
 		}
 
-		Path tmpPath = getFilePath(targetFolder, extension);
+		if(fileName == null || fileName.isEmpty()) {
+			tmpPath = getFilePath(targetFolder, extension);
+		}else {
+			tmpPath = getFilePath(targetFolder, extension, fileName);
+		}
 
 		try(InputStream in = new ByteArrayInputStream(stringConvert.getBytes())){
 			Files.copy(in, tmpPath, StandardCopyOption.REPLACE_EXISTING);
 		}
+
+		return tmpPath.toFile();
+	}
+
+	public File getInputStreamFile(String targetFolder, InputStream stream, String contentSyntax, String fileName) throws IOException {
+		String lang = getLanguage(contentSyntax);
+		String extension = null;
+		Path tmpPath;
+
+		if(lang!=null) {
+			extension = "." + lang;
+		}
+
+		if(fileName == null || fileName.isEmpty()) {
+			tmpPath = getFilePath(targetFolder, extension);
+		}else {
+			tmpPath = getFilePath(targetFolder, extension, fileName);
+		}
+		Files.copy(stream, tmpPath, StandardCopyOption.REPLACE_EXISTING);
 
 		return tmpPath.toFile();
 	}
@@ -89,14 +110,21 @@ public class FileManager {
      * @throws IOException 
      */
     public File getURLFile(String url) throws IOException {
-    	return getURLFile(config.getTmpFolder(), url);
+    	return getURLFile(config.getTmpFolder(), url, null);
     }
-    
+	private File getURLFile(File targetFolder, String URLConvert) throws IOException {
+		return getURLFile(targetFolder.getAbsolutePath(), URLConvert, null);
+	}
+
     public File getStringFile(String contentToValidate, String contentSyntax) throws IOException {
-    	return getStringFile(config.getTmpFolder(), contentToValidate, contentSyntax);
+    	return getStringFile(config.getTmpFolder(), contentToValidate, contentSyntax, null);
     }
     public File getStringFile(File targetFolder, String contentToValidate, String contentSyntax) throws IOException {
-    	return getStringFile(targetFolder.getAbsolutePath(), contentToValidate, contentSyntax);
+    	return getStringFile(targetFolder.getAbsolutePath(), contentToValidate, contentSyntax, null);
+    }
+
+    public File getInputStreamFile(InputStream stream, String contentSyntax) throws IOException {
+    	return getInputStreamFile(config.getTmpFolder(), stream, contentSyntax, null);
     }
     
     /**
@@ -110,6 +138,13 @@ public class FileManager {
 
 	private Path getFilePath(String folder, String extension) {
 		Path tmpPath = Paths.get(folder, UUID.randomUUID().toString() + extension);
+		tmpPath.toFile().getParentFile().mkdirs();
+
+		return tmpPath;
+	}
+
+	private Path getFilePath(String folder, String extension, String fileName) {
+		Path tmpPath = Paths.get(folder, fileName + extension);
 		tmpPath.toFile().getParentFile().mkdirs();
 
 		return tmpPath;
@@ -301,6 +336,31 @@ public class FileManager {
 		return getContentLang(file, null);
 	}
 
+    public String getReportFileNameRdf(String uuid, String contentSyntax) {
+    	String lang = getLanguage(contentSyntax);
+
+    	if(lang!=null) {
+    		return uuid + "." + lang;
+    	}else {
+    		return uuid;
+    	}
+    }
+
+    public String getReportFileNamePdf(String uuid) {
+		return uuid + ".pdf";
+    }
+
+	public String getLanguage(String contentSyntax) {
+		String lang = null;
+		Lang langExtension = RDFLanguages.contentTypeToLang(contentSyntax);
+
+		if(langExtension!=null) {
+			lang = langExtension.getFileExtensions().get(0);
+		}
+
+		return lang;
+	}
+
 	/**
 	 * Return the content type as Lang of the File
 	 * @return String content type as String
@@ -319,6 +379,29 @@ public class FileManager {
 		}
 		return stringLang;
 	}
+
+	/**
+	 * Return the report as String using the specified syntax.
+	 * @param shaclReport Report
+	 * @param reportSyntax Syntax of the output
+	 * @return String
+	 */
+	public String getShaclReport(Model shaclReport, String reportSyntax) {
+		StringWriter writer = new StringWriter();
+		Lang lang = RDFLanguages.contentTypeToLang(reportSyntax);
+
+		if(lang == null) {
+			shaclReport.write(writer, null);
+		}else {
+			try {
+				shaclReport.write(writer, lang.getName());
+			}catch(Exception e) {
+				shaclReport.write(writer, null);
+			}
+		}
+
+		return writer.toString();
+    }
 
 	@PostConstruct
 	public void init() {
@@ -349,7 +432,7 @@ public class FileManager {
 					if (ri != null) {
 						try {
 							for (DomainConfig.RemoteInfo info: ri) {
-								getURLFile(remoteConfigFolder.getAbsolutePath(), info.getUrl());
+								getURLFile(remoteConfigFolder.getAbsolutePath(), info.getUrl(), null);
 							}
 						} catch (IOException e) {
 							logger.error("Error to load the remote SHACL file", e);

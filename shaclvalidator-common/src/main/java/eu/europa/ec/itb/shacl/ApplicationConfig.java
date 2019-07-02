@@ -41,6 +41,8 @@ public class ApplicationConfig {
     private String startupTimestamp;
     private String resourceUpdateTimestamp;
     private String defaultReportSyntax;
+    private long cleanupWebRate;
+    private Set<String> contentSyntax;
 
     private Map<String, String> defaultLabels = new HashMap<>();
 
@@ -153,6 +155,22 @@ public class ApplicationConfig {
     public Map<String, String> getDomainNameToDomainId() {
         return domainNameToDomainId;
     }
+
+	public Set<String> getContentSyntax() {
+		return contentSyntax;
+	}
+
+	public void setContentSyntax(Set<String> contentSyntax) {
+		this.contentSyntax = contentSyntax;
+	}
+
+	public long getCleanupWebRate() {
+		return cleanupWebRate;
+	}
+
+	public void setCleanupWebRate(long cleanupWebRate) {
+		this.cleanupWebRate = cleanupWebRate;
+	}
 
     public Map<String, String> getDefaultLabels() {
         return defaultLabels;

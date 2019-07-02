@@ -80,23 +80,57 @@ public class DomainConfigCache {
                 }
                 domainConfig = new DomainConfig();
                 domainConfig.setDomain(domain);
+                domainConfig.setUploadTitle(config.getString("validator.uploadTitle", "SHACL Validator"));
+                domainConfig.setReportTitle(config.getString("validator.reportTitle", "Validation report"));
                 domainConfig.setDomainName(appConfig.getDomainIdToDomainName().get(domain));
                 domainConfig.setType(Arrays.stream(StringUtils.split(config.getString("validator.type"), ',')).map(String::trim).collect(Collectors.toList()));
                 domainConfig.setTypeLabel(parseMap("validator.typeLabel", config, domainConfig.getType()));
-                domainConfig.setChannels(Arrays.stream(StringUtils.split(config.getString("validator.channels", ValidatorChannel.REST_API.getName()+","+ValidatorChannel.SOAP_API.getName()), ',')).map(String::trim).map(ValidatorChannel::byName).collect(Collectors.toSet()));
+                domainConfig.setChannels(Arrays.stream(StringUtils.split(config.getString("validator.channels", ValidatorChannel.REST_API.getName()+","+ValidatorChannel.SOAP_API.getName()+","+ValidatorChannel.FORM.getName()), ',')).map(String::trim).map(ValidatorChannel::byName).collect(Collectors.toSet()));
                 domainConfig.setShaclFile(parseShaclMap("validator.shaclFile", config, domainConfig.getType()));
                 domainConfig.setDefaultReportSyntax(config.getString("validator.defaultReportSyntax", appConfig.getDefaultReportSyntax()));
+                domainConfig.setWebContentSyntax(Arrays.stream(StringUtils.split(config.getString("validator.contentSyntax", ""), ',')).map(String::trim).collect(Collectors.toList()));
                 domainConfig.setExternalShapes(parseBooleanMap("validator.externalShapes", config, domainConfig.getType()));
                 domainConfig.setWebServiceId(config.getString("validator.webServiceId", "ValidatorService"));
                 domainConfig.setWebServiceDescription(parseMap("validator.webServiceDescription", config, Arrays.asList(ValidationConstants.INPUT_CONTENT, ValidationConstants.INPUT_SYNTAX, ValidationConstants.INPUT_VALIDATION_TYPE, ValidationConstants.INPUT_EXTERNAL_RULES, ValidationConstants.INPUT_EMBEDDING_METHOD)));
                 domainConfig.setReportsOrdered(config.getBoolean("validator.reportsOrdered", false));
                 domainConfigs.put(domain, domainConfig);
+                domainConfig.setShowAbout(config.getBoolean("validator.showAbout", true));
+                setLabels(domainConfig, config);
                 logger.info("Loaded configuration for domain ["+domain+"]");
             }
         }
         return domainConfig;
     }
-    
+
+    private void setLabels(DomainConfig domainConfig, CompositeConfiguration config) {
+        // If the required labels ever increase the following code should be transformed into proper resource management.
+        domainConfig.getLabel().setInputSectionTitle(config.getString("validator.label.inputSectionTitle", "Validation input"));
+        domainConfig.getLabel().setResultSectionTitle(config.getString("validator.label.resultSectionTitle", "Validation result"));
+        domainConfig.getLabel().setFileInputLabel(config.getString("validator.label.fileInputLabel", "Content to validate"));
+        domainConfig.getLabel().setFileInputPlaceholder(config.getString("validator.label.fileInputPlaceholder", "Select file..."));
+        domainConfig.getLabel().setTypeLabel(config.getString("validator.label.typeLabel", "Validate as"));
+        domainConfig.getLabel().setContentSyntaxLabel(config.getString("validator.label.contentSyntaxLabel", "Content syntax"));
+        domainConfig.getLabel().setExternalShapesLabel(config.getString("validator.label.externalShapesLabel", "External shapes"));
+        domainConfig.getLabel().setUploadButton(config.getString("validator.label.uploadButton", "Upload"));
+        domainConfig.getLabel().setResultSubSectionOverviewTitle(config.getString("validator.label.resultSubSectionOverviewTitle", "Overview"));
+        domainConfig.getLabel().setResultDateLabel(config.getString("validator.label.resultDateLabel", "Date:"));
+        domainConfig.getLabel().setResultFileNameLabel(config.getString("validator.label.resultFileNameLabel", "File name:"));
+        domainConfig.getLabel().setResultResultLabel(config.getString("validator.label.resultResultLabel", "Result:"));
+        domainConfig.getLabel().setResultErrorsLabel(config.getString("validator.label.resultErrorsLabel", "Errors:"));
+        domainConfig.getLabel().setResultWarningsLabel(config.getString("validator.label.resultWarningsLabel", "Warnings:"));
+        domainConfig.getLabel().setResultMessagesLabel(config.getString("validator.label.resultMessagesLabel", "Messages:"));
+        domainConfig.getLabel().setViewAnnotatedInputButton(config.getString("validator.label.viewAnnotatedInputButton", "View annotated input"));
+        domainConfig.getLabel().setDownloadRDFReportButton(config.getString("validator.label.downloadRDFReportButton", "Download RDF/XML report"));
+        domainConfig.getLabel().setDownloadPDFReportButton(config.getString("validator.label.downloadPDFReportButton", "Download PDF report"));
+        domainConfig.getLabel().setResultSubSectionDetailsTitle(config.getString("validator.label.resultSubSectionDetailsTitle", "Details"));
+        domainConfig.getLabel().setResultTestLabel(config.getString("validator.label.resultTestLabel", "Test:"));
+        domainConfig.getLabel().setPopupTitle(config.getString("validator.label.popupTitle", "XML content"));
+        domainConfig.getLabel().setPopupCloseButton(config.getString("validator.label.popupCloseButton", "Close"));
+        domainConfig.getLabel().setOptionDownloadReport(config.getString("validator.label.optionDownloadReport", "Validation report"));
+        domainConfig.getLabel().setOptionDownloadContent(config.getString("validator.label.optionDownloadContent", "Validated content"));
+        domainConfig.getLabel().setOptionDownloadShapes(config.getString("validator.label.optionDownloadShapes", "Shapes"));
+    }
+
     private Map<String, ShaclFileInfo> parseShaclMap(String key, CompositeConfiguration config, List<String> types){
         Map<String, DomainConfig.ShaclFileInfo> map = new HashMap<>();
         for (String type: types) {
