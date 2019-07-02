@@ -96,7 +96,7 @@
             </div>
             <div class="panel-body">
                 <div class="report-item-container">
-                    <div class="row report-item" th:each="item : ${report.reports.infoOrWarningOrError}" th:classappend="${'report-item-' + item.name.localPart}" onclick="setCode(this)">
+                    <div class="row report-item" th:each="item : ${report.reports.infoOrWarningOrError}" th:classappend="${'report-item-' + item.name.localPart}">
                         <div class="col-xs-12 item-info">
                             <div th:switch="${item.name.localPart}">
                                 <i th:case="'error'" class="fa fa-times-circle report-item-icon error-icon item-info-error"></i>

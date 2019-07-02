@@ -98,6 +98,7 @@ public class UploadController {
     		@RequestParam(value = "contentType-externalShape", required = false) String[] externalContentType,
     		@RequestParam(value = "inputFile-externalShape", required= false) MultipartFile[] externalFiles,
     		@RequestParam(value = "uri-externalShape", required = false) String[] externalUri,
+    		@RequestParam(value = "addExternalRules", required = false) Boolean addExternalRules,
     		@RequestParam(value = "contentSyntaxType-externalShape", required = false) String[] externalFilesSyntaxType) {
 		DomainConfig domainConfig;
 		try {
@@ -138,7 +139,13 @@ public class UploadController {
 				attributes.put("message", "Provided validation type is not valid");
 			} else {
 				if (inputFile != null) {
-					List<FileInfo> extFiles = getExternalShapes(externalContentType, externalFiles, externalUri, externalFilesSyntaxType);
+
+					List<FileInfo> extFiles;
+					if (addExternalRules != null && addExternalRules && hasExternalShapes(domainConfig, validationType)) {
+						extFiles = getExternalShapes(externalContentType, externalFiles, externalUri, externalFilesSyntaxType);
+					} else {
+						extFiles = Collections.emptyList();
+					}
 
 					SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile, validationType, contentSyntaxType, extFiles, domainConfig);
 
@@ -177,7 +184,14 @@ public class UploadController {
         }
         return new ModelAndView("uploadForm", attributes);
     }
-	
+
+	private boolean hasExternalShapes(DomainConfig domainConfig, String validationType) {
+    	if (validationType == null) {
+			validationType = domainConfig.getType().get(0);
+		}
+    	return domainConfig.getExternalShapes().getOrDefault(validationType, Boolean.FALSE);
+	}
+
 	private File getInputFile(String contentType, InputStream inputStream, String uri, String string, String contentSyntaxType, String tmpFolder) throws IOException {
 		File inputFile = null;
 		
