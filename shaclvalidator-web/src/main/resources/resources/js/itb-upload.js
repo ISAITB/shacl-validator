@@ -25,18 +25,20 @@ function contentTypeChanged(){
 		$("#uriToValidate").removeClass('hidden');
 		$("#fileToValidate").addClass('hidden');
 		$("#stringToValidate").addClass('hidden');
-	}
-	if(type == "fileType"){
+	} else if(type == "fileType"){
 		addEmptyOption();
 		$("#fileToValidate").removeClass('hidden');
 		$("#uriToValidate").addClass('hidden');
 		$("#stringToValidate").addClass('hidden');
-	}
-	if(type == "stringType"){	
-		removeEmptyOption();	
+	} else if(type == "stringType"){
+		removeEmptyOption();
 		$("#stringToValidate").removeClass('hidden');
 		$("#uriToValidate").addClass('hidden');
 		$("#fileToValidate").addClass('hidden');
+		setTimeout(function() {
+            var codeMirror = getCodeMirrorNative('#text-editor')
+            codeMirror.refresh();
+		}, 0);
 	}
 }
 
@@ -202,14 +204,8 @@ $(document).ready(function() {
 
 	var editableCodeMirror = CodeMirror.fromTextArea(document.getElementById('text-editor'), {
         mode: "xml",
-        autoRefresh: false,
-        gutter: true,
-        lineWrapping: true,
-        autoFormatOnStart: true,
-        styleActiveLine: true,
         lineNumbers: true
     }).on('change', function(){
     	contentSyntaxChanged();
     });
-    
 });
