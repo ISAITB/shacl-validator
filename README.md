@@ -4,6 +4,7 @@ Application used for the validation of RDF documents by means of:
 
 * A REST API.
 * A SOAP API.
+* A web form.
 
 The validator can be used with a single or multiple validation domains, i.e. validation cases that should be considered
 as distinct. Note that each such domain can still contain within it multiple validation types - the validation domain
@@ -50,6 +51,7 @@ The application is accessible at:
 
 * REST-API: http://localhost:8080/shacl/DOMAIN/api/validate
 * SOAP-API: http://localhost:8080/shacl/soap/DOMAIN/validation?wsdl
+* Web form: http://localhost:8080/shacl/DOMAIN/upload
 
 Note that all configuration properties in `application.properties` can be overriden by means of environment variables
 (e.g. set in a downstream Dockerfile). 
@@ -107,6 +109,7 @@ defined.
 | `logging.path` | Logging path. | String | `/validator/logs` |
 | `validator.tmpFolder` | Temp folder path. | String | `/validator/tmp` |
 | `validator.acceptedSHACLExtensions` | Accepted SHACL extensions.  | Comma-separated Strings | `ttl,rdf` |
+| `validator.acceptedHeaderAcceptTypes` | Accepted content types requested via the Accepts header.  | Comma-separated Strings | `application/rdf+xml` |
 | `validator.defaultReportSyntax ` | The default report syntax (mime type) if none is requested. | `application/rdf+xml`
 
 ## Domain-level configuration
@@ -116,16 +119,15 @@ The properties here define how a specific validation domain is configured. They 
 
 | Property | Description | Type | Default value |
 | --- | --- | --- | --- |
-| `validator.channels` | Comma separated list of features to have enabled. Possible values are (`form`, `email`, `rest_api`, `soap_api`). | Comma-separated Strings | `rest_api,soap_api` |
-| `validator.type` | A comma-separated list of supported invoice types. Values need to be reflected in properties `validator.typeLabel`, `validator.schemaFile`, `validator.schematronFolder`. | Comma-separated Strings | - |
+| `validator.channels` | Comma separated list of features to have enabled. Possible values are (`form`, `rest_api`, `soap_api`). | Comma-separated Strings | `form,rest_api,soap_api` |
+| `validator.type` | A comma-separated list of supported invoice types. Values need to be reflected in properties `validator.typeLabel`, `validator.shaclFile`, `validator.externalShapes`. | Comma-separated Strings | - |
 | `validator.typeLabel.XYZ` | Label to display for a given validator type (added as a postfix of validator.typeLabel). | String | - |
 | `validator.shaclFile.XYZ` | The SHACL files loaded for a given validation type (added as a postfix). This can be a file or folder (must never start with a '/'). | String | - |
 | `validator.shaclFile.XYZ.remote.A.url` | The SHACL files loaded for a given validation type (added as a postfix) as URL. | String | - |
 | `validator.shaclFile.XYZ.remote.A.type` | The content syntax (mime type) of the SHACL files loaded for a given validation type (added as a postfix). | String | - |
 | `validator.externalShapes.XYZ` | External shapes are allowed for a given validation type (added as a postfix) as Boolean. | Boolean | `false` |
-| `validator.includeTestDefinition` | Whether tests should be included in the resulting reports. | Boolean | `true` |
-| `validator.reportsOrdered` | Whether the reports are ordered. | Boolean | `false` |
 | `validator.defaultReportSyntax` | The default report syntax (mime type) if none is requested (otherwise the global default applies). | `application/rdf+xml` |
+| `validator.contentSyntax` | The accepted content syntax (mime type) in the web form. | `application/rdf+xml` |
 | `validator.webServiceId` | The ID of the web service. | String | `ValidatorService` |
 | `validator.webServiceDescription.contentToValidate` | The description of the web service for element "contentToValidate". | String | - |
 | `validator.webServiceDescription.contentSyntax` | The description of the web service for element "contentSyntax". | String | - |
