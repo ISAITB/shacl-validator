@@ -233,6 +233,7 @@ public class DomainConfig {
         private String resultSubSectionOverviewTitle;
         private String resultDateLabel;
         private String resultFileNameLabel;
+        private String resultValidationTypeLabel;
         private String resultResultLabel;
         private String resultErrorsLabel;
         private String resultWarningsLabel;
@@ -252,6 +253,14 @@ public class DomainConfig {
         private String optionContentFile;
         private String optionContentURI;
         private String optionContentDirectInput;
+
+        public String getResultValidationTypeLabel() {
+            return resultValidationTypeLabel;
+        }
+
+        public void setResultValidationTypeLabel(String resultValidationTypeLabel) {
+            this.resultValidationTypeLabel = resultValidationTypeLabel;
+        }
 
         public String getOptionContentFile() {
             return optionContentFile;
