@@ -78,7 +78,7 @@ public class UploadController {
 		
         Map<String, Object> attributes = new HashMap<>();
         attributes.put("validationTypes", getValidationTypes(domainConfig));
-        attributes.put("contentType", getContentType());
+        attributes.put("contentType", getContentType(domainConfig));
         attributes.put("contentSyntax", getContentSyntax(domainConfig));
         attributes.put("externalShapes", includeExternalShapes(domainConfig));
         attributes.put("config", domainConfig);
@@ -112,7 +112,7 @@ public class UploadController {
 		File inputFile;
         Map<String, Object> attributes = new HashMap<>();
         attributes.put("validationTypes", getValidationTypes(domainConfig));
-        attributes.put("contentType", getContentType());
+        attributes.put("contentType", getContentType(domainConfig));
         attributes.put("contentSyntax", getContentSyntax(domainConfig));
         attributes.put("externalShapes", includeExternalShapes(domainConfig));
         attributes.put("downloadType", getDownloadType(domainConfig));
@@ -305,12 +305,12 @@ public class UploadController {
         return types.stream().sorted(Comparator.comparing(UploadTypes::getKey)).collect(Collectors.toList());
     }
     
-    public List<UploadTypes> getContentType(){
+    public List<UploadTypes> getContentType(DomainConfig config){
         List<UploadTypes> types = new ArrayList<>();
 
-		types.add(new UploadTypes(contentType_file, "File"));
-		types.add(new UploadTypes(contentType_uri, "URI"));
-		types.add(new UploadTypes(contentType_string, "Direct input"));
+		types.add(new UploadTypes(contentType_file, config.getLabel().getOptionContentFile()));
+		types.add(new UploadTypes(contentType_uri, config.getLabel().getOptionContentURI()));
+		types.add(new UploadTypes(contentType_string, config.getLabel().getOptionContentDirectInput()));
 		
 		return types;        
     }

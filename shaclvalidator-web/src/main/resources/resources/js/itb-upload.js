@@ -160,8 +160,8 @@ function addElement(type) {
     $("<div class='row form-group "+type+"Div' id='"+elementId+"'>" +
     	"<div class='col-sm-2'>"+
 			"<select class='form-control' id='contentType-"+elementId+"' name='contentType-"+type+"' onchange='contentTypeChangedShapes(\""+elementId+"\")'>"+
-				"<option value='fileType' selected='true'>File</option>"+
-				"<option value='uriType'>URI</option>"+
+				"<option value='fileType' selected='true'>"+labelFile+"</option>"+
+				"<option value='uriType'>"+labelURI+"</option>"+
 		    "</select>"+
 		"</div>"+
 		"<div class='col-sm-10'>" +

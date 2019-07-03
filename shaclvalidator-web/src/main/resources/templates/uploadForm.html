@@ -20,6 +20,12 @@
     /*]]>*/
     </script>
     <script>
+    /*<![CDATA[*/
+        var labelFile = "[[${config.label.optionContentFile}]]";
+        var labelURI = "[[${config.label.optionContentURI}]]";
+    /*]]>*/
+    </script>
+    <script>
         $(document).ready(function() {
             $("body").tooltip({ selector: '[data-toggle=tooltip]' });
         });
@@ -67,13 +73,13 @@
             <div class="panel-footer">
                 <div class="form-inline">
                     <div class="form-group">
-                        <label for="downloadType" style="padding-right:10px;">Download</label>
+                        <label for="downloadType" style="padding-right:10px;" th:text="${config.label.saveDownload}">Download</label>
                         <select class="form-control downloadSelect" id="downloadType" name="downloadType" onchange="downloadTypeChange()">
                             <option th:each="type : ${downloadType}" th:text="${type.label}" th:attr="value=${type.key}">Download Type</option>
                         </select>
                     </div>
                     <div class="form-group" style="padding-right:10px;">
-                        <label for="downloadSyntaxType" style="padding-right:10px;padding-left:10px;"> as </label>
+                        <label for="downloadSyntaxType" style="padding-right:10px;padding-left:10px;" th:text="${config.label.saveAs}">as</label>
                         <select class="form-control downloadSelect" id="downloadSyntaxType" name="downloadSyntaxType">
                             <option value="pdfType">PDF</option>
                             <option value="notSelect">----------------------------</option>
@@ -103,23 +109,10 @@
                                 <i th:case="'warning'" class="fa fa-exclamation-triangle report-item-icon warning-icon item-info-warning"></i>
                                 <i th:case="'info'" class="fa fa-info-circle report-item-icon info-icon item-info-info"></i>
                                 <span th:text="${item.value.description}" class="item-info-text">Description</span>
-                                <span style="visibility: hidden" th:text="${item.value.location}" class="item-info-location">XML:0:0</span>
                             </div>
                         </div>
-                        <div class="col-xs-12 report-item-test" th:if="${item.value.location != null}"><span class="report-item-test-label">Location:</span><span th:text="${item.value.location}">Location</span></div>
+                        <div class="col-xs-12 report-item-test" th:if="${item.value.location != null}"><span class="report-item-test-label" th:text="${config.label.resultLocationLabel}">Location:</span><span th:text="${item.value.location}">Location</span></div>
                         <div class="col-xs-12 report-item-test" th:if="${item.value.test != null}"><span class="report-item-test-label" th:text="${config.label.resultTestLabel}">Test:</span><span th:text="${item.value.test}">Test</span></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="modal fade xml-content-modal" id="xml-content-modal" role="dialog" aria-labelledby="xmlDialog">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <button type="button" class="btn btn-primary popup-close" data-dismiss="modal" aria-label="Close" th:text="${config.label.popupCloseButton}">Close</button>
-                        <h4 class="modal-title" id="xmlContentTitle" th:text="${config.label.popupTitle}">XML content</h4>
-                    </div>
-                    <div id="xml-content-pane" class="modal-body">
                     </div>
                 </div>
             </div>
