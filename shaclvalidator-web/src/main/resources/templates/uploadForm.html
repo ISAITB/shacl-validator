@@ -51,7 +51,11 @@
                 </div>
                 <div class="row">
                     <label class="col-xs-2 control-label" th:text="${config.label.resultFileNameLabel}">File name:</label>
-                    <div class="col-xs-10" th:text="${fileName}">file.xml</div>
+                    <div class="col-xs-10" th:text="${fileName}">file.rdf</div>
+                </div>
+                <div class="row" th:if="${validationTypeLabel}">
+                    <label class="col-xs-2 control-label" th:text="${config.label.resultValidationTypeLabel}">Validation type:</label>
+                    <div class="col-xs-10" th:text="${validationTypeLabel}">Type</div>
                 </div>
                 <div class="row">
                     <label class="col-xs-2 control-label" th:text="${config.label.resultResultLabel}">Result:</label>

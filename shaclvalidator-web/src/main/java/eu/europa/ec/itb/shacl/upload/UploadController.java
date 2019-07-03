@@ -118,7 +118,9 @@ public class UploadController {
         attributes.put("downloadType", getDownloadType(domainConfig));
         attributes.put("config", domainConfig);
         attributes.put("appConfig", appConfig);
-
+		if (StringUtils.isNotBlank(validationType)) {
+			attributes.put("validationTypeLabel", domainConfig.getTypeLabel().get(validationType));
+		}
         org.apache.jena.rdf.model.Model reportModel;
 		org.apache.jena.rdf.model.Model agrregatedShapes;
         try {
