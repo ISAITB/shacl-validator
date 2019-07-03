@@ -104,7 +104,6 @@ public class DomainConfigCache {
 
     private void setLabels(DomainConfig domainConfig, CompositeConfiguration config) {
         // If the required labels ever increase the following code should be transformed into proper resource management.
-        domainConfig.getLabel().setInputSectionTitle(config.getString("validator.label.inputSectionTitle", "Validation input"));
         domainConfig.getLabel().setResultSectionTitle(config.getString("validator.label.resultSectionTitle", "Validation result"));
         domainConfig.getLabel().setFileInputLabel(config.getString("validator.label.fileInputLabel", "Content to validate"));
         domainConfig.getLabel().setFileInputPlaceholder(config.getString("validator.label.fileInputPlaceholder", "Select file..."));
@@ -119,16 +118,20 @@ public class DomainConfigCache {
         domainConfig.getLabel().setResultErrorsLabel(config.getString("validator.label.resultErrorsLabel", "Errors:"));
         domainConfig.getLabel().setResultWarningsLabel(config.getString("validator.label.resultWarningsLabel", "Warnings:"));
         domainConfig.getLabel().setResultMessagesLabel(config.getString("validator.label.resultMessagesLabel", "Messages:"));
-        domainConfig.getLabel().setViewAnnotatedInputButton(config.getString("validator.label.viewAnnotatedInputButton", "View annotated input"));
-        domainConfig.getLabel().setDownloadRDFReportButton(config.getString("validator.label.downloadRDFReportButton", "Download RDF/XML report"));
-        domainConfig.getLabel().setDownloadPDFReportButton(config.getString("validator.label.downloadPDFReportButton", "Download PDF report"));
         domainConfig.getLabel().setResultSubSectionDetailsTitle(config.getString("validator.label.resultSubSectionDetailsTitle", "Details"));
         domainConfig.getLabel().setResultTestLabel(config.getString("validator.label.resultTestLabel", "Test:"));
-        domainConfig.getLabel().setPopupTitle(config.getString("validator.label.popupTitle", "XML content"));
-        domainConfig.getLabel().setPopupCloseButton(config.getString("validator.label.popupCloseButton", "Close"));
+        domainConfig.getLabel().setResultLocationLabel(config.getString("validator.label.resultLocationLabel", "Location:"));
         domainConfig.getLabel().setOptionDownloadReport(config.getString("validator.label.optionDownloadReport", "Validation report"));
         domainConfig.getLabel().setOptionDownloadContent(config.getString("validator.label.optionDownloadContent", "Validated content"));
         domainConfig.getLabel().setOptionDownloadShapes(config.getString("validator.label.optionDownloadShapes", "Shapes"));
+        domainConfig.getLabel().setContentSyntaxTooltip(config.getString("validator.label.contentSyntaxTooltip", "Optional for content provided as a file or a URI if a known file extension is detected"));
+        domainConfig.getLabel().setExternalRulesTooltip(config.getString("validator.label.externalRulesTooltip", "Additional shapes that will be considered for the validation"));
+        domainConfig.getLabel().setSaveDownload(config.getString("validator.label.saveDownload", "Download"));
+        domainConfig.getLabel().setSaveAs(config.getString("validator.label.saveAs", "as"));
+        domainConfig.getLabel().setIncludeExternalShapes(config.getString("validator.label.includeExternalShapes", "Include external shapes"));
+        domainConfig.getLabel().setOptionContentFile(config.getString("validator.label.optionContentFile", "File"));
+        domainConfig.getLabel().setOptionContentURI(config.getString("validator.label.optionContentURI", "URI"));
+        domainConfig.getLabel().setOptionContentDirectInput(config.getString("validator.label.optionContentDirectInput", "Direct input"));
     }
 
     private Map<String, ShaclFileInfo> parseShaclMap(String key, CompositeConfiguration config, List<String> types){

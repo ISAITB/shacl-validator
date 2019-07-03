@@ -53,9 +53,8 @@
             <div class="form-group">
                 <div class="col-sm-2" align="right">
 	                <label for="contentSyntaxType" class="control-label" th:text="${config.label.contentSyntaxLabel}">Content syntax of the input</label>
-	                <span data-toggle="tooltip" data-container="body" data-placement="right" title="Specifying the content syntax for a file or URI is optional"><i class="far fa-question-circle"></i></span>
+	                <span data-toggle="tooltip" data-container="body" data-placement="right" th:attr="title=${config.label.contentSyntaxTooltip}"><i class="far fa-question-circle"></i></span>
                 </div>
-
                 <div class="col-sm-3">
                     <select class="form-control" id="contentSyntaxType" name="contentSyntaxType" onchange="contentSyntaxChanged()">
                         <option value="empty" selected="true"></option>
@@ -67,14 +66,14 @@
                 <div class="col-sm-offset-2 col-sm-10">
 					<div class="checkbox">
 					    <label>
-					        <input type="checkbox" id="externalRulesCheck" name="addExternalRules" onclick="toggleExternalShapesClassCheck()"> Include external shapes
+                            <input type="checkbox" id="externalRulesCheck" name="addExternalRules" onclick="toggleExternalShapesClassCheck()"> <span th:text="${config.label.includeExternalShapes}">Include external shapes</span>
 					    </label>
-						<span data-toggle="tooltip" data-container="body" data-placement="right" title="Include additional shapes to be considered for the validation"><i class="far fa-question-circle"></i></span>
+						<span data-toggle="tooltip" data-container="body" data-placement="right" th:attr="title=${config.label.externalRulesTooltip}"><i class="far fa-question-circle"></i></span>
                     </div>
 				</div>
             </div>
             <div class="form-group externalShapesClass">
-                <label for="externalShapeAddButton" class="col-sm-2 control-label">External shapes</label>
+                <label for="externalShapeAddButton" class="col-sm-2 control-label" th:text="${config.label.externalShapesLabel}">External shapes</label>
                 <div class="col-sm-10" id="externalShapeDiv">
                     <button id="externalShapeAddButton" class="btn btn-default" type="button" onclick="addExternalShapes()"><i class="fas fa-plus"></i></button>
                 </div>

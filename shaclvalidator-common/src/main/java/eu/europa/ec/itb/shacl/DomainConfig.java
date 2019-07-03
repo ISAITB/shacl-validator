@@ -223,7 +223,6 @@ public class DomainConfig {
 
     public static class Label {
 
-        private String inputSectionTitle;
         private String resultSectionTitle;
         private String fileInputLabel;
         private String fileInputPlaceholder;
@@ -239,15 +238,92 @@ public class DomainConfig {
         private String resultWarningsLabel;
         private String resultMessagesLabel;
         private String viewAnnotatedInputButton;
-        private String downloadRDFReportButton;
-        private String downloadPDFReportButton;
         private String resultSubSectionDetailsTitle;
         private String resultTestLabel;
-        private String popupTitle;
-        private String popupCloseButton;
         private String optionDownloadReport;
         private String optionDownloadContent;
         private String optionDownloadShapes;
+        private String contentSyntaxTooltip;
+        private String externalRulesTooltip;
+        private String resultLocationLabel;
+        private String saveDownload;
+        private String saveAs;
+        private String includeExternalShapes;
+        private String optionContentFile;
+        private String optionContentURI;
+        private String optionContentDirectInput;
+
+        public String getOptionContentFile() {
+            return optionContentFile;
+        }
+
+        public void setOptionContentFile(String optionContentFile) {
+            this.optionContentFile = optionContentFile;
+        }
+
+        public String getOptionContentURI() {
+            return optionContentURI;
+        }
+
+        public void setOptionContentURI(String optionContentURI) {
+            this.optionContentURI = optionContentURI;
+        }
+
+        public String getOptionContentDirectInput() {
+            return optionContentDirectInput;
+        }
+
+        public void setOptionContentDirectInput(String optionContentDirectInput) {
+            this.optionContentDirectInput = optionContentDirectInput;
+        }
+
+        public String getIncludeExternalShapes() {
+            return includeExternalShapes;
+        }
+
+        public void setIncludeExternalShapes(String includeExternalShapes) {
+            this.includeExternalShapes = includeExternalShapes;
+        }
+
+        public String getSaveDownload() {
+            return saveDownload;
+        }
+
+        public void setSaveDownload(String saveDownload) {
+            this.saveDownload = saveDownload;
+        }
+
+        public String getSaveAs() {
+            return saveAs;
+        }
+
+        public void setSaveAs(String saveAs) {
+            this.saveAs = saveAs;
+        }
+
+        public String getResultLocationLabel() {
+            return resultLocationLabel;
+        }
+
+        public void setResultLocationLabel(String resultLocationLabel) {
+            this.resultLocationLabel = resultLocationLabel;
+        }
+
+        public String getContentSyntaxTooltip() {
+            return contentSyntaxTooltip;
+        }
+
+        public void setContentSyntaxTooltip(String contentSyntaxTooltip) {
+            this.contentSyntaxTooltip = contentSyntaxTooltip;
+        }
+
+        public String getExternalRulesTooltip() {
+            return externalRulesTooltip;
+        }
+
+        public void setExternalRulesTooltip(String externalRulesTooltip) {
+            this.externalRulesTooltip = externalRulesTooltip;
+        }
 
         public String getOptionDownloadReport() {
             return optionDownloadReport;
@@ -271,14 +347,6 @@ public class DomainConfig {
 
         public void setOptionDownloadShapes(String optionDownloadShapes) {
             this.optionDownloadShapes = optionDownloadShapes;
-        }
-
-        public String getInputSectionTitle() {
-            return inputSectionTitle;
-        }
-
-        public void setInputSectionTitle(String inputSectionTitle) {
-            this.inputSectionTitle = inputSectionTitle;
         }
 
         public String getResultSectionTitle() {
@@ -393,22 +461,6 @@ public class DomainConfig {
             this.viewAnnotatedInputButton = viewAnnotatedInputButton;
         }
 
-        public String getDownloadRDFReportButton() {
-            return downloadRDFReportButton;
-        }
-
-        public void setDownloadRDFReportButton(String downloadRDFReportButton) {
-            this.downloadRDFReportButton = downloadRDFReportButton;
-        }
-
-        public String getDownloadPDFReportButton() {
-            return downloadPDFReportButton;
-        }
-
-        public void setDownloadPDFReportButton(String downloadPDFReportButton) {
-            this.downloadPDFReportButton = downloadPDFReportButton;
-        }
-
         public String getResultSubSectionDetailsTitle() {
             return resultSubSectionDetailsTitle;
         }
@@ -423,22 +475,6 @@ public class DomainConfig {
 
         public void setResultTestLabel(String resultTestLabel) {
             this.resultTestLabel = resultTestLabel;
-        }
-
-        public String getPopupTitle() {
-            return popupTitle;
-        }
-
-        public void setPopupTitle(String popupTitle) {
-            this.popupTitle = popupTitle;
-        }
-
-        public String getPopupCloseButton() {
-            return popupCloseButton;
-        }
-
-        public void setPopupCloseButton(String popupCloseButton) {
-            this.popupCloseButton = popupCloseButton;
         }
 
 		public String getExternalShapesLabel() {
