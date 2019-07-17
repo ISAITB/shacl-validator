@@ -13,7 +13,9 @@
     </parent>
     <modules>
         <module>shaclvalidator-common</module>
+        <module>shaclvalidator-resources</module>
         <module>shaclvalidator-service</module>
+        <module>shaclvalidator-jar</module>
         <module>shaclvalidator-web</module>
     </modules>
     <properties>
