@@ -2,6 +2,10 @@ package eu.europa.ec.itb.shacl.standalone;
 
 
 
+import org.apache.commons.io.FilenameUtils;
+import org.apache.jena.rdf.model.Model;
+import org.apache.jena.riot.Lang;
+import org.apache.jena.riot.RDFLanguages;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,13 +13,21 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
+import com.gitb.tr.TAR;
+
 import eu.europa.ec.itb.shacl.DomainConfig;
 import eu.europa.ec.itb.shacl.DomainConfigCache;
 import eu.europa.ec.itb.shacl.standalone.ValidationInput;
 import eu.europa.ec.itb.shacl.validation.FileManager;
+import eu.europa.ec.itb.shacl.validation.FileReport;
+import eu.europa.ec.itb.shacl.validation.SHACLValidator;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import javax.annotation.PostConstruct;
@@ -54,39 +66,47 @@ public class ValidationRunner {
         }
     }
 
-    protected void bootstrap(String[] args) {
+    protected void bootstrap(String[] args, String tmpFolder) {
         // Process input arguments
         List<ValidationInput> inputs = new ArrayList<>();
-        boolean noReports = false;
+        boolean noReports = false;        
         boolean requireType = domainConfig.hasMultipleValidationTypes();
+
+        String reportSyntax = null;
+        String contentToValidate = null;
+        String type = null;
+        
         try {
             int i = 0;
             while (i < args.length) {
-                if ("-noreports".equalsIgnoreCase(args[i])) {
+            	if ("-noreports".equalsIgnoreCase(args[i])) {
                     noReports = true;
-                } else if ("-file".equalsIgnoreCase(args[i])) {
-                    String type = null;
-                    String filePath = null;
-                    if (requireType) {
-                        // The next two arguments are the type and file path
-                        if (args.length > i+2) {
+                } else if ("-validationType".equalsIgnoreCase(args[i])) {
+                	if (requireType) {
+                		if (args.length > i+1) {
                             type = args[++i];
-                            filePath = args[++i];
-                        }
-                    } else {
+                		}
+                	}else {
                         type = domainConfig.getType().get(0);
-                        // The next argument is the file path
-                        if (args.length > i+1) {
-                            filePath = args[++i];
-                        }
-                    }
+                	}
+                	
                     if (!domainConfig.getType().contains(type)) {
-                        throw new IllegalArgumentException("Unknown invoice type ["+type+"]");
+                        throw new IllegalArgumentException("Unknown validation type ["+type+"]");
                     }
-                    File inputFile = new File(filePath);
-                    if (!inputFile.exists() || !inputFile.isFile() || !inputFile.canRead()) {
-                        throw new IllegalArgumentException("Unable to read file ["+filePath+"]");
-                    }
+                } else if ("-reportSyntax".equalsIgnoreCase(args[i])) {
+            		if (args.length > i+1) {
+                        reportSyntax = args[++i];
+            		}
+            		
+            		if (!validReportSyntax(reportSyntax)) {
+                        throw new IllegalArgumentException("Unknown report syntax ["+reportSyntax+"]");
+            		}
+                } else if ("-contentToValidate".equalsIgnoreCase(args[i])) {
+            		if (args.length > i+1) {
+            			contentToValidate = args[++i];
+            		}
+            		
+            		File inputFile = getContentToValidate(contentToValidate, tmpFolder);
                     inputs.add(new ValidationInput(inputFile, type));
                 } else {
                     throw new IllegalArgumentException("Unexpected parameter ["+args[i]+"]");
@@ -100,20 +120,30 @@ public class ValidationRunner {
         if (inputs.isEmpty()) {
             printUsage();
         } else {
+        	if(reportSyntax==null) {
+        		reportSyntax = domainConfig.getDefaultReportSyntax();
+        	}
+            for (ValidationInput input: inputs) {
+                loggerFeedback.info("\nValidating ["+input.getInputFile().getAbsolutePath()+"]...");
+            }
             // Proceed with invoice.
-            /*StringBuilder summary = new StringBuilder();
+            StringBuilder summary = new StringBuilder();
             summary.append("\n");
             for (ValidationInput input: inputs) {
                 loggerFeedback.info("\nValidating ["+input.getInputFile().getAbsolutePath()+"]...");
-                try (FileInputStream stream = new FileInputStream(input.getInputFile())) {
-                    XMLValidator validator = applicationContext.getBean(XMLValidator.class, stream, input.getValidationType(), domainConfig);
-                    TAR report = validator.validateAll();
-                    FileReport reporter = new FileReport(input.getInputFile().getAbsolutePath(), report, !noReports);
-                    if (!noReports) {
-                        // Serialize report.
-                        fileManager.saveReport(report, new File(reporter.getReportXmlFileName()));
-                    }
-                    summary.append("\n").append(reporter.toString()).append("\n");
+                
+                File inputFile = input.getInputFile();
+                
+                try {
+					SHACLValidator validator = applicationContext.getBean(SHACLValidator.class, inputFile, type, FilenameUtils.getExtension(inputFile.getAbsolutePath()), Collections.emptyList(), domainConfig);
+                    Model report = validator.validateAll();
+                    
+                    String outputData = getShaclReport(report, reportSyntax);
+                    File f = new File("");
+                    System.out.println(f.getAbsolutePath());
+                    fileManager.getStringFile(f.getAbsolutePath(), outputData, reportSyntax, "outputFile");
+                    
+                    summary.append("\n").append(outputData).append("\n");
                 } catch (Exception e) {
                     loggerFeedback.info("\nAn unexpected error occurred: "+e.getMessage());
                     logger.error("An unexpected error occurred: "+e.getMessage(), e);
@@ -122,7 +152,7 @@ public class ValidationRunner {
                 loggerFeedback.info(" Done.\n");
             }
             loggerFeedback.info(summary.toString());
-            loggerFeedbackFile.info(summary.toString());*/
+            loggerFeedbackFile.info(summary.toString());
         }
         
     }
@@ -149,4 +179,42 @@ public class ValidationRunner {
         System.out.println(msg.toString());
     }
 
+    private String getShaclReport(Model shaclReport, String reportSyntax) {
+		StringWriter writer = new StringWriter();		
+		Lang lang = RDFLanguages.contentTypeToLang(reportSyntax);
+		
+		if(lang == null) {
+			shaclReport.write(writer, null);
+		}else {
+			try {
+				shaclReport.write(writer, lang.getName());
+			}catch(Exception e) {
+				shaclReport.write(writer, null);
+			}
+		}
+		
+		return writer.toString();
+    }
+    
+    private boolean validReportSyntax(String reportSyntax) {
+		Lang lang = RDFLanguages.contentTypeToLang(reportSyntax.toLowerCase());
+		return lang != null;
+	}
+    
+    private File getContentToValidate(String contentToValidate, String tmpFolder) {
+        File inputFile = new File(contentToValidate);
+        
+    	try {
+            if(inputFile == null || !inputFile.exists() || !inputFile.isFile() || !inputFile.canRead()) {
+				inputFile = this.fileManager.getURLFile(tmpFolder, contentToValidate, "inputFile");
+            }
+            if (!inputFile.exists() || !inputFile.isFile() || !inputFile.canRead()) {
+                throw new IllegalArgumentException("Unable to read file or URL ["+contentToValidate+"]");
+            }
+        }catch(IOException e) {
+            throw new IllegalArgumentException("Unable to read file or URL ["+contentToValidate+"]");
+        }
+    	
+    	return inputFile;
+    }
 }

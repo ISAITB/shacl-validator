@@ -40,8 +40,21 @@ public class Application {
         config.setTmpFolder(tempFolder.getAbsolutePath());
         
         ValidationRunner runner = ctx.getBean(ValidationRunner.class);
-        runner.bootstrap(args);
+        runner.bootstrap(args, config.getTmpFolder());
+        
+        removeConfigForStandalone(tempFolder);
     }
+    
+    private static void removeConfigForStandalone(File tempFolder) throws IOException {
+        if(tempFolder.isDirectory()) {
+        	for(File f: tempFolder.listFiles()){
+        		removeConfigForStandalone(f);
+        	}     	
+        }
+        
+    	Files.deleteIfExists(tempFolder.toPath());
+    }
+    
 
     private static void prepareConfigForStandalone(File tempFolder) throws IOException {
         // Explode invoice resources to temp folder
