@@ -45,6 +45,11 @@ public class Application {
         removeConfigForStandalone(tempFolder);
     }
     
+    /**
+     * Delete temporary folder
+     * @param File Temporary folder
+     * @throws IOException
+     */
     private static void removeConfigForStandalone(File tempFolder) throws IOException {
         if(tempFolder.isDirectory()) {
         	for(File f: tempFolder.listFiles()){
@@ -56,6 +61,11 @@ public class Application {
     }
     
 
+    /**
+     * Store in temporary folder resource files.
+     * @param File Temporary folder
+     * @throws IOException
+     */
     private static void prepareConfigForStandalone(File tempFolder) throws IOException {
         // Explode invoice resources to temp folder
         File tempJarFile = new File(tempFolder, "validator-resources.jar");
