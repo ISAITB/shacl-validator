@@ -4,6 +4,7 @@ package eu.europa.ec.itb.shacl.standalone;
 import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,11 +21,15 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
+import com.gitb.tr.TAR;
+
 import eu.europa.ec.itb.shacl.DomainConfig;
 import eu.europa.ec.itb.shacl.DomainConfigCache;
 import eu.europa.ec.itb.shacl.errors.ValidatorException;
+import eu.europa.ec.itb.shacl.util.Utils;
 import eu.europa.ec.itb.shacl.validation.FileInfo;
 import eu.europa.ec.itb.shacl.validation.FileManager;
+import eu.europa.ec.itb.shacl.validation.FileReport;
 import eu.europa.ec.itb.shacl.validation.SHACLValidator;
 
 /**
@@ -69,7 +74,6 @@ public class ValidationRunner {
         boolean requireType = domainConfig.hasMultipleValidationTypes();
 
         String reportSyntax = null;
-        String contentToValidate = null;
         String type = null;
         
         if (!requireType) {
@@ -100,12 +104,16 @@ public class ValidationRunner {
                         throw new IllegalArgumentException("Unknown report syntax ["+reportSyntax+"]");
             		}
                 } else if ("-contentToValidate".equalsIgnoreCase(args[i])) {
-            		if (args.length > i+1) {
+                    String contentToValidate = null;
+                    String contentSyntax = null;
+                    
+            		if (args.length > i+2) {
             			contentToValidate = args[++i];
+            			contentSyntax = args[++i];
+                		
+                		File inputFile = getContent(contentToValidate, contentSyntax, tmpFolder);
+                        inputs.add(new ValidationInput(inputFile, type));
             		}
-            		
-            		File inputFile = getContent(contentToValidate, tmpFolder);
-                    inputs.add(new ValidationInput(inputFile, type));
                 } else if ("-externalShapes".equalsIgnoreCase(args[i])) {
                 	// File and content lang
                 	Boolean hasExternalShapes = domainConfig.getExternalShapes().get(type);
@@ -153,10 +161,22 @@ public class ValidationRunner {
                     
                     String outputData = getShaclReport(report, reportSyntax);
                     File f = new File("");
-                    
-                    fileManager.getStringFile(f.getAbsolutePath(), outputData, reportSyntax, "report");
-                    
-                    summary.append("\n").append(outputData).append("\n");
+
+					TAR TARreport = Utils.getTAR(report, inputFile.toPath(), validator.getAggregatedShapes(), domainConfig.isReportsOrdered());
+                    FileReport reporter = new FileReport(Paths.get(f.getAbsolutePath(), "report").toString(), TARreport, false);
+
+                    summary.append("\n").append(reporter.toString()).append("\n");
+                    if (!noReports) {
+                    	File out = fileManager.getStringFile(f.getAbsolutePath(), outputData, reportSyntax, "report");
+                    	
+                        summary.append("- Detailed report in: ").append(reportSyntax).append("[").append(out.getAbsolutePath()).append("] \n");
+                    }
+/*                    
+                } catch (ValidatorException e) {
+                    loggerFeedback.info("\nAn error occurred: "+e.getMessage());
+                    logger.error("An error occurred: "+e.getMessage(), e);
+                    break;
+*/                    
                 } catch (Exception e) {
                     loggerFeedback.info("\nAn unexpected error occurred: "+e.getMessage());
                     logger.error("An unexpected error occurred: "+e.getMessage(), e);
@@ -177,7 +197,8 @@ public class ValidationRunner {
         boolean requireType = domainConfig.hasMultipleValidationTypes();
         StringBuilder msg = new StringBuilder();
         if (requireType) {
-            msg.append("\nExpected usage: java -jar validator.jar [-noreports] [-validationType VALIDATION_TYPE] [-reportSyntax REPORT_SYNTAX] -contentToValidate FILE_1/URI_1 ... [-contentToValidate FILE_N/URI_N] [-externalShapes SHAPE_FILE_1/SHAPE_URI_1 CONTENT_SYNTAX_1] ... [-externalShapes SHAPE_FILE_N/SHAPE_URI_N CONTENT_SYNTAX_M]");
+        	// java -jar validator.jar -contentToValidate c:/myFile application/rdf+xml
+            msg.append("\nExpected usage: java -jar validator.jar [-noreports] [-validationType VALIDATION_TYPE] [-reportSyntax REPORT_SYNTAX] -contentToValidate FILE_1/URI_1 CONTENT_SYNTAX_1 ... [-contentToValidate FILE_N/URI_N CONTENT_SYNTAX_N] [-externalShapes SHAPE_FILE_1/SHAPE_URI_1 CONTENT_SYNTAX_1] ... [-externalShapes SHAPE_FILE_N/SHAPE_URI_N CONTENT_SYNTAX_M]");
             msg.append("\n\tWhere TYPE_X is the type of validation to perform for the file (accepted values: ");
             for (int i=0; i < domainConfig.getType().size(); i++) {
                 String type = domainConfig.getType().get(i);
@@ -188,7 +209,7 @@ public class ValidationRunner {
             }
             msg.append(")");
         } else {
-            msg.append("\\nExpected usage: java -jar validator.jar [-noreports] [-validationType VALIDATION_TYPE] [-reportSyntax REPORT_SYNTAX] -contentToValidate FILE_1/URI_1 ... [-contentToValidate FILE_N/URI_N] [-externalShapes SHAPE_FILE_1/SHAPE_URI_1 CONTENT_SYNTAX_1] ... [-externalShapes SHAPE_FILE_N/SHAPE_URI_N CONTENT_SYNTAX_M]");
+            msg.append("\\nExpected usage: java -jar validator.jar [-noreports] [-validationType VALIDATION_TYPE] [-reportSyntax REPORT_SYNTAX] -contentToValidate FILE_1/URI_1 CONTENT_SYNTAX_1 ... [-contentToValidate FILE_N/URI_N CONTENT_SYNTAX_N] [-externalShapes SHAPE_FILE_1/SHAPE_URI_1 CONTENT_SYNTAX_1] ... [-externalShapes SHAPE_FILE_N/SHAPE_URI_N CONTENT_SYNTAX_M]");
         }
         msg.append("\n\tWhere FILE_X is the full path to a file to validate");
         msg.append("\n\nThe  summary of each file will be printed and the detailed report will produced at the location of the input file (with a \"report.ttl\" postfix).");
@@ -231,15 +252,23 @@ public class ValidationRunner {
     /**
      * Get the content and save it in the folder
      * @param String Path of the file or URL
+     * @param String Syntax of the content
      * @param String Temporary folder
      * @return File
      */
-    private File getContent(String contentToValidate, String tmpFolder) {
+    private File getContent(String contentToValidate, String contentSyntax, String tmpFolder) {
         File inputFile = new File(contentToValidate);
         
     	try {
-            if(inputFile == null || !inputFile.exists() || !inputFile.isFile() || !inputFile.canRead()) {
-				inputFile = this.fileManager.getURLFile(tmpFolder, contentToValidate, "inputFile");
+            if(!inputFile.exists() || !inputFile.isFile() || !inputFile.canRead()) {
+            	boolean validSyntax = validReportSyntax(contentSyntax);
+    			Lang langExtension = RDFLanguages.contentTypeToLang(contentSyntax);            	
+            	
+            	if(validSyntax && langExtension!=null) {        			
+            		inputFile = this.fileManager.getURLFile(tmpFolder, contentToValidate, langExtension.getFileExtensions().get(0), "inputFile");
+            	}else {
+                    throw new IllegalArgumentException("Unknown content syntax ["+contentSyntax+"]");		
+            	}
             }
             if (!inputFile.exists() || !inputFile.isFile() || !inputFile.canRead()) {
                 throw new IllegalArgumentException("Unable to read file or URL ["+contentToValidate+"]");
@@ -259,9 +288,11 @@ public class ValidationRunner {
      * @return FileInfo
      */
     private FileInfo getExternalShapes(String file, String contentLang, String tmpFolder) {
-    	tmpFolder = tmpFolder + "/externalShapes";
-    	
-		File f = getContent(file, tmpFolder);
+//    	tmpFolder = tmpFolder + "/externalShapes";
+		File f = getContent(file, contentLang, Paths.get(tmpFolder, "externalShapes").toFile().getAbsolutePath());
+//		File tmpFolderPath = new File(new File(tmpFolder), "externalShapes");
+//		File f = getContent(file, tmpFolderPath.getAbsolutePath());
+		
 		
 		if(validReportSyntax(contentLang)) {
 			return new FileInfo(f, contentLang);

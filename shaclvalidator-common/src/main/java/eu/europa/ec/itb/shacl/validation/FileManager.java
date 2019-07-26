@@ -43,17 +43,24 @@ public class FileManager {
 
 	public File getURLFile(String targetFolder, String URLConvert, String fileName) throws IOException {
 		URL url = new URL(URLConvert);
+		
 		String extension = FilenameUtils.getExtension(url.getFile());
+		
+		
+		return getURLFile(targetFolder, URLConvert, extension, fileName);
+	}
+	
+	public File getURLFile(String targetFolder, String URLConvert, String contentSyntax, String fileName) throws IOException {
 		Path tmpPath;
 
-		if(extension!=null) {
-			extension = "." + extension;
+		if(contentSyntax!=null) {
+			contentSyntax = "." + contentSyntax;
 		}
-
+		
 		if(fileName == null || fileName.isEmpty()) {
-			tmpPath = getFilePath(targetFolder, extension);
+			tmpPath = getFilePath(targetFolder, contentSyntax);
 		}else {
-			tmpPath = getFilePath(targetFolder, extension, fileName);
+			tmpPath = getFilePath(targetFolder, contentSyntax, fileName);
 		}
 
 		try(InputStream in = new URL(URLConvert).openStream()){
