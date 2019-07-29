@@ -34,6 +34,7 @@ import eu.europa.ec.itb.shacl.validation.SHACLValidator;
 
 /**
  * Created by simatosc on 12/08/2016.
+ * Updated by mfontsan on 29/07/2019.
  */
 @Component
 @Scope("prototype")
@@ -82,14 +83,13 @@ public class ValidationRunner {
         
         try {
             int i = 0;
+            //Reading the arguments
             while (i < args.length) {
             	if ("-noreports".equalsIgnoreCase(args[i])) {
                     noReports = true;
                 } else if ("-validationType".equalsIgnoreCase(args[i])) {
-                	if (requireType) {
-                		if (args.length > i+1) {
-                            type = args[++i];
-                		}
+                	if (requireType && args.length > i+1) {
+                        type = args[++i];
                 	}
                 	
                     if (!domainConfig.getType().contains(type)) {
@@ -104,6 +104,7 @@ public class ValidationRunner {
                         throw new IllegalArgumentException("Unknown report syntax ["+reportSyntax+"]");
             		}
                 } else if ("-contentToValidate".equalsIgnoreCase(args[i])) {
+                	//File or URI and content lang
                     String contentToValidate = null;
                     String contentSyntax = null;
                     
@@ -115,7 +116,7 @@ public class ValidationRunner {
                         inputs.add(new ValidationInput(inputFile, type));
             		}
                 } else if ("-externalShapes".equalsIgnoreCase(args[i])) {
-                	// File and content lang
+                	// File or URI and content lang
                 	Boolean hasExternalShapes = domainConfig.getExternalShapes().get(type);
                 	
                 	if (hasExternalShapes == null || !hasExternalShapes) {
@@ -144,9 +145,7 @@ public class ValidationRunner {
         	if(reportSyntax==null) {
         		reportSyntax = domainConfig.getDefaultReportSyntax();
         	}
-            for (ValidationInput input: inputs) {
-                loggerFeedback.info("\nValidating ["+input.getInputFile().getAbsolutePath()+"]...");
-            }
+            
             // Proceed with invoice.
             StringBuilder summary = new StringBuilder();
             summary.append("\n");
@@ -171,17 +170,15 @@ public class ValidationRunner {
                     	
                         summary.append("- Detailed report in: ").append(reportSyntax).append("[").append(out.getAbsolutePath()).append("] \n");
                     }
-/*                    
+                    
                 } catch (ValidatorException e) {
                     loggerFeedback.info("\nAn error occurred: "+e.getMessage());
                     logger.error("An error occurred: "+e.getMessage(), e);
                     break;
-*/                    
-                } catch (Exception e) {
-                    loggerFeedback.info("\nAn unexpected error occurred: "+e.getMessage());
-                    logger.error("An unexpected error occurred: "+e.getMessage(), e);
-                    break;
-                }
+                    
+                } catch (IOException e) {
+                    throw new IllegalArgumentException("Unable to read report file.");
+				} 
                 loggerFeedback.info(" Done.\n");
             }
             loggerFeedback.info(summary.toString());
@@ -288,12 +285,8 @@ public class ValidationRunner {
      * @return FileInfo
      */
     private FileInfo getExternalShapes(String file, String contentLang, String tmpFolder) {
-//    	tmpFolder = tmpFolder + "/externalShapes";
 		File f = getContent(file, contentLang, Paths.get(tmpFolder, "externalShapes").toFile().getAbsolutePath());
-//		File tmpFolderPath = new File(new File(tmpFolder), "externalShapes");
-//		File f = getContent(file, tmpFolderPath.getAbsolutePath());
-		
-		
+				
 		if(validReportSyntax(contentLang)) {
 			return new FileInfo(f, contentLang);
 		}else {
