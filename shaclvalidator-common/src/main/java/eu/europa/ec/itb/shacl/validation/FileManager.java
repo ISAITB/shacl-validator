@@ -18,7 +18,11 @@ import org.springframework.stereotype.Component;
 import javax.annotation.PostConstruct;
 import java.io.*;
 import java.net.MalformedURLException;
+import java.net.Proxy;
+import java.net.ProxySelector;
+import java.net.URI;
 import java.net.URL;
+import java.net.URLConnection;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -63,11 +67,35 @@ public class FileManager {
 			tmpPath = getFilePath(targetFolder, contentSyntax, fileName);
 		}
 
-		try(InputStream in = new URL(URLConvert).openStream()){
+		try(InputStream in = getURIInputStream(URLConvert)){
 			Files.copy(in, tmpPath, StandardCopyOption.REPLACE_EXISTING);
 		}
 
 		return tmpPath.toFile();
+	}
+	
+	private InputStream getURIInputStream(String URLConvert) {
+        // Read the string from the provided URI.
+        URI uri = URI.create(URLConvert);
+        Proxy proxy = null;
+        List<Proxy> proxies = ProxySelector.getDefault().select(uri);
+        if (proxies != null && !proxies.isEmpty()) {
+            proxy = proxies.get(0);
+        }
+        
+        try {
+	        URLConnection connection;
+	        if (proxy == null) {
+	            connection = uri.toURL().openConnection();
+	        } else {
+	            connection = uri.toURL().openConnection(proxy);
+	        }
+	        
+	        return connection.getInputStream();
+        } catch (IOException e) {
+            throw new IllegalArgumentException("Unable to read provided URI", e);
+        }
+        
 	}
 
 	public File getStringFile(String targetFolder, String stringConvert, String contentSyntax, String fileName) throws IOException {

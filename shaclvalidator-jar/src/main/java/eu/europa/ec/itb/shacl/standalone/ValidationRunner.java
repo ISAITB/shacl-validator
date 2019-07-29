@@ -168,17 +168,15 @@ public class ValidationRunner {
                     if (!noReports) {
                     	File out = fileManager.getStringFile(f.getAbsolutePath(), outputData, reportSyntax, "report");
                     	
-                        summary.append("- Detailed report in: ").append(reportSyntax).append("[").append(out.getAbsolutePath()).append("] \n");
+                        summary.append("- Detailed report in: [").append(out.getAbsolutePath()).append("] \n");
                     }
                     
-                } catch (ValidatorException e) {
-                    loggerFeedback.info("\nAn error occurred: "+e.getMessage());
-                    logger.error("An error occurred: "+e.getMessage(), e);
+                } catch (Exception e) {
+                    loggerFeedback.info("\nAn error occurred while executing the validation.");
+                    logger.error("An error occurred while executing the validation: "+e.getMessage(), e);
                     break;
                     
-                } catch (IOException e) {
-                    throw new IllegalArgumentException("Unable to read report file.");
-				} 
+                }
                 loggerFeedback.info(" Done.\n");
             }
             loggerFeedback.info(summary.toString());
