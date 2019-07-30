@@ -149,6 +149,7 @@ public class ValidationRunner {
             // Proceed with invoice.
             StringBuilder summary = new StringBuilder();
             summary.append("\n");
+            int i=0;
             for (ValidationInput input: inputs) {
                 loggerFeedback.info("\nValidating ["+input.getInputFile().getAbsolutePath()+"]...");
                 
@@ -166,7 +167,7 @@ public class ValidationRunner {
 
                     summary.append("\n").append(reporter.toString()).append("\n");
                     if (!noReports) {
-                    	File out = fileManager.getStringFile(f.getAbsolutePath(), outputData, reportSyntax, "report");
+                    	File out = fileManager.getStringFile(f.getAbsolutePath(), outputData, reportSyntax, "report-"+i);
                     	
                         summary.append("- Detailed report in: [").append(out.getAbsolutePath()).append("] \n");
                     }
@@ -177,6 +178,7 @@ public class ValidationRunner {
                     break;
                     
                 }
+                i++;
                 loggerFeedback.info(" Done.\n");
             }
             loggerFeedback.info(summary.toString());
