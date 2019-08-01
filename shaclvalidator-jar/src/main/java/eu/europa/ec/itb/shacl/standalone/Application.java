@@ -39,8 +39,10 @@ public class Application {
         // Set report folder for use as a temp file generation target.
         config.setTmpFolder(tempFolder.getAbsolutePath());
         
-        ValidationRunner runner = ctx.getBean(ValidationRunner.class);
-        runner.bootstrap(args, config.getTmpFolder());
+        try {
+	        ValidationRunner runner = ctx.getBean(ValidationRunner.class);
+	        runner.bootstrap(args, config.getTmpFolder());
+        }catch(Exception e) {}
         
         removeConfigForStandalone(tempFolder);
     }

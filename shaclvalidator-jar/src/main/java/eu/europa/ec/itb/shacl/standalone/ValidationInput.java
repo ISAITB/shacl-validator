@@ -9,10 +9,12 @@ public class ValidationInput {
 
     private File inputFile;
     private String validationType;
+    private String filename;
 
-    public ValidationInput(File inputFile, String validationType) {
+    public ValidationInput(File inputFile, String validationType, String filename) {
         this.inputFile = inputFile;
         this.validationType = validationType;
+        this.filename = filename;
     }
 
     public File getInputFile() {
@@ -21,5 +23,9 @@ public class ValidationInput {
 
     public String getValidationType() {
         return validationType;
+    }
+    
+    public String getFilename() {
+    	return filename;
     }
 }
