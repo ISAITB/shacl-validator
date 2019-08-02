@@ -5,6 +5,7 @@ Application used for the validation of RDF documents by means of:
 * A REST API.
 * A SOAP API.
 * A web form.
+* Standalone validator.
 
 The validator can be used with a single or multiple validation domains, i.e. validation cases that should be considered
 as distinct. Note that each such domain can still contain within it multiple validation types - the validation domain
@@ -26,6 +27,7 @@ Issue `mvn clean install`
 
 The resulting artefacts can then be retrieved from:
 - `shaclvalidator-service` when running as a web app
+- `shaclvalidator-jar` when running as a command line tool
 
 ## For development
 
@@ -34,6 +36,7 @@ to easily run from an IDE or a completely separate configuration file can be pro
 
 To run change first to the required module:
 - `shaclvalidator-service` to run as a web app
+- `shaclvalidator-jar` to run as a command line tool
 
 Then, from this directory do
 
@@ -55,6 +58,21 @@ The application is accessible at:
 
 Note that all configuration properties in `application.properties` can be overriden by means of environment variables
 (e.g. set in a downstream Dockerfile). 
+
+## Standalone
+
+The standalone mode loads the validation resources from the jar file produced from the the resources' module that is copied as an entry to the standalone jar's contents. Because of this however, the standalone version can't be ran from within the IDE.
+
+To build the standalone validator issue
+
+```
+mvn clean install
+```
+And get `validator.jar` from the jar module's target folder. To run this issue:
+
+```
+java -jar validator.jar
+```
 
 # Configuration and use
 
