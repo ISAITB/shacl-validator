@@ -200,7 +200,7 @@ public class ValidationRunner {
                     File f = new File("");
 
 					TAR TARreport = Utils.getTAR(report, inputFile.toPath(), validator.getAggregatedShapes(), domainConfig.isReportsOrdered());
-                    FileReport reporter = new FileReport(Paths.get(f.getAbsolutePath(), "report").toString(), TARreport, requireType, type);
+                    FileReport reporter = new FileReport(input.getFilename(), TARreport, requireType, type);
 
                     summary.append("\n").append(reporter.toString()).append("\n");
                     if (!noReports) {
@@ -236,23 +236,23 @@ public class ValidationRunner {
         StringBuilder msg = new StringBuilder();
         if (requireType) {
             msg.append("\nExpected usage: java -jar validator.jar [-noreports] [-validationType VALIDATION_TYPE] [-reportSyntax REPORT_SYNTAX] -contentToValidate FILE_1/URI_1 CONTENT_SYNTAX_1 ... [-contentToValidate FILE_N/URI_N CONTENT_SYNTAX_N] [-externalShapes SHAPE_FILE_1/SHAPE_URI_1 CONTENT_SYNTAX_1] ... [-externalShapes SHAPE_FILE_N/SHAPE_URI_N CONTENT_SYNTAX_N]");
-            msg.append("\n\tWhere:");
-            msg.append("\n\t\t- VALIDATION_TYPE is type of validation to perform, one of [");
+            msg.append("\n   Where:");
+            msg.append("\n      - VALIDATION_TYPE is type of validation to perform, one of [");
             for (int i=0; i < domainConfig.getType().size(); i++) {
                 String type = domainConfig.getType().get(i);
                 msg.append(type);
                 if (i+1 < domainConfig.getType().size()) {
-                    msg.append("| ");
+                    msg.append("|");
                 }
             }            
             msg.append("].");
         } else {
         	msg.append("\nExpected usage: java -jar validator.jar [-noreports] [-reportSyntax REPORT_SYNTAX] -contentToValidate FILE_1/URI_1 CONTENT_SYNTAX_1 ... [-contentToValidate FILE_N/URI_N CONTENT_SYNTAX_N] [-externalShapes SHAPE_FILE_1/SHAPE_URI_1 CONTENT_SYNTAX_1] ... [-externalShapes SHAPE_FILE_N/SHAPE_URI_N CONTENT_SYNTAX_N]");
-        	msg.append("\n\tWhere:");
+        	msg.append("\n   Where:");
         }
-        msg.append("\n\t\t- REPORT_SYNTAX is the mime type for the validation report(s).");
-        msg.append("\n\t\t- FILE_X or URI_X is the full file path or URI to the content to validate, optionally followed by CONTENT_SYNTAX_X as the content's mime type.");
-        msg.append("\n\t\t- SHAPE_FILE_X or SHAPE_URI_X is the full file path or URI to additional shapes to consider, optionally followed by CONTENT_SYNTAX_X as the shapes' mime type.");
+        msg.append("\n      - REPORT_SYNTAX is the mime type for the validation report(s).");
+        msg.append("\n      - FILE_X or URI_X is the full file path or URI to the content to validate, optionally followed by CONTENT_SYNTAX_X as the content's mime type.");
+        msg.append("\n      - SHAPE_FILE_X or SHAPE_URI_X is the full file path or URI to additional shapes to consider, optionally followed by CONTENT_SYNTAX_X as the shapes' mime type.");
         
         msg.append("\n\nThe summary of each validation will be printed and the detailed report produced in the current directory (as \"report.X.SUFFIX\").");
         System.out.println(msg.toString());

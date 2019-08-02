@@ -23,26 +23,10 @@ public class FileReport {
         this.validationType = type;
     }
 
-    public String getFileName() {
-        return fileName;
-    }
-
-    public TAR getReport() {
-        return report;
-    }
-
-    public String getReportXmlFileName() {
-        return fileName.substring(0, fileName.lastIndexOf('.'))+".report.xml";
-    }
-
-    public String getReportPdfFileName() {
-        return fileName.substring(0, fileName.lastIndexOf('.'))+".report.pdf";
-    }
-
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("Validation report summary:");
+        sb.append("Validation report summary [").append(this.fileName).append("]:");
         if(requireType) {
         	sb.append("\n- Validation type: ").append(this.validationType);
         }
