@@ -13,7 +13,7 @@
 <body>
 <div class="container view-section">
     <div class="view-section-input">
-        <form method="POST" enctype="multipart/form-data" th:action="@{upload}" class="form-horizontal" th:fragment="form">
+        <form method="POST" enctype="multipart/form-data" th:action="@{upload}" class="form-horizontal" th:fragment="form">	    
             <div class="form-group">
                 <label for="fileToValidate" class="col-sm-2 control-label" th:text="${config.label.fileInputLabel}">Content to validate</label>
                 <div class="col-sm-2">
@@ -78,7 +78,7 @@
                     <button id="externalShapeAddButton" class="btn btn-default" type="button" onclick="addExternalShapes()"><i class="fas fa-plus"></i></button>
                 </div>
             </div>
-            <div class="form-group">
+            <div class="form-group" th:if="${not minimalUI}">
                 <div class="col-sm-offset-2 col-sm-10">
                     <button type="submit" id="inputFileSubmit" class="btn btn-primary" disabled="true" onclick="uploadFile()" th:text="${config.label.uploadButton}">Upload</button>
                 </div>

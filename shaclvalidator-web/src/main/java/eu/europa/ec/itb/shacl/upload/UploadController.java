@@ -81,6 +81,7 @@ public class UploadController {
         attributes.put("contentType", getContentType(domainConfig));
         attributes.put("contentSyntax", getContentSyntax(domainConfig));
         attributes.put("externalShapes", includeExternalShapes(domainConfig));
+        attributes.put("minimalUI", false);
         attributes.put("config", domainConfig);
         attributes.put("appConfig", appConfig);
         
@@ -115,6 +116,7 @@ public class UploadController {
         attributes.put("contentType", getContentType(domainConfig));
         attributes.put("contentSyntax", getContentSyntax(domainConfig));
         attributes.put("externalShapes", includeExternalShapes(domainConfig));
+        attributes.put("minimalUI", false);
         attributes.put("downloadType", getDownloadType(domainConfig));
         attributes.put("config", domainConfig);
         attributes.put("appConfig", appConfig);
@@ -184,6 +186,35 @@ public class UploadController {
             logger.error("An error occurred during the validation [" + e.getMessage() + "]", e);
             attributes.put("message", "An error occurred during the validation [" + e.getMessage() + "]");
         }
+        return new ModelAndView("uploadForm", attributes);
+    }
+	
+    @GetMapping(value = "/{domain}/uploadm")
+    public ModelAndView uploadm(@PathVariable("domain") String domain, Model model) {
+    	DomainConfig domainConfig;
+		try {
+			domainConfig = validateDomain(domain);
+		} catch (Exception e) {
+			throw new NotFoundException();
+		}
+
+        Map<String, Object> attributes = new HashMap<>();
+        
+        attributes.put("validationTypes", getValidationTypes(domainConfig));
+        attributes.put("contentType", getContentType(domainConfig));
+        attributes.put("contentSyntax", getContentSyntax(domainConfig));
+        attributes.put("externalShapes", includeExternalShapes(domainConfig));
+        attributes.put("minimalUI", true);
+        attributes.put("config", domainConfig);
+        attributes.put("appConfig", appConfig);
+        
+		if(!domainConfig.isSupportMinimalUserInterface()) {
+			logger.error("Minimal user interface is not supported in this domain [" + domain + "].");
+			attributes.put("message", "Minimal user interface is not supported in this domain [" + domain + "].");
+			
+			throw new NotFoundException();
+		}
+        
         return new ModelAndView("uploadForm", attributes);
     }
 
