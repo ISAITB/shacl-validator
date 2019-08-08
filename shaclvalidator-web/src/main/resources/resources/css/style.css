@@ -4,6 +4,13 @@ body {
 .body-ui {
 	background-color: #234E73;
 }
+.panel-heading-ui{
+	padding-top: 5px;
+	padding-bottom: 5px;
+}
+.panel-title-ui {
+	font-weight: bold;
+}
 .view-section {
 	background-color: white;
 	border-radius: 5px;

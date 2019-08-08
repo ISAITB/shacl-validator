@@ -38,15 +38,9 @@
         <div class="alert alert-danger" th:if="${message}" th:text="${message}">A message</div>
         <div th:replace="'inputForm' :: form">Upload form</div>
     </div>
-    <div class="panel panel-default" th:if="${minimalUI}">
-	    <div class="panel-heading">
-	        <h3 class="panel-title">Validation input</h3>
-	    </div>
-	    
-	    <div class="panel-body">
-        	<div class="alert alert-danger" th:if="${message}" th:text="${message}">A message</div>	
-        	<div th:replace="'inputForm' :: form">Upload form</div>
-	    </div>   
+    <div class="view-section-input" th:if="${minimalUI}">
+        <div class="alert alert-danger" th:if="${message}" th:text="${message}">A message</div>	
+    	<div th:replace="'inputForm' :: form">Upload form</div>
     </div>
     
     <div th:if="${report}" class="view-section-result">

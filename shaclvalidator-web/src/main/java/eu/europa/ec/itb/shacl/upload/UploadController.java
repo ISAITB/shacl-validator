@@ -217,6 +217,28 @@ public class UploadController {
         
         return new ModelAndView("uploadForm", attributes);
     }
+    
+	@PostMapping(value = "/{domain}/uploadm")
+    public ModelAndView handleUploadM(@PathVariable("domain") String domain, 
+    		@RequestParam("file") MultipartFile file,
+    		@RequestParam(value = "uri", defaultValue = "") String uri,  
+    		@RequestParam(value = "text-editor", defaultValue = "") String string,     		
+    		@RequestParam(value = "contentType", defaultValue = "") String contentType,  
+    		@RequestParam(value = "validationType", defaultValue = "") String validationType, 
+    		@RequestParam(value = "contentSyntaxType", defaultValue = "") String contentSyntaxType,
+    		@RequestParam(value = "contentType-externalShape", required = false) String[] externalContentType,
+    		@RequestParam(value = "inputFile-externalShape", required= false) MultipartFile[] externalFiles,
+    		@RequestParam(value = "uri-externalShape", required = false) String[] externalUri,
+    		@RequestParam(value = "addExternalRules", required = false) Boolean addExternalRules,
+    		@RequestParam(value = "contentSyntaxType-externalShape", required = false) String[] externalFilesSyntaxType) {
+		
+		ModelAndView mv = handleUpload(domain, file, uri, string, contentType, validationType, contentSyntaxType, externalContentType, externalFiles, externalUri, addExternalRules, externalFilesSyntaxType);
+		
+		Map<String, Object> attributes = mv.getModel();
+        attributes.put("minimalUI", true);
+
+        return new ModelAndView("uploadForm", attributes);	
+	}
 
 	private boolean hasExternalShapes(DomainConfig domainConfig, String validationType) {
     	if (validationType == null) {
