@@ -32,112 +32,119 @@
     </script>
 </head>
 <body th:class="${not minimalUI} ? body-ui : ''">
-<div th:classappend="${not minimalUI} ? view-section-ui : ''" class="container view-section">
-    <div class="view-section-input" th:if="${not minimalUI}">
-        <h1 class="overall-title" onclick="window.location.href='upload'" th:text="${config.uploadTitle}">SHACL Validator</h1>
-        <div class="alert alert-danger" th:if="${message}" th:text="${message}">A message</div>
-        <div th:replace="'inputForm' :: form">Upload form</div>
-    </div>
-    <div class="view-section-input" th:if="${minimalUI}">
-        <div class="alert alert-danger" th:if="${message}" th:text="${message}">A message</div>	
-    	<div th:replace="'inputForm' :: form">Upload form</div>
-    </div>
-    
-    <div th:if="${report}" class="view-section-result">
-        <h2 class="view-section-title" th:text="${config.label.resultSectionTitle}">Validation result</h2>
-        <div class="panel panel-default">
-            <div class="panel-heading">
-                <h3 class="panel-title" th:text="${config.label.resultSubSectionOverviewTitle}">Overview</h3>
-            </div>
-            <div class="panel-body">
-                <div class="row">
-                    <label class="col-xs-2 control-label" th:text="${config.label.resultDateLabel}">Date:</label>
-                    <div class="col-xs-10" th:text="${report.date}">17/12/2016</div>
-                </div>
-                <div class="row">
-                    <label class="col-xs-2 control-label" th:text="${config.label.resultFileNameLabel}">File name:</label>
-                    <div class="col-xs-10" th:text="${fileName}">file.rdf</div>
-                </div>
-                <div class="row" th:if="${validationTypeLabel}">
-                    <label class="col-xs-2 control-label" th:text="${config.label.resultValidationTypeLabel}">Validation type:</label>
-                    <div class="col-xs-10" th:text="${validationTypeLabel}">Type</div>
-                </div>
-                <div class="row">
-                    <label class="col-xs-2 control-label" th:text="${config.label.resultResultLabel}">Result:</label>
-                    <div class="col-xs-10" th:text="${report.result}">Success</div>
-                </div>
-                <div class="row">
-                    <label class="col-xs-2 control-label" th:text="${config.label.resultErrorsLabel}">Errors:</label>
-                    <div class="col-xs-10" th:text="${report.counters.nrOfErrors}">0</div>
-                </div>
-                <div class="row">
-                    <label class="col-xs-2 control-label" th:text="${config.label.resultWarningsLabel}">Warnings:</label>
-                    <div class="col-xs-10" th:text="${report.counters.nrOfWarnings}">0</div>
-                </div>
-                <div class="row">
-                    <label class="col-xs-2 control-label" th:text="${config.label.resultMessagesLabel}">Messages:</label>
-                    <div class="col-xs-10" th:text="${report.counters.nrOfAssertions}">0</div>
-                </div>
-            </div>
-            <div class="panel-footer">
-                <div class="form-inline">
-                    <div class="form-group">
-                        <label for="downloadType" style="padding-right:10px;" th:text="${config.label.saveDownload}">Download</label>
-                        <select class="form-control downloadSelect" id="downloadType" name="downloadType" onchange="downloadTypeChange()">
-                            <option th:each="type : ${downloadType}" th:text="${type.label}" th:attr="value=${type.key}">Download Type</option>
-                        </select>
-                    </div>
-                    <div class="form-group" style="padding-right:10px;">
-                        <label for="downloadSyntaxType" style="padding-right:10px;padding-left:10px;" th:text="${config.label.saveAs}">as</label>
-                        <select class="form-control downloadSelect" id="downloadSyntaxType" name="downloadSyntaxType">
-                            <option value="pdfType">PDF</option>
-                            <option value="notSelect">----------------------------</option>
-                            <option th:each="type : ${contentSyntax}" th:text="${type.key}" th:attr="value=${type.label}">Type</option>
-                        </select>
-                    </div>
-                    <button class="btn btn-default" type="button" id="downloadButton" onclick="downloadResult()"><i class="fas fa-download"></i></button>
-                    <form id="resultForm" name="resultForm" method="GET" th:action="report">
-                        <input id="resultFormId" name="id" type="hidden"/>
-                        <input id="resultFormType" name="type" type="hidden"/>
-                        <input id="resultFormSyntax" name="syntax" type="hidden"/>
-                    </form>
-                </div>
-            </div>
-        </div>
-
-        <div class="panel panel-default" th:if="${report.reports.infoOrWarningOrError.size() > 0}">
-            <div class="panel-heading">
-                <h3 class="panel-title" th:text="${config.label.resultSubSectionDetailsTitle}">Details</h3>
-            </div>
-            <div class="panel-body">
-                <div class="report-item-container">
-                    <div class="row report-item" th:each="item : ${report.reports.infoOrWarningOrError}" th:classappend="${'report-item-' + item.name.localPart}">
-                        <div class="col-xs-12 item-info">
-                            <div th:switch="${item.name.localPart}">
-                                <i th:case="'error'" class="fa fa-times-circle report-item-icon error-icon item-info-error"></i>
-                                <i th:case="'warning'" class="fa fa-exclamation-triangle report-item-icon warning-icon item-info-warning"></i>
-                                <i th:case="'info'" class="fa fa-info-circle report-item-icon info-icon item-info-info"></i>
-                                <span th:text="${item.value.description}" class="item-info-text">Description</span>
-                            </div>
-                        </div>
-                        <div class="col-xs-12 report-item-test" th:if="${item.value.location != null}"><span class="report-item-test-label" th:text="${config.label.resultLocationLabel}">Location:</span><span th:text="${item.value.location}">Location</span></div>
-                        <div class="col-xs-12 report-item-test" th:if="${item.value.test != null}"><span class="report-item-test-label" th:text="${config.label.resultTestLabel}">Test:</span><span th:text="${item.value.test}">Test</span></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="container about-section" th:if="${config.showAbout} and ${not minimalUI}">
-    This service is powered by the ISA&sup2; Interoperability Test Bed, a conformance testing service offered by the European Commission's DG DIGIT for projects
-    involved in the delivery of cross-border public services. Find out more <a href="https://joinup.ec.europa.eu/solution/interoperability-test-bed" target="_blank">here</a>.
-</div>
-<div style="display: none;">
-    <div id="build.version" th:text="${@environment.getProperty('validator.buildVersion')}">buildVersion</div>
-    <div id="build.timestamp" th:text="${@environment.getProperty('validator.buildTimestamp')}">buildTimestamp</div>
-    <div id="startup.timestamp" th:text="${appConfig.startupTimestamp}">startupTimestamp</div>
-    <div id="resource.timestamp" th:text="${appConfig.resourceUpdateTimestamp}">resourceTimestamp</div>
-</div>
+	<div th:classappend="${not minimalUI} ? view-section-ui : ''" class="container view-section">
+	    <div class="view-section-input" th:if="${not minimalUI}">
+	        <h1 class="overall-title" onclick="window.location.href='upload'" th:text="${config.uploadTitle}">SHACL Validator</h1>
+	        <div class="alert alert-danger" th:if="${message}" th:text="${message}">A message</div>
+	        <div th:replace="'inputForm' :: form">Upload form</div>
+	    </div>
+	    <div class="view-section-input" th:if="${minimalUI and report==null}">
+	        <div class="alert alert-danger" th:if="${message}" th:text="${message}">A message</div>	
+	    	<div th:replace="'inputForm' :: form">Upload form</div>
+	    </div>
+	    
+	    <div th:if="${report}" th:class="${not minimalUI} ? view-section-result : ''">
+	        <h2 class="view-section-title" th:if="${not minimalUI}" th:text="${config.label.resultSectionTitle}">Validation result</h2>
+	        <div th:class="${minimalUI} ? panel-default : ''" th:classappend="${minimalUI} ? panel : ''">	
+	            <div class="panel-heading"  th:if="${not minimalUI}">
+	                <h3 class="panel-title" th:text="${config.label.resultSubSectionOverviewTitle}">Overview</h3>
+	            </div>
+	            <div class="panel-heading panel-heading-ui" th:if="${minimalUI}">
+			        <h1 class="panel-title col-sm-5 report-item panel-title-ui">Validation result</h1>
+	                <div th:align="right">
+	                    <button type="submit" id="backSubmit" class="btn btn-primary" onclick="window.location.href='uploadm'">Back</button>
+	                </div>
+			    </div>
+			    
+	            <div class="panel-body">
+	                <div class="row">
+	                    <label class="col-xs-2 control-label" th:text="${config.label.resultDateLabel}">Date:</label>
+	                    <div class="col-xs-10" th:text="${report.date}">17/12/2016</div>
+	                </div>
+	                <div class="row">
+	                    <label class="col-xs-2 control-label" th:text="${config.label.resultFileNameLabel}">File name:</label>
+	                    <div class="col-xs-10" th:text="${fileName}">file.rdf</div>
+	                </div>
+	                <div class="row" th:if="${validationTypeLabel}">
+	                    <label class="col-xs-2 control-label" th:text="${config.label.resultValidationTypeLabel}">Validation type:</label>
+	                    <div class="col-xs-10" th:text="${validationTypeLabel}">Type</div>
+	                </div>
+	                <div class="row">
+	                    <label class="col-xs-2 control-label" th:text="${config.label.resultResultLabel}">Result:</label>
+	                    <div class="col-xs-10" th:text="${report.result}">Success</div>
+	                </div>
+	                <div class="row">
+	                    <label class="col-xs-2 control-label" th:text="${config.label.resultErrorsLabel}">Errors:</label>
+	                    <div class="col-xs-10" th:text="${report.counters.nrOfErrors}">0</div>
+	                </div>
+	                <div class="row">
+	                    <label class="col-xs-2 control-label" th:text="${config.label.resultWarningsLabel}">Warnings:</label>
+	                    <div class="col-xs-10" th:text="${report.counters.nrOfWarnings}">0</div>
+	                </div>
+	                <div class="row">
+	                    <label class="col-xs-2 control-label" th:text="${config.label.resultMessagesLabel}">Messages:</label>
+	                    <div class="col-xs-10" th:text="${report.counters.nrOfAssertions}">0</div>
+	                </div>
+	            </div>
+	            <div class="panel-footer">
+	                <div class="form-inline">
+	                    <div class="form-group">
+	                        <label for="downloadType" style="padding-right:10px;" th:text="${config.label.saveDownload}">Download</label>
+	                        <select class="form-control downloadSelect" id="downloadType" name="downloadType" onchange="downloadTypeChange()">
+	                            <option th:each="type : ${downloadType}" th:text="${type.label}" th:attr="value=${type.key}">Download Type</option>
+	                        </select>
+	                    </div>
+	                    <div class="form-group" style="padding-right:10px;">
+	                        <label for="downloadSyntaxType" style="padding-right:10px;padding-left:10px;" th:text="${config.label.saveAs}">as</label>
+	                        <select class="form-control downloadSelect" id="downloadSyntaxType" name="downloadSyntaxType">
+	                            <option value="pdfType">PDF</option>
+	                            <option value="notSelect">----------------------------</option>
+	                            <option th:each="type : ${contentSyntax}" th:text="${type.key}" th:attr="value=${type.label}">Type</option>
+	                        </select>
+	                    </div>
+	                    <button class="btn btn-default" type="button" id="downloadButton" onclick="downloadResult()"><i class="fas fa-download"></i></button>
+	                    <form id="resultForm" name="resultForm" method="GET" th:action="report">
+	                        <input id="resultFormId" name="id" type="hidden"/>
+	                        <input id="resultFormType" name="type" type="hidden"/>
+	                        <input id="resultFormSyntax" name="syntax" type="hidden"/>
+	                    </form>
+	                </div>
+	            </div>
+	        </div>
+	
+	        <div class="panel panel-default" th:if="${report.reports.infoOrWarningOrError.size() > 0 and not minimalUI}">
+	            <div class="panel-heading">
+	                <h3 class="panel-title" th:text="${config.label.resultSubSectionDetailsTitle}">Details</h3>
+	            </div>
+	            <div class="panel-body">
+	                <div class="report-item-container">
+	                    <div class="row report-item" th:each="item : ${report.reports.infoOrWarningOrError}" th:classappend="${'report-item-' + item.name.localPart}">
+	                        <div class="col-xs-12 item-info">
+	                            <div th:switch="${item.name.localPart}">
+	                                <i th:case="'error'" class="fa fa-times-circle report-item-icon error-icon item-info-error"></i>
+	                                <i th:case="'warning'" class="fa fa-exclamation-triangle report-item-icon warning-icon item-info-warning"></i>
+	                                <i th:case="'info'" class="fa fa-info-circle report-item-icon info-icon item-info-info"></i>
+	                                <span th:text="${item.value.description}" class="item-info-text">Description</span>
+	                            </div>
+	                        </div>
+	                        <div class="col-xs-12 report-item-test" th:if="${item.value.location != null}"><span class="report-item-test-label" th:text="${config.label.resultLocationLabel}">Location:</span><span th:text="${item.value.location}">Location</span></div>
+	                        <div class="col-xs-12 report-item-test" th:if="${item.value.test != null}"><span class="report-item-test-label" th:text="${config.label.resultTestLabel}">Test:</span><span th:text="${item.value.test}">Test</span></div>
+	                    </div>
+	                </div>
+	            </div>
+	        </div>
+	    </div>
+	</div>
+	
+	<div class="container about-section" th:if="${config.showAbout} and ${not minimalUI}">
+	    This service is powered by the ISA&sup2; Interoperability Test Bed, a conformance testing service offered by the European Commission's DG DIGIT for projects
+	    involved in the delivery of cross-border public services. Find out more <a href="https://joinup.ec.europa.eu/solution/interoperability-test-bed" target="_blank">here</a>.
+	</div>
+	<div style="display: none;">
+	    <div id="build.version" th:text="${@environment.getProperty('validator.buildVersion')}">buildVersion</div>
+	    <div id="build.timestamp" th:text="${@environment.getProperty('validator.buildTimestamp')}">buildTimestamp</div>
+	    <div id="startup.timestamp" th:text="${appConfig.startupTimestamp}">startupTimestamp</div>
+	    <div id="resource.timestamp" th:text="${appConfig.resourceUpdateTimestamp}">resourceTimestamp</div>
+	</div>
 </body>
 </html>
