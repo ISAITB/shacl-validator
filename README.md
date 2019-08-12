@@ -128,7 +128,8 @@ defined.
 | `validator.tmpFolder` | Temp folder path. | String | `/validator/tmp` |
 | `validator.acceptedShaclExtensions` | Accepted SHACL extensions.  | Comma-separated Strings | `ttl,rdf` |
 | `validator.acceptedHeaderAcceptTypes` | Accepted content types requested via the Accepts header.  | Comma-separated Strings | `application/ld+json, application/rdf+xml, text/turtle, application/n-triples` |
-| `validator.defaultReportSyntax ` | The default report syntax (mime type) if none is requested. | `application/rdf+xml`
+| `validator.defaultReportSyntax` | The default report syntax (mime type) if none is requested. | Comma-separated Strings | `application/rdf+xml` |
+| `validator.supportMinimalUserInterface` | A minimal UI is available if this is enabled. | Boolean | `false`
 
 ## Domain-level configuration
 
