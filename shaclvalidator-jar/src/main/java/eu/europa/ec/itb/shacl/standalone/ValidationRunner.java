@@ -5,6 +5,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.StringWriter;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
@@ -313,8 +315,13 @@ public class ValidationRunner {
 			
             if(!inputFile.exists() || !inputFile.isFile() || !inputFile.canRead()) {           	
             	
-            	if(validSyntax && langExtension!=null) {        			
-            		inputFile = this.fileManager.getURLFile(tmpFolder, contentToValidate, langExtension.getFileExtensions().get(0), filename);
+            	if(validSyntax && langExtension!=null) {
+            	    try {
+            	        new URL(contentToValidate);
+                        inputFile = this.fileManager.getURLFile(tmpFolder, contentToValidate, langExtension.getFileExtensions().get(0), filename);
+                    } catch (MalformedURLException e) {
+                        throw new IllegalArgumentException("Unable to load content from ["+contentToValidate+"]");
+                    }
             	}else {
                     throw new IllegalArgumentException("Unknown content syntax ["+contentSyntax+"]");		
             	}
