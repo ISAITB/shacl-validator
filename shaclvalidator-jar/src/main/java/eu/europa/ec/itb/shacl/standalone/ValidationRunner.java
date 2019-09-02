@@ -237,7 +237,7 @@ public class ValidationRunner {
         if (requireType) {
             msg.append("\nExpected usage: java -jar validator.jar [-noreports] [-validationType VALIDATION_TYPE] [-reportSyntax REPORT_SYNTAX] -contentToValidate FILE_1/URI_1 CONTENT_SYNTAX_1 ... [-contentToValidate FILE_N/URI_N CONTENT_SYNTAX_N] [-externalShapes SHAPE_FILE_1/SHAPE_URI_1 CONTENT_SYNTAX_1] ... [-externalShapes SHAPE_FILE_N/SHAPE_URI_N CONTENT_SYNTAX_N]");
             msg.append("\n   Where:");
-            msg.append("\n      - VALIDATION_TYPE is type of validation to perform, one of [");
+            msg.append("\n      - VALIDATION_TYPE is the type of validation to perform, one of [");
             for (int i=0; i < domainConfig.getType().size(); i++) {
                 String type = domainConfig.getType().get(i);
                 msg.append(type);
