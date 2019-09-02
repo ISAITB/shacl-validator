@@ -50,7 +50,7 @@
 	                <h3 class="panel-title" th:text="${config.label.resultSubSectionOverviewTitle}">Overview</h3>
 	            </div>
 	            <div class="panel-heading panel-heading-ui" th:if="${minimalUI}">
-			        <h1 class="panel-title col-sm-5 report-item panel-title-ui">Validation result</h1>
+			        <h1 class="panel-title col-xs-5 report-item panel-title-ui">Validation result</h1>
 	                <div th:align="right">
 	                    <button type="submit" id="backSubmit" class="btn btn-primary" onclick="window.location.href='uploadm'">Back</button>
 	                </div>
@@ -58,44 +58,44 @@
 			    
 	            <div class="panel-body">
 	                <div class="row">
-	                    <label class="col-xs-2 control-label" th:text="${config.label.resultDateLabel}">Date:</label>
-	                    <div class="col-xs-10" th:text="${report.date}">17/12/2016</div>
+	                    <label class="col-sm-2 col-xs-3 control-label" th:text="${config.label.resultDateLabel}">Date:</label>
+	                    <div><span class="form-control-static" th:text="${report.date}">17/12/2016</span></div>
 	                </div>
 	                <div class="row">
-	                    <label class="col-xs-2 control-label" th:text="${config.label.resultFileNameLabel}">File name:</label>
-	                    <div class="col-xs-10" th:text="${fileName}">file.rdf</div>
+	                    <label class="col-sm-2 col-xs-3 control-label" th:text="${config.label.resultFileNameLabel}">File name:</label>
+	                    <div><span class="form-control-static" th:text="${fileName}">file.rdf</span></div>
 	                </div>
 	                <div class="row" th:if="${validationTypeLabel}">
-	                    <label class="col-xs-2 control-label" th:text="${config.label.resultValidationTypeLabel}">Validation type:</label>
-	                    <div class="col-xs-10" th:text="${validationTypeLabel}">Type</div>
+	                    <label class="col-sm-2 col-xs-3 control-label" th:text="${config.label.resultValidationTypeLabel}">Validation type:</label>
+	                    <div><span class="form-control-static" th:text="${validationTypeLabel}">Type</span></div>
 	                </div>
 	                <div class="row">
-	                    <label class="col-xs-2 control-label" th:text="${config.label.resultResultLabel}">Result:</label>
-	                    <div class="col-xs-10" th:text="${report.result}">Success</div>
+	                    <label class="col-sm-2 col-xs-3 control-label" th:text="${config.label.resultResultLabel}">Result:</label>
+	                    <div><span class="form-control-static" th:text="${report.result}">Success</span></div>
 	                </div>
 	                <div class="row">
-	                    <label class="col-xs-2 control-label" th:text="${config.label.resultErrorsLabel}">Errors:</label>
-	                    <div class="col-xs-10" th:text="${report.counters.nrOfErrors}">0</div>
+	                    <label class="col-sm-2 col-xs-3 control-label" th:text="${config.label.resultErrorsLabel}">Errors:</label>
+	                    <div><span class="form-control-static" th:text="${report.counters.nrOfErrors}">0</span></div>
 	                </div>
 	                <div class="row">
-	                    <label class="col-xs-2 control-label" th:text="${config.label.resultWarningsLabel}">Warnings:</label>
-	                    <div class="col-xs-10" th:text="${report.counters.nrOfWarnings}">0</div>
+	                    <label class="col-sm-2 col-xs-3 control-label" th:text="${config.label.resultWarningsLabel}">Warnings:</label>
+	                    <div><span class="form-control-static" th:text="${report.counters.nrOfWarnings}">0</span></div>
 	                </div>
 	                <div class="row">
-	                    <label class="col-xs-2 control-label" th:text="${config.label.resultMessagesLabel}">Messages:</label>
-	                    <div class="col-xs-10" th:text="${report.counters.nrOfAssertions}">0</div>
+	                    <label class="col-sm-2 col-xs-3 control-label" th:text="${config.label.resultMessagesLabel}">Messages:</label>
+	                    <div><span class="form-control-static" th:text="${report.counters.nrOfAssertions}">0</span></div>
 	                </div>
 	            </div>
 	            <div class="panel-footer">
 	                <div class="form-inline">
-	                    <div class="form-group">
+	                    <div class="form-group" style="padding-right:10px;">
 	                        <label for="downloadType" style="padding-right:10px;" th:text="${config.label.saveDownload}">Download</label>
 	                        <select class="form-control downloadSelect" id="downloadType" name="downloadType" onchange="downloadTypeChange()">
 	                            <option th:each="type : ${downloadType}" th:text="${type.label}" th:attr="value=${type.key}">Download Type</option>
 	                        </select>
 	                    </div>
 	                    <div class="form-group" style="padding-right:10px;">
-	                        <label for="downloadSyntaxType" style="padding-right:10px;padding-left:10px;" th:text="${config.label.saveAs}">as</label>
+	                        <label for="downloadSyntaxType" style="padding-right:10px;" th:text="${config.label.saveAs}">as</label>
 	                        <select class="form-control downloadSelect" id="downloadSyntaxType" name="downloadSyntaxType">
 	                            <option value="pdfType">PDF</option>
 	                            <option value="notSelect">----------------------------</option>

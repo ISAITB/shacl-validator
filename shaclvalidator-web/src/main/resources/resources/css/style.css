@@ -126,9 +126,6 @@ body {
     cursor: pointer;
     cursor: hand;
 }
-.downloadSelect {
-    width: 200px !important;
-}
 .CodeMirror {
     border-radius: 5px;
     height: 400px;
