@@ -6,8 +6,8 @@
     <link rel="stylesheet" th:href="@{/webjars/bootstrap/3.4.1/css/bootstrap.min.css}"/>
     <link rel="stylesheet" th:href="@{/css/style.css}"/>
 </head>
-<body>
-<div class="container view-section">
+<body th:class="${not minimalUI} ? body-ui : ''">
+<div class="container view-section" th:classappend="${not minimalUI} ? view-section-ui : ''">
     <div class="view-section-input">
         <h1 class="overall-title">An error occurred</h1>
         <div class="error-details">

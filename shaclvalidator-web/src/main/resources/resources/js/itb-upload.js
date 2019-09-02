@@ -2,18 +2,20 @@ function validationTypeChanged() {
 	var type = $('#validationType').val();
 	var ext = document.getElementById("externalShapes");
 	
-	for (var i=0; i<ext.length; i++){
-		if (ext[i].text == type || ext.length == 1){
-			if(ext[i].value == "true"){
-				$(".includeExternalShapes").removeClass('hidden');
-			}
-			if(ext[i].value == "false"){
-				$(".includeExternalShapes").addClass('hidden');
-			}
-		 }
+	if(ext !== null){
+		for (var i=0; i<ext.length; i++){
+			if (ext[i].text == type || ext.length == 1){
+				if(ext[i].value == "true"){
+					$(".includeExternalShapes").removeClass('hidden');
+				}
+				if(ext[i].value == "false"){
+					$(".includeExternalShapes").addClass('hidden');
+				}
+			 }
+		}
+			
+		checkForSubmit();
 	}
-		
-	checkForSubmit();
 }
 
 function contentTypeChanged(){
@@ -202,10 +204,12 @@ $(document).ready(function() {
 	toggleExternalShapesClassCheck();
 	validationTypeChanged();
 
-	var editableCodeMirror = CodeMirror.fromTextArea(document.getElementById('text-editor'), {
-        mode: "xml",
-        lineNumbers: true
-    }).on('change', function(){
-    	contentSyntaxChanged();
-    });
+	if(document.getElementById('text-editor') !== null){
+		var editableCodeMirror = CodeMirror.fromTextArea(document.getElementById('text-editor'), {
+	        mode: "xml",
+	        lineNumbers: true
+	    }).on('change', function(){
+	    	contentSyntaxChanged();
+	    });
+	}
 });

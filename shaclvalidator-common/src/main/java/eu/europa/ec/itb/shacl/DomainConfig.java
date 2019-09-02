@@ -21,6 +21,7 @@ public class DomainConfig {
     private String webServiceId = "SHACLValidationService";
     private Map<String, String> webServiceDescription;
     private boolean reportsOrdered;
+    private boolean supportMinimalUserInterface;
     //UI
     private List<String> webContentSyntax;
     private String reportTitle = "Validation report";
@@ -161,7 +162,15 @@ public class DomainConfig {
         this.reportsOrdered = reportsOrdered;
     }
 
-    public boolean isShowAbout() {
+    public boolean isSupportMinimalUserInterface() {
+		return supportMinimalUserInterface;
+	}
+
+	public void setSupportMinimalUserInterface(boolean supportMinimalUserInterface) {
+		this.supportMinimalUserInterface = supportMinimalUserInterface;
+	}
+
+	public boolean isShowAbout() {
         return showAbout;
     }
 
