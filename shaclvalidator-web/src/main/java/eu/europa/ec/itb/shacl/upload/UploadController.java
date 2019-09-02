@@ -28,6 +28,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.ModelAndView;
 
+import javax.servlet.http.HttpServletRequest;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -39,6 +40,8 @@ import java.util.stream.Collectors;
 public class UploadController {
 
     private static final Logger logger = LoggerFactory.getLogger(UploadController.class);
+
+    public static final String IS_MINIMAL = "isMinimal";
 
     public static final String contentType_file     	= "fileType" ;
     public static final String contentType_uri     		= "uriType" ;
@@ -68,7 +71,8 @@ public class UploadController {
     ReportGeneratorBean reportGenerator;
     
     @GetMapping(value = "/{domain}/upload")
-    public ModelAndView upload(@PathVariable("domain") String domain, Model model) {
+    public ModelAndView upload(@PathVariable("domain") String domain, Model model, HttpServletRequest request) {
+		setMinimalUIFlag(request, false);
     	DomainConfig domainConfig;
 		try {
 			domainConfig = validateDomain(domain);
@@ -87,7 +91,7 @@ public class UploadController {
         
         return new ModelAndView("uploadForm", attributes);
     }
-    
+
 	@PostMapping(value = "/{domain}/upload")
     public ModelAndView handleUpload(@PathVariable("domain") String domain, 
     		@RequestParam("file") MultipartFile file,
@@ -100,7 +104,9 @@ public class UploadController {
     		@RequestParam(value = "inputFile-externalShape", required= false) MultipartFile[] externalFiles,
     		@RequestParam(value = "uri-externalShape", required = false) String[] externalUri,
     		@RequestParam(value = "addExternalRules", required = false) Boolean addExternalRules,
-    		@RequestParam(value = "contentSyntaxType-externalShape", required = false) String[] externalFilesSyntaxType) {
+    		@RequestParam(value = "contentSyntaxType-externalShape", required = false) String[] externalFilesSyntaxType,
+			HttpServletRequest request) {
+		setMinimalUIFlag(request, false);
 		DomainConfig domainConfig;
 		try {
 			domainConfig = validateDomain(domain);
@@ -190,16 +196,20 @@ public class UploadController {
     }
 	
     @GetMapping(value = "/{domain}/uploadm")
-    public ModelAndView uploadm(@PathVariable("domain") String domain, Model model) {
+    public ModelAndView uploadm(@PathVariable("domain") String domain, Model model, HttpServletRequest request) {
+		setMinimalUIFlag(request, true);
     	DomainConfig domainConfig;
 		try {
 			domainConfig = validateDomain(domain);
 		} catch (Exception e) {
 			throw new NotFoundException();
 		}
+		if(!domainConfig.isSupportMinimalUserInterface()) {
+			logger.error("Minimal user interface is not supported in this domain [" + domain + "].");
+			throw new NotFoundException();
+		}
 
         Map<String, Object> attributes = new HashMap<>();
-        
         attributes.put("validationTypes", getValidationTypes(domainConfig));
         attributes.put("contentType", getContentType(domainConfig));
         attributes.put("contentSyntax", getContentSyntax(domainConfig));
@@ -207,14 +217,7 @@ public class UploadController {
         attributes.put("minimalUI", true);
         attributes.put("config", domainConfig);
         attributes.put("appConfig", appConfig);
-        
-		if(!domainConfig.isSupportMinimalUserInterface()) {
-			logger.error("Minimal user interface is not supported in this domain [" + domain + "].");
-			attributes.put("message", "Minimal user interface is not supported in this domain [" + domain + "].");
-			
-			throw new NotFoundException();
-		}
-        
+
         return new ModelAndView("uploadForm", attributes);
     }
     
@@ -230,14 +233,21 @@ public class UploadController {
     		@RequestParam(value = "inputFile-externalShape", required= false) MultipartFile[] externalFiles,
     		@RequestParam(value = "uri-externalShape", required = false) String[] externalUri,
     		@RequestParam(value = "addExternalRules", required = false) Boolean addExternalRules,
-    		@RequestParam(value = "contentSyntaxType-externalShape", required = false) String[] externalFilesSyntaxType) {
-		
-		ModelAndView mv = handleUpload(domain, file, uri, string, contentType, validationType, contentSyntaxType, externalContentType, externalFiles, externalUri, addExternalRules, externalFilesSyntaxType);
+    		@RequestParam(value = "contentSyntaxType-externalShape", required = false) String[] externalFilesSyntaxType,
+		  HttpServletRequest request) {
+		setMinimalUIFlag(request, true);
+		ModelAndView mv = handleUpload(domain, file, uri, string, contentType, validationType, contentSyntaxType, externalContentType, externalFiles, externalUri, addExternalRules, externalFilesSyntaxType, request);
 		
 		Map<String, Object> attributes = mv.getModel();
         attributes.put("minimalUI", true);
 
         return new ModelAndView("uploadForm", attributes);	
+	}
+
+	private void setMinimalUIFlag(HttpServletRequest request, boolean isMinimal) {
+		if (request.getAttribute(IS_MINIMAL) == null) {
+			request.setAttribute(IS_MINIMAL, isMinimal);
+		}
 	}
 
 	private boolean hasExternalShapes(DomainConfig domainConfig, String validationType) {
@@ -338,8 +348,8 @@ public class UploadController {
         MDC.put("domain", domain);
         return config;
     }
-    
-    public List<UploadTypes> includeExternalShapes(DomainConfig config){
+
+	private List<UploadTypes> includeExternalShapes(DomainConfig config){
         List<UploadTypes> types = new ArrayList<>();
     	Map<String, Boolean> externalShapes = config.getExternalShapes();
     	
@@ -350,7 +360,7 @@ public class UploadController {
     	return types;
     }
 
-    public List<UploadTypes> getValidationTypes(DomainConfig config) {
+	private List<UploadTypes> getValidationTypes(DomainConfig config) {
         List<UploadTypes> types = new ArrayList<>();
         if (config.hasMultipleValidationTypes()) {
             for (String type: config.getType()) {
@@ -360,7 +370,7 @@ public class UploadController {
         return types.stream().sorted(Comparator.comparing(UploadTypes::getKey)).collect(Collectors.toList());
     }
     
-    public List<UploadTypes> getContentType(DomainConfig config){
+    private List<UploadTypes> getContentType(DomainConfig config){
         List<UploadTypes> types = new ArrayList<>();
 
 		types.add(new UploadTypes(contentType_file, config.getLabel().getOptionContentFile()));
@@ -369,8 +379,8 @@ public class UploadController {
 		
 		return types;        
     }
-    
-    public List<UploadTypes> getDownloadType(DomainConfig config){
+
+	private List<UploadTypes> getDownloadType(DomainConfig config){
         List<UploadTypes> types = new ArrayList<>();
 		types.add(new UploadTypes(downloadType_report, config.getLabel().getOptionDownloadReport()));
 		types.add(new UploadTypes(downloadType_shapes, config.getLabel().getOptionDownloadShapes()));

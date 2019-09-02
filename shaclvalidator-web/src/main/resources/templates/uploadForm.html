@@ -45,7 +45,7 @@
 	    
 	    <div th:if="${report}" th:class="${not minimalUI} ? view-section-result : ''">
 	        <h2 class="view-section-title" th:if="${not minimalUI}" th:text="${config.label.resultSectionTitle}">Validation result</h2>
-	        <div th:class="${minimalUI} ? panel-default : ''" th:classappend="${minimalUI} ? panel : ''">	
+	        <div class="panel-default panel">
 	            <div class="panel-heading"  th:if="${not minimalUI}">
 	                <h3 class="panel-title" th:text="${config.label.resultSubSectionOverviewTitle}">Overview</h3>
 	            </div>

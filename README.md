@@ -129,7 +129,6 @@ defined.
 | `validator.acceptedShaclExtensions` | Accepted SHACL extensions.  | Comma-separated Strings | `ttl,rdf` |
 | `validator.acceptedHeaderAcceptTypes` | Accepted content types requested via the Accepts header.  | Comma-separated Strings | `application/ld+json, application/rdf+xml, text/turtle, application/n-triples` |
 | `validator.defaultReportSyntax` | The default report syntax (mime type) if none is requested. | Comma-separated Strings | `application/rdf+xml` |
-| `validator.supportMinimalUserInterface` | A minimal UI is available if this is enabled. | Boolean | `false`
 
 ## Domain-level configuration
 
@@ -154,4 +153,5 @@ The properties here define how a specific validation domain is configured. They 
 | `validator.webServiceDescription.contentSyntax` | The description of the web service for element "contentSyntax". | String | - |
 | `validator.webServiceDescription.validationType` | The description of the web service for element "validationType". | String | - |
 | `validator.webServiceDescription.externalRules` | The description of the web service for element "externalRules". | String | - 
+| `validator.supportMinimalUserInterface` | A minimal UI is available if this is enabled. | Boolean | `false` |
 
