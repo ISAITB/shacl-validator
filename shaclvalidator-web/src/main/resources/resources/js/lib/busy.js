@@ -9,7 +9,7 @@ var waitingDialog = waitingDialog || (function ($) {
 
 	// Creating modal dialog's DOM
 	var $dialog = $(
-		'<div class="modal fade" data-backdrop="static" data-keyboard="false" tabindex="-1" role="dialog" aria-hidden="true" style="padding-top:15%; overflow-y:visible;">' +
+		'<div class="modal fade" data-backdrop="static" data-keyboard="false" tabindex="-1" role="dialog" aria-hidden="true" style="overflow-y:visible;">' +
 		'<div class="modal-dialog modal-m">' +
 		'<div class="modal-content">' +
 			'<div class="modal-header"><h3 style="margin:0;"></h3></div>' +
@@ -26,7 +26,7 @@ var waitingDialog = waitingDialog || (function ($) {
 		 * 				  options.dialogSize - bootstrap postfix for dialog size, e.g. "sm", "m";
 		 * 				  options.progressType - bootstrap postfix for progress bar type, e.g. "success", "warning".
 		 */
-		show: function (message, options) {
+		show: function (message, options, styleClass) {
 			// Assigning defaults
 			if (typeof options === 'undefined') {
 				options = {};
@@ -39,7 +39,9 @@ var waitingDialog = waitingDialog || (function ($) {
 				progressType: '',
 				onHide: null // This callback runs after the dialog was hidden
 			}, options);
-
+			if (typeof styleClass !== 'undefined') {
+			    $dialog.addClass(styleClass);
+            }
 			// Configuring dialog
 			$dialog.find('.modal-dialog').attr('class', 'modal-dialog').addClass('modal-' + settings.dialogSize);
 			$dialog.find('.progress-bar').attr('class', 'progress-bar');
