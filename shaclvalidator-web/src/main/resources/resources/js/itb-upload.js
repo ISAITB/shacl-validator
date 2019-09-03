@@ -134,7 +134,7 @@ function triggerFileUploadShapes(elementId) {
     $("#"+elementId).click();
 }
 function uploadFile() {
-	waitingDialog.show('Validating input', {dialogSize: 'm'});
+	waitingDialog.show('Validating input', {dialogSize: 'm'}, isMinimal?'busy-modal-minimal':'busy-modal');
 	return true;
 }
 function removeElement(elementId) {
