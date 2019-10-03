@@ -96,6 +96,7 @@ public class DomainConfigCache {
                 domainConfig.setSupportMinimalUserInterface(config.getBoolean("validator.supportMinimalUserInterface", false));
                 domainConfigs.put(domain, domainConfig);
                 domainConfig.setShowAbout(config.getBoolean("validator.showAbout", true));
+                domainConfig.setHtmlBanner(config.getString("validator.bannerHtml", ""));
                 setLabels(domainConfig, config);
                 logger.info("Loaded configuration for domain ["+domain+"]");
             }

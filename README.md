@@ -152,6 +152,7 @@ The properties here define how a specific validation domain is configured. They 
 | `validator.webServiceDescription.contentToValidate` | The description of the web service for element "contentToValidate". | String | - |
 | `validator.webServiceDescription.contentSyntax` | The description of the web service for element "contentSyntax". | String | - |
 | `validator.webServiceDescription.validationType` | The description of the web service for element "validationType". | String | - |
-| `validator.webServiceDescription.externalRules` | The description of the web service for element "externalRules". | String | - 
+| `validator.webServiceDescription.externalRules` | The description of the web service for element "externalRules". | String | - |
 | `validator.supportMinimalUserInterface` | A minimal UI is available if this is enabled. | Boolean | `false` |
+| `validator.bannerHtml` | Configurable HTML banner replacing the text title. | String | - |
 
