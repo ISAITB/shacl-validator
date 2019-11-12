@@ -37,7 +37,7 @@
 	    <div class="view-section-input" th:if="${not minimalUI}">
 	        <h1 class="overall-title" onclick="window.location.href='upload'" th:text="${config.uploadTitle}" th:if="${config.htmlBanner==''}">SHACL Validator</h1>
 	        <div th:if="${config.htmlBanner!=''}">
-	        	<div onclick="window.location.href='upload'" th:utext="${config.htmlBanner}">SHACL Validator</div>
+	        	<div th:utext="${config.htmlBanner}">SHACL Validator</div>
 	        </div>
 	        <div class="alert alert-danger" th:if="${message}" th:text="${message}">A message</div>
 	        <div th:replace="'inputForm' :: form">Upload form</div>
