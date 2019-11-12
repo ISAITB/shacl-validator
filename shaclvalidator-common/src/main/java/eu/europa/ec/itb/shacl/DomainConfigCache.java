@@ -112,7 +112,7 @@ public class DomainConfigCache {
         domainConfig.getLabel().setTypeLabel(config.getString("validator.label.typeLabel", "Validate as"));
         domainConfig.getLabel().setContentSyntaxLabel(config.getString("validator.label.contentSyntaxLabel", "Content syntax"));
         domainConfig.getLabel().setExternalShapesLabel(config.getString("validator.label.externalShapesLabel", "External shapes"));
-        domainConfig.getLabel().setUploadButton(config.getString("validator.label.uploadButton", "Upload"));
+        domainConfig.getLabel().setUploadButton(config.getString("validator.label.uploadButton", "Validate"));
         domainConfig.getLabel().setResultSubSectionOverviewTitle(config.getString("validator.label.resultSubSectionOverviewTitle", "Overview"));
         domainConfig.getLabel().setResultDateLabel(config.getString("validator.label.resultDateLabel", "Date:"));
         domainConfig.getLabel().setResultFileNameLabel(config.getString("validator.label.resultFileNameLabel", "File name:"));
