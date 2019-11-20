@@ -97,6 +97,7 @@ public class DomainConfigCache {
                 domainConfigs.put(domain, domainConfig);
                 domainConfig.setShowAbout(config.getBoolean("validator.showAbout", true));
                 domainConfig.setHtmlBanner(config.getString("validator.bannerHtml", ""));
+                domainConfig.setHtmlFooter(config.getString("validator.footerHtml", ""));
                 setLabels(domainConfig, config);
                 logger.info("Loaded configuration for domain ["+domain+"]");
             }
