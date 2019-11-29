@@ -28,6 +28,8 @@ public class DomainConfig {
     private String uploadTitle = "Validator";
     private Label label = new Label();
     private boolean showAbout;
+    private String htmlBanner;
+    private String htmlFooter;
 
     public DomainConfig() {
         this(true);
@@ -179,7 +181,24 @@ public class DomainConfig {
     }
 
 
-    public List<String> getWebContentSyntax() {
+    public String getHtmlBanner() {
+		return htmlBanner;
+	}
+
+	public void setHtmlBanner(String htmlBanner) {
+		this.htmlBanner = htmlBanner;
+	}
+
+
+    public String getHtmlFooter() {
+		return htmlFooter;
+	}
+
+	public void setHtmlFooter(String htmlFooter) {
+		this.htmlFooter = htmlFooter;
+	}
+
+	public List<String> getWebContentSyntax() {
 		return webContentSyntax;
 	}
 

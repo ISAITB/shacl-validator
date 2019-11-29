@@ -96,6 +96,8 @@ public class DomainConfigCache {
                 domainConfig.setSupportMinimalUserInterface(config.getBoolean("validator.supportMinimalUserInterface", false));
                 domainConfigs.put(domain, domainConfig);
                 domainConfig.setShowAbout(config.getBoolean("validator.showAbout", true));
+                domainConfig.setHtmlBanner(config.getString("validator.bannerHtml", ""));
+                domainConfig.setHtmlFooter(config.getString("validator.footerHtml", ""));
                 setLabels(domainConfig, config);
                 logger.info("Loaded configuration for domain ["+domain+"]");
             }
@@ -111,7 +113,7 @@ public class DomainConfigCache {
         domainConfig.getLabel().setTypeLabel(config.getString("validator.label.typeLabel", "Validate as"));
         domainConfig.getLabel().setContentSyntaxLabel(config.getString("validator.label.contentSyntaxLabel", "Content syntax"));
         domainConfig.getLabel().setExternalShapesLabel(config.getString("validator.label.externalShapesLabel", "External shapes"));
-        domainConfig.getLabel().setUploadButton(config.getString("validator.label.uploadButton", "Upload"));
+        domainConfig.getLabel().setUploadButton(config.getString("validator.label.uploadButton", "Validate"));
         domainConfig.getLabel().setResultSubSectionOverviewTitle(config.getString("validator.label.resultSubSectionOverviewTitle", "Overview"));
         domainConfig.getLabel().setResultDateLabel(config.getString("validator.label.resultDateLabel", "Date:"));
         domainConfig.getLabel().setResultFileNameLabel(config.getString("validator.label.resultFileNameLabel", "File name:"));
