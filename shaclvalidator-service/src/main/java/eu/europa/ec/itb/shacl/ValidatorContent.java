@@ -17,7 +17,7 @@ public class ValidatorContent {
 
     public String validateValidationType(String validationType, DomainConfig domainConfig) {
     	if (validationType != null && !domainConfig.getType().contains(validationType)) {
-			throw new ValidatorException(String.format("The provided validation type [%s] is not valid for domain [%s].", validationType, domainConfig.getDomainName()));
+			throw new ValidatorException(String.format("The provided validation type [%s] is not valid for domain [%s]. Available types are [%s].", validationType, domainConfig.getDomainName(), String.join(", ", domainConfig.getType())));
     	} else if (validationType == null && domainConfig.getType().size() != 1) {
 			throw new ValidatorException(String.format("A validation type must be provided for domain [%s]. Available types are [%s].", domainConfig.getDomainName(), String.join(", ", domainConfig.getType())));
 		}

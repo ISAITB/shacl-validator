@@ -21,7 +21,6 @@ import org.springframework.stereotype.Component;
 
 import javax.jws.WebParam;
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
@@ -158,22 +157,17 @@ public class ValidationServiceImpl implements ValidationService {
      */
     private String validateValidationType(ValidateRequest validateRequest) {
         List<AnyContent> listValidationType = getInputFor(validateRequest, ValidationConstants.INPUT_VALIDATION_TYPE);
-        
-        if(!listValidationType.isEmpty()) {
+        String validationType = null;
+        if (!listValidationType.isEmpty()) {
 	    	AnyContent content = listValidationType.get(0);
-	    	String validationType;
-	    	
-	    	if(content.getEmbeddingMethod()==ValueEmbeddingEnumeration.STRING) {
-	    		validationType = validatorContent.validateValidationType(content.getValue(), domainConfig);
-	    	}else {
+	    	if (content.getEmbeddingMethod() == ValueEmbeddingEnumeration.STRING) {
+				validationType = content.getValue();
+	    	} else {
 				throw new ValidatorException(String.format("The validation type to perform must be provided with a [STRING] embeddingMethod. This was provided as [%s].", content.getEmbeddingMethod()));
 	    	}
-	    	
-	    	return validationType;
-        }else {
-        	return null;
         }
-    }
+		return validatorContent.validateValidationType(validationType, domainConfig);
+	}
     
     /**
      * Validation of the contentSyntax
