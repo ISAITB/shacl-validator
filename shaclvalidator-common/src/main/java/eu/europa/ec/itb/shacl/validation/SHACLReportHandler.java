@@ -61,7 +61,12 @@ public class SHACLReportHandler {
 
 	private String getStatementStringSafe(Statement statement) {
         try {
-            return statement.getString();
+            RDFNode node = statement.getObject();
+            if (node instanceof Literal) {
+                return statement.getString();
+            } else {
+                return node.toString();
+            }
         } catch (Exception e) {
             logger.warn("Error while getting statement string", e);
             return "-";
