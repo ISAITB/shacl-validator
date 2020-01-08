@@ -59,22 +59,22 @@ public class SHACLReportHandler {
         this.report.setContext(attachment);
 	}
 
-	private String getStatementStringSafe(Statement statement) {
-        try {
-            return statement.getString();
+	private String getStatementSafe(Statement statement) {
+	    String result;
+	    try {
+            RDFNode node = statement.getObject();
+            if (node.isAnon()) {
+                result = "";
+            } else if (node.isLiteral()) {
+                result = node.asLiteral().getLexicalForm();
+            } else {
+                result = node.toString();
+            }
         } catch (Exception e) {
             logger.warn("Error while getting statement string", e);
-            return "-";
+            result = "";
         }
-    }
-
-    private String getStatementResourceStringSafe(Statement statement) {
-        try {
-            return statement.getResource().toString();
-        } catch (Exception e) {
-            logger.warn("Error while getting statement resource string", e);
-            return "-";
-        }
+        return result;
     }
 
 	public TAR createReport() {
@@ -102,22 +102,22 @@ public class SHACLReportHandler {
             			Statement statement = it.next();
             			
             			if(statement.getPredicate().hasURI("http://www.w3.org/ns/shacl#resultMessage")) {
-                            error.setDescription(getStatementStringSafe(statement));
+                            error.setDescription(getStatementSafe(statement));
             			}
             			if(statement.getPredicate().hasURI("http://www.w3.org/ns/shacl#focusNode")) {
-            				focusNode = getStatementResourceStringSafe(statement);
+            				focusNode = getStatementSafe(statement);
             			}
             			if(statement.getPredicate().hasURI("http://www.w3.org/ns/shacl#resultPath")) {
-            				resultPath = getStatementResourceStringSafe(statement);
+            				resultPath = getStatementSafe(statement);
             			}
             			if(statement.getPredicate().hasURI("http://www.w3.org/ns/shacl#sourceShape")) {
-            				shape = getStatementResourceStringSafe(statement);
+            				shape = getStatementSafe(statement);
             			}
             			if(statement.getPredicate().hasURI("http://www.w3.org/ns/shacl#resultSeverity")) {
-            				severity = getStatementResourceStringSafe(statement);
+            				severity = getStatementSafe(statement);
             			}
                         if(statement.getPredicate().hasURI("http://www.w3.org/ns/shacl#value")) {
-                            value = getStatementStringSafe(statement);
+                            value = getStatementSafe(statement);
                         }
             		}
             		error.setLocation("Focus node ["+focusNode+"] - Result path [" + resultPath + "]");
