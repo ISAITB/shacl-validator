@@ -4,6 +4,7 @@ import com.gitb.core.AnyContent;
 import com.gitb.core.ValueEmbeddingEnumeration;
 import com.gitb.tr.*;
 import eu.europa.ec.itb.shacl.util.Utils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jena.rdf.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -120,9 +121,8 @@ public class SHACLReportHandler {
                             value = getStatementSafe(statement);
                         }
             		}
-            		error.setLocation("Focus node ["+focusNode+"] - Result path [" + resultPath + "]");
-            		error.setTest("Shape ["+shape+"] - Value ["+value+"]");
-            		
+            		error.setLocation(createStringMessageFromParts(new String [] {"Focus node [%s]", "Result path [%s]"}, new String[] {focusNode, resultPath}));
+                    error.setTest(createStringMessageFromParts(new String [] {"Shape [%s]", "Value [%s]"}, new String[] {shape, value}));
                     JAXBElement element;
                     if (severity.equals("http://www.w3.org/ns/shacl#Info")) {
                         element = this.objectFactory.createTestAssertionGroupReportsTypeInfo(error);
@@ -153,7 +153,7 @@ public class SHACLReportHandler {
         report.getCounters().setNrOfWarnings(BigInteger.valueOf(warnings));
 
         if (reportsOrdered) {
-            Collections.sort(this.report.getReports().getInfoOrWarningOrError(), new ReportItemComparator());
+            this.report.getReports().getInfoOrWarningOrError().sort(new ReportItemComparator());
         }
         if(errors > 0) {
             this.report.setResult(TestResultType.FAILURE);
@@ -163,7 +163,27 @@ public class SHACLReportHandler {
         
 		return this.report;
 	}
-	
+
+    private String createStringMessageFromParts(String[] messageParts, String[] values) {
+	    if (messageParts.length != values.length) {
+            throw new IllegalArgumentException("Wrong number of arguments supplied ["+messageParts.length+"]["+values.length+"]");
+        }
+        StringBuilder str = new StringBuilder();
+        for (int i=0; i < messageParts.length; i++) {
+	        if (StringUtils.isNotBlank(values[i])) {
+	            str.append(String.format(messageParts[i], values[i]));
+            }
+	        if ((messageParts.length > i+1) && StringUtils.isNotBlank(values[i+1])) {
+	            str.append(" - ");
+            }
+        }
+        if (str.length() > 0) {
+            return str.toString();
+        } else {
+            return null;
+        }
+    }
+
     private String modelToString(Model shaclReport) {
 		StringWriter writer = new StringWriter();		
 		
