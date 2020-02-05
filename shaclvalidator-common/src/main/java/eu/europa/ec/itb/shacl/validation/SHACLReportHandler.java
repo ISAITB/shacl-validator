@@ -172,9 +172,9 @@ public class SHACLReportHandler {
         for (int i=0; i < messageParts.length; i++) {
 	        if (StringUtils.isNotBlank(values[i])) {
 	            str.append(String.format(messageParts[i], values[i]));
-            }
-	        if ((messageParts.length > i+1) && StringUtils.isNotBlank(values[i+1])) {
-	            str.append(" - ");
+                if ((messageParts.length > i+1) && StringUtils.isNotBlank(values[i+1])) {
+                    str.append(" - ");
+                }
             }
         }
         if (str.length() > 0) {
