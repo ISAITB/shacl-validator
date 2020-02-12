@@ -1,11 +1,20 @@
 package eu.europa.ec.itb.shacl.validation;
 
-import eu.europa.ec.itb.shacl.DomainConfig;
-import eu.europa.ec.itb.shacl.errors.ValidatorException;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.List;
+
+import org.apache.jena.ontology.OntModel;
+import org.apache.jena.ontology.OntModelSpec;
 import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.ModelFactory;
+import org.apache.jena.rdf.model.ModelMaker;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFLanguages;
+import org.apache.jena.util.iterator.ExtendedIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,11 +23,8 @@ import org.springframework.stereotype.Component;
 import org.topbraid.jenax.util.JenaUtil;
 import org.topbraid.shacl.validation.ValidationUtil;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.List;
+import eu.europa.ec.itb.shacl.DomainConfig;
+import eu.europa.ec.itb.shacl.errors.ValidatorException;
 
 /**
  * 
@@ -123,7 +129,36 @@ public class SHACLValidator {
                 throw new ValidatorException("An error occurred while reading a SHACL file.", e);
            }
         }
+        
+        Model importedModels = createImportedModels(aggregateModel);
+        
+        if(importedModels != null) {
+        	aggregateModel.add(importedModels);
+        }
+        
         return aggregateModel;
+    }
+    
+    private Model createImportedModels(Model aggregateModel) {
+    	Model importedModels = JenaUtil.createMemoryModel();
+        ModelMaker modelMaker = ModelFactory.createMemModelMaker();        
+        OntModelSpec spec = new OntModelSpec( OntModelSpec.OWL_MEM_RULE_INF );
+
+        // set the model maker for the base model
+        spec.setBaseModelMaker(modelMaker);
+        // set the model maker for imports
+        spec.setImportModelMaker(modelMaker);
+        
+        OntModel m = ModelFactory.createOntologyModel( spec, aggregateModel );
+	     
+	    ExtendedIterator<OntModel> ei = m.listSubModels();
+	   
+	    while(ei.hasNext()) {
+	    	OntModel ontModel = ei.next();
+	    	importedModels.add(ontModel.getBaseModel());
+	    }
+	    
+	    return importedModels;    	
     }
     
     /**
