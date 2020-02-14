@@ -4,7 +4,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.jena.ontology.OntModel;
 import org.apache.jena.ontology.OntModelSpec;
@@ -21,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 import org.topbraid.jenax.util.JenaUtil;
+import org.topbraid.shacl.util.SHACLUtil;
 import org.topbraid.shacl.validation.ValidationUtil;
 
 import eu.europa.ec.itb.shacl.DomainConfig;
@@ -46,6 +49,7 @@ public class SHACLValidator {
     private String contentSyntax;
     private List<FileInfo> filesInfo;
     private Model aggregatedShapes;
+    private Model importedShapes;
 
     /**
      * Constructor to start the SHACL validator.
@@ -124,41 +128,58 @@ public class SHACLValidator {
             try (InputStream dataStream = new FileInputStream(shaclFile.getFile())) {
                 Model fileModel = JenaUtil.createMemoryModel();
                 fileModel.read(dataStream, null, shaclFile.getContentLang());
+                
                 aggregateModel.add(fileModel);
             } catch (IOException e) {
                 throw new ValidatorException("An error occurred while reading a SHACL file.", e);
            }
         }
+        if(this.importedShapes!=null) {
+        	this.importedShapes.close();
+        	this.importedShapes.removeAll();        	
+        }
         
-        Model importedModels = createImportedModels(aggregateModel);
-        
-        if(importedModels != null) {
-        	aggregateModel.add(importedModels);
+        this.importedShapes = JenaUtil.createMemoryModel();
+        createImportedModels(aggregateModel);
+        if(this.importedShapes != null) {
+        	aggregateModel.add(importedShapes);
+        	this.importedShapes.removeAll();
         }
         
         return aggregateModel;
-    }
+    }    
     
-    private Model createImportedModels(Model aggregateModel) {
-    	Model importedModels = JenaUtil.createMemoryModel();
-        ModelMaker modelMaker = ModelFactory.createMemModelMaker();        
+    private void createImportedModels(Model aggregateModel) {
+    	Set<String> reachedURIs = new HashSet<>();
+    	
+        ModelMaker modelMaker = ModelFactory.createMemModelMaker();   
         OntModelSpec spec = new OntModelSpec( OntModelSpec.OWL_MEM_RULE_INF );
-
-        // set the model maker for the base model
         spec.setBaseModelMaker(modelMaker);
-        // set the model maker for imports
         spec.setImportModelMaker(modelMaker);
         
-        OntModel m = ModelFactory.createOntologyModel( spec, aggregateModel );
-	     
-	    ExtendedIterator<OntModel> ei = m.listSubModels();
-	   
-	    while(ei.hasNext()) {
-	    	OntModel ontModel = ei.next();
-	    	importedModels.add(ontModel.getBaseModel());
-	    }
-	    
-	    return importedModels;    	
+        OntModel baseOntModel = ModelFactory.createOntologyModel( spec, aggregateModel );
+        
+        addIncluded(baseOntModel, reachedURIs);
+    }
+    
+    private Set<String> addIncluded(OntModel baseOntModel, Set<String> reachedURIs) {
+    	baseOntModel.loadImports();
+        Set<String> listImportedURI = baseOntModel.listImportedOntologyURIs();
+                
+        for(String importedURI : listImportedURI) {
+        	if(!reachedURIs.contains(importedURI)) {
+        		OntModel importedModel = baseOntModel.getImportedModel(importedURI);
+        		
+        		if(importedModel != null) {
+        			this.importedShapes.add(importedModel.getBaseModel());
+        			reachedURIs.add(importedURI);
+        			
+        			reachedURIs = addIncluded(importedModel, reachedURIs);
+        		}
+        	}
+        }
+        
+        return reachedURIs;
     }
     
     /**
