@@ -50,7 +50,6 @@ public class FileManager {
 		
 		String extension = FilenameUtils.getExtension(url.getFile());
 		
-		
 		return getURLFile(targetFolder, URLConvert, extension, fileName);
 	}
 	
@@ -466,8 +465,8 @@ public class FileManager {
 					List<DomainConfig.RemoteInfo> ri = domainConfig.getShaclFile().get(validationType).getRemote();
 					if (ri != null) {
 						try {
-							for (DomainConfig.RemoteInfo info: ri) {
-								getURLFile(remoteConfigFolder.getAbsolutePath(), info.getUrl(), null);
+							for (DomainConfig.RemoteInfo info: ri) {								
+								getURLFile(remoteConfigFolder.getAbsolutePath(), info.getUrl(), getLanguage(info.getType()), null);
 							}
 						} catch (IOException e) {
 							logger.error("Error to load the remote SHACL file", e);
