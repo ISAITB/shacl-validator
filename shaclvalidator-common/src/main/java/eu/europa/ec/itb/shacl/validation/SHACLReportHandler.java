@@ -3,6 +3,7 @@ package eu.europa.ec.itb.shacl.validation;
 import com.gitb.core.AnyContent;
 import com.gitb.core.ValueEmbeddingEnumeration;
 import com.gitb.tr.*;
+import eu.europa.ec.itb.shacl.DomainConfig;
 import eu.europa.ec.itb.shacl.util.Utils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jena.rdf.model.*;
@@ -14,7 +15,6 @@ import javax.xml.datatype.DatatypeConfigurationException;
 import java.io.StringWriter;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 
 public class SHACLReportHandler {
@@ -23,13 +23,13 @@ public class SHACLReportHandler {
 
 	private TAR report;
 	private Model shaclReport;
-	private boolean reportsOrdered;
+	private DomainConfig domainConfig;
 
     private ObjectFactory objectFactory = new ObjectFactory();
 
-	public SHACLReportHandler(String inputFile, Model shapes, Model shaclReport, boolean reportsOrdered) {
+	public SHACLReportHandler(String inputFile, Model shapes, Model shaclReport, DomainConfig domainConfig) {
 		this.shaclReport = shaclReport;
-		this.reportsOrdered = reportsOrdered;
+		this.domainConfig = domainConfig;
 		report = new TAR();
         report.setResult(TestResultType.SUCCESS);
         try {
@@ -121,8 +121,8 @@ public class SHACLReportHandler {
                             value = getStatementSafe(statement);
                         }
             		}
-            		error.setLocation(createStringMessageFromParts(new String [] {"Focus node [%s]", "Result path [%s]"}, new String[] {focusNode, resultPath}));
-                    error.setTest(createStringMessageFromParts(new String [] {"Shape [%s]", "Value [%s]"}, new String[] {shape, value}));
+            		error.setLocation(createStringMessageFromParts(new String [] {"[%s]", " [%s]", "[%s]", " [%s]"}, new String[] {domainConfig.getLabel().getReportItemFocusNode(), focusNode, domainConfig.getLabel().getReportItemResultPath(), resultPath}));
+                    error.setTest(createStringMessageFromParts(new String [] {"[%s]", " [%s]", "[%s]"," [%s]"}, new String[] {domainConfig.getLabel().getReportItemShape(), shape, domainConfig.getLabel().getReportItemValue(), value}));
                     JAXBElement element;
                     if (severity.equals("http://www.w3.org/ns/shacl#Info")) {
                         element = this.objectFactory.createTestAssertionGroupReportsTypeInfo(error);
@@ -152,7 +152,7 @@ public class SHACLReportHandler {
         report.getCounters().setNrOfAssertions(BigInteger.valueOf(infos));
         report.getCounters().setNrOfWarnings(BigInteger.valueOf(warnings));
 
-        if (reportsOrdered) {
+        if (domainConfig.isReportsOrdered()) {
             this.report.getReports().getInfoOrWarningOrError().sort(new ReportItemComparator());
         }
         if(errors > 0) {

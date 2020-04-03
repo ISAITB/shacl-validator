@@ -162,7 +162,7 @@ public class UploadController {
 					reportModel = validator.validateAll();
 					agrregatedShapes =  validator.getAggregatedShapes();
 
-					TAR TARreport = Utils.getTAR(reportModel, inputFile.toPath(), agrregatedShapes, domainConfig.isReportsOrdered());
+					TAR TARreport = Utils.getTAR(reportModel, inputFile.toPath(), agrregatedShapes, domainConfig);
 					attributes.put("report", TARreport);
 					attributes.put("date", TARreport.getDate().toString());
 

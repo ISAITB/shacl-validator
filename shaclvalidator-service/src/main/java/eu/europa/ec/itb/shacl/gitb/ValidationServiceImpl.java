@@ -147,7 +147,7 @@ public class ValidationServiceImpl implements ValidationService {
     private TAR executeValidation(File inputFile, String validationType, String contentSyntax, DomainConfig domainConfig, List<FileInfo> remoteShaclFiles) {
 		SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile, validationType, contentSyntax, remoteShaclFiles, domainConfig);
 		Model reportModel = validator.validateAll();
-		return Utils.getTAR(reportModel, inputFile.toPath(), validator.getAggregatedShapes(), domainConfig.isReportsOrdered());
+		return Utils.getTAR(reportModel, inputFile.toPath(), validator.getAggregatedShapes(), domainConfig);
     }
     
     /**

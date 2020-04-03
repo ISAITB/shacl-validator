@@ -1,6 +1,7 @@
 package eu.europa.ec.itb.shacl.util;
 
 import com.gitb.tr.TAR;
+import eu.europa.ec.itb.shacl.DomainConfig;
 import eu.europa.ec.itb.shacl.validation.SHACLReportHandler;
 import org.apache.jena.rdf.model.Model;
 import org.springframework.util.StreamUtils;
@@ -141,12 +142,12 @@ public class Utils {
         return new ByteArrayInputStream(inputBytes);
     }
 
-    public static TAR getTAR(Model report, Path inputFilePath, Model aggregatedShapes, boolean reportsOrdered) {
+    public static TAR getTAR(Model report, Path inputFilePath, Model aggregatedShapes, DomainConfig domainConfig) {
     	//SHACL report: from Model to TAR
 		try {
 			String contentToValidateString = new String(Files.readAllBytes(inputFilePath));
 	    	
-	    	SHACLReportHandler reportHandler = new SHACLReportHandler(contentToValidateString, aggregatedShapes, report, reportsOrdered);
+	    	SHACLReportHandler reportHandler = new SHACLReportHandler(contentToValidateString, aggregatedShapes, report, domainConfig);
 	    	
 	    	return reportHandler.createReport();
 		} catch (IOException e) {

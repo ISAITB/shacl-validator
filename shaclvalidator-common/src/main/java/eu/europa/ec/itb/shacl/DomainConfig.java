@@ -281,6 +281,42 @@ public class DomainConfig {
         private String optionContentFile;
         private String optionContentURI;
         private String optionContentDirectInput;
+        private String reportItemFocusNode;
+        private String reportItemResultPath;
+        private String reportItemShape;
+        private String reportItemValue;
+
+        public String getReportItemFocusNode() {
+            return reportItemFocusNode;
+        }
+
+        public void setReportItemFocusNode(String reportItemFocusNode) {
+            this.reportItemFocusNode = reportItemFocusNode;
+        }
+
+        public String getReportItemResultPath() {
+            return reportItemResultPath;
+        }
+
+        public void setReportItemResultPath(String reportItemResultPath) {
+            this.reportItemResultPath = reportItemResultPath;
+        }
+
+        public String getReportItemShape() {
+            return reportItemShape;
+        }
+
+        public void setReportItemShape(String reportItemShape) {
+            this.reportItemShape = reportItemShape;
+        }
+
+        public String getReportItemValue() {
+            return reportItemValue;
+        }
+
+        public void setReportItemValue(String reportItemValue) {
+            this.reportItemValue = reportItemValue;
+        }
 
         public String getResultValidationTypeLabel() {
             return resultValidationTypeLabel;
