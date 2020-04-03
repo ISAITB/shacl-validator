@@ -201,7 +201,7 @@ public class ValidationRunner {
                     String outputData = getShaclReport(report, reportSyntax);
                     File f = new File("");
 
-					TAR TARreport = Utils.getTAR(report, inputFile.toPath(), validator.getAggregatedShapes(), domainConfig.isReportsOrdered());
+					TAR TARreport = Utils.getTAR(report, inputFile.toPath(), validator.getAggregatedShapes(), domainConfig);
                     FileReport reporter = new FileReport(input.getFilename(), TARreport, requireType, type);
 
                     summary.append("\n").append(reporter.toString()).append("\n");

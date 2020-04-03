@@ -136,6 +136,10 @@ public class DomainConfigCache {
         domainConfig.getLabel().setOptionContentFile(config.getString("validator.label.optionContentFile", "File"));
         domainConfig.getLabel().setOptionContentURI(config.getString("validator.label.optionContentURI", "URI"));
         domainConfig.getLabel().setOptionContentDirectInput(config.getString("validator.label.optionContentDirectInput", "Direct input"));
+        domainConfig.getLabel().setReportItemFocusNode(config.getString("validator.label.reportItemFocusNode", "Focus node"));
+        domainConfig.getLabel().setReportItemResultPath(config.getString("validator.label.reportItemResultPath", "Result path"));
+        domainConfig.getLabel().setReportItemShape(config.getString("validator.label.reportItemShape", "Shape"));
+        domainConfig.getLabel().setReportItemValue(config.getString("validator.label.reportItemValue", "Value"));
     }
 
     private Map<String, ShaclFileInfo> parseShaclMap(String key, CompositeConfiguration config, List<String> types){
