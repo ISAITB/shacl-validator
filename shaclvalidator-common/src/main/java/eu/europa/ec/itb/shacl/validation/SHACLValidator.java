@@ -1,13 +1,7 @@
 package eu.europa.ec.itb.shacl.validation;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
+import eu.europa.ec.itb.shacl.DomainConfig;
+import eu.europa.ec.itb.shacl.errors.ValidatorException;
 import org.apache.jena.ontology.OntModel;
 import org.apache.jena.ontology.OntModelSpec;
 import org.apache.jena.rdf.model.Model;
@@ -16,18 +10,21 @@ import org.apache.jena.rdf.model.ModelMaker;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFLanguages;
-import org.apache.jena.util.iterator.ExtendedIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 import org.topbraid.jenax.util.JenaUtil;
-import org.topbraid.shacl.util.SHACLUtil;
 import org.topbraid.shacl.validation.ValidationUtil;
 
-import eu.europa.ec.itb.shacl.DomainConfig;
-import eu.europa.ec.itb.shacl.errors.ValidatorException;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * 
@@ -93,7 +90,7 @@ public class SHACLValidator {
                 return validateShacl(shaclFiles);
             }
         } finally {
-            fileManager.signalValidationEnd(domainConfig.getDomainName());
+            fileManager.signalValidationEnd(domainConfig.getDomainName(), inputFileToValidate, filesInfo);
         }
     }
 

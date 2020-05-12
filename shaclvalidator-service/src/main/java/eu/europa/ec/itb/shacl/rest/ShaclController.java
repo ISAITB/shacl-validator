@@ -167,8 +167,8 @@ public class ShaclController {
 	 */
 	private String executeValidationProcess(Input in, DomainConfig domainConfig, String reportSyntax) {
 		String shaclResult;
-		List<FileInfo> remoteShaclFiles = new ArrayList<>();
-		File inputFile = null;
+		List<FileInfo> remoteShaclFiles;
+		File inputFile;
 		
 		//Start validation of the input file
 		try {
@@ -183,11 +183,7 @@ public class ShaclController {
 			throw e;
 		} catch (Exception e) {
 			throw new ValidatorException(e);
-		} finally {
-			// Remove temporary files
-			fileManager.removeContentToValidate(inputFile, remoteShaclFiles);
 		}
-		
 		return shaclResult;
 	}
 
