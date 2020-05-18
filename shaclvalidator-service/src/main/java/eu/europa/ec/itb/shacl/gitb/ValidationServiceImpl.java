@@ -112,13 +112,15 @@ public class ValidationServiceImpl implements ValidationService {
     @Override
     public ValidationResponse validate(@WebParam(name = "ValidateRequest", targetNamespace = "http://www.gitb.com/vs/v1/", partName = "parameters") ValidateRequest validateRequest) {
     	MDC.put("domain", domainConfig.getDomain());
-    	try {
+		File contentToValidate = null;
+		List<FileInfo> externalShapes = null;
+		try {
 			//Validation of the input data
 			String contentSyntax = validateContentSyntax(validateRequest);
 			String contentEmbeddingMethod = validateContentEmbeddingMethod(validateRequest);
-			File contentToValidate = validateContentToValidate(validateRequest, contentEmbeddingMethod, contentSyntax);
+			contentToValidate = validateContentToValidate(validateRequest, contentEmbeddingMethod, contentSyntax);
 			String validationType = validateValidationType(validateRequest);
-			List<FileInfo> externalShapes = validateExternalShapes(validateRequest);
+			externalShapes = validateExternalShapes(validateRequest);
 
 			//Execution of the validation
 			TAR report = executeValidation(contentToValidate, validationType, contentSyntax, domainConfig, externalShapes);
@@ -132,6 +134,8 @@ public class ValidationServiceImpl implements ValidationService {
 		} catch (Exception e) {
 			logger.error("Unexpected error", e);
 			throw new ValidatorException(e);
+		} finally {
+			fileManager.removeContentToValidate(contentToValidate, externalShapes);
 		}
     }
     

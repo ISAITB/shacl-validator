@@ -90,7 +90,7 @@ public class SHACLValidator {
                 return validateShacl(shaclFiles);
             }
         } finally {
-            fileManager.signalValidationEnd(domainConfig.getDomainName(), inputFileToValidate, filesInfo);
+            fileManager.signalValidationEnd(domainConfig.getDomainName());
         }
     }
 
