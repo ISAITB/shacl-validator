@@ -187,7 +187,7 @@ public class FileManager {
     /**
      * Remove the external files linked to the validation.
      */
-    private void removeContentToValidate(File inputFile, List<FileInfo> externalShaclFiles) {
+    public void removeContentToValidate(File inputFile, List<FileInfo> externalShaclFiles) {
     	// Remove content that was validated.
     	if (inputFile != null && inputFile.exists() && inputFile.isFile()) {
             FileUtils.deleteQuietly(inputFile);
@@ -488,10 +488,9 @@ public class FileManager {
 		logger.debug("Signalled validation start for ["+domainName+"]");
 	}
 
-	public void signalValidationEnd(String domainName, File inputFile, List<FileInfo> externalFiles) {
+	public void signalValidationEnd(String domainName) {
 		logger.debug("Signalling validation end for ["+domainName+"]");
 		externalDomainFileCacheLocks.get(domainName).readLock().unlock();
-		removeContentToValidate(inputFile, externalFiles);
 		logger.debug("Signalled validation end for ["+domainName+"]");
 	}
 

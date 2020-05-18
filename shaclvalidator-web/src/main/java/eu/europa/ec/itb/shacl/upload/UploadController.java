@@ -116,7 +116,8 @@ public class UploadController {
 		String folderName = UUID.randomUUID().toString();
 		String tmpFolder = this.appConfig.getTmpFolder() + "/web/" + folderName;
 		
-		File inputFile;
+		File inputFile = null;
+		List<FileInfo> extFiles = null;
         Map<String, Object> attributes = new HashMap<>();
         attributes.put("validationTypes", getValidationTypes(domainConfig));
         attributes.put("contentType", getContentType(domainConfig));
@@ -150,7 +151,6 @@ public class UploadController {
 			} else {
 				if (inputFile != null) {
 
-					List<FileInfo> extFiles;
 					if (addExternalRules != null && addExternalRules && hasExternalShapes(domainConfig, validationType)) {
 						extFiles = getExternalShapes(externalContentType, externalFiles, externalUri, externalFilesSyntaxType);
 					} else {
@@ -191,7 +191,9 @@ public class UploadController {
 		} catch (Exception e) {
             logger.error("An error occurred during the validation [" + e.getMessage() + "]", e);
             attributes.put("message", "An error occurred during the validation [" + e.getMessage() + "]");
-        }
+        } finally {
+        	fileManager.removeContentToValidate(inputFile, extFiles);
+		}
         return new ModelAndView("uploadForm", attributes);
     }
 	
