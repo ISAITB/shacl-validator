@@ -24,7 +24,7 @@ public class ValidatorContent {
     	return validationType==null ? domainConfig.getType().get(0) : validationType;
     }
     
-	public File getContentToValidate(String embeddingMethod, String contentToValidate, String contentSyntax) {
+	public File getContentToValidate(String embeddingMethod, String contentToValidate, String contentSyntax, File parentFolder) {
 		File contentFile;
 		
     	//EmbeddingMethod validation
@@ -32,17 +32,17 @@ public class ValidatorContent {
     		switch(embeddingMethod) {
     			case FileContent.embedding_URL:
     				try{
-    					contentFile = fileManager.getURLFile(contentToValidate);
+    					contentFile = fileManager.getURLFile(parentFolder, contentToValidate);
     				}catch(IOException e) {
 						throw new ValidatorException("An error occurred while trying to read the content to validate from the provided URL.", e);
 					}
     				break;
     			case FileContent.embedding_BASE64:
-    			    contentFile = getBase64File(contentToValidate, contentSyntax);
+    			    contentFile = getBase64File(parentFolder, contentToValidate, contentSyntax);
     			    break;
     			case FileContent.embedding_STRING:
     				try{
-        				contentFile = fileManager.getStringFile(contentToValidate, contentSyntax);
+        				contentFile = fileManager.getStringFile(parentFolder, contentToValidate, contentSyntax);
     				}catch(IOException e) {
 						throw new ValidatorException(String.format("An error occurred while trying to read the content to validate as a string (provided syntax [%s]).", contentSyntax), e);
 					}
@@ -52,7 +52,7 @@ public class ValidatorContent {
     		}
     	}else {
 			try {
-				contentFile = fileManager.getFileAsUrlOrBase64(contentToValidate);
+				contentFile = fileManager.getFileAsUrlOrBase64(parentFolder, contentToValidate);
 			} catch (IOException e) {
 				throw new ValidatorException("An error occurred while trying to read the provided content.");
 			}
@@ -66,12 +66,12 @@ public class ValidatorContent {
      * @param base64Convert Base64 as String
      * @return File
      */
-    private File getBase64File(String base64Convert, String contentSyntax) {
+    private File getBase64File(File parentFolder, String base64Convert, String contentSyntax) {
 		if (contentSyntax == null) {
 			throw new ValidatorException("No content syntax was provided. This is required when a file is provided as BASE64.");
 		}
 		try {
-			return fileManager.getBase64File(base64Convert);
+			return fileManager.getBase64File(parentFolder, base64Convert);
 		} catch (Exception e) {
 			throw new ValidatorException("An error occurred while trying to read a file from a BASE64 text", e);
 		}

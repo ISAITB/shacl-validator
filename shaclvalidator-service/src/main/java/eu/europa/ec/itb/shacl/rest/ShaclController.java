@@ -166,23 +166,23 @@ public class ShaclController {
 	 * @return Report of the validation as String.
 	 */
 	private String executeValidationProcess(Input in, DomainConfig domainConfig, String reportSyntax) {
+		// Temporary folder for the request.
+		File parentFolder = fileManager.getRequestTmpFolder();
 		String shaclResult;
-		List<FileInfo> remoteShaclFiles;
-		File inputFile;
-		
 		//Start validation of the input file
 		try {
-			inputFile = getContentToValidate(in, domainConfig);
-			remoteShaclFiles = getExternalShapes(in.getExternalRules());
+			File inputFile = getContentToValidate(in, domainConfig, parentFolder);
+			List<FileInfo> remoteShaclFiles = getExternalShapes(in.getExternalRules(), parentFolder);
 			//Execute one single validation
 			Model shaclReport = executeValidation(inputFile, in, domainConfig, remoteShaclFiles);
-
 			//Process the result according to content-type
 			shaclResult = getShaclReport(shaclReport, reportSyntax);
 		} catch (ValidatorException | NotFoundException e) {
 			throw e;
 		} catch (Exception e) {
 			throw new ValidatorException(e);
+		} finally {
+			FileUtils.deleteQuietly(parentFolder);
 		}
 		return shaclResult;
 	}
@@ -287,7 +287,7 @@ public class ShaclController {
      * @param input JSON send via REST API
      * @return File to validate
      */
-    private File getContentToValidate(Input input, DomainConfig domainConfig) {
+    private File getContentToValidate(Input input, DomainConfig domainConfig, File parentFolder) {
     	String embeddingMethod = input.getEmbeddingMethod();
     	String contentToValidate = input.getContentToValidate();
     	List<RuleSet> externalRules = input.getExternalRules();
@@ -316,14 +316,14 @@ public class ShaclController {
 		}
     	
     	//EmbeddingMethod validation and returns the content    	
-    	return validatorContent.getContentToValidate(embeddingMethod, contentToValidate, contentSyntax);
+    	return validatorContent.getContentToValidate(embeddingMethod, contentToValidate, contentSyntax, parentFolder);
     }
     
-    private List<FileInfo> getExternalShapes(List<RuleSet> externalRules) {
+    private List<FileInfo> getExternalShapes(List<RuleSet> externalRules, File parentFolder) {
 		List<FileInfo> shaclFiles;
 		if (externalRules != null) {
 			try {
-				shaclFiles = fileManager.getRemoteExternalShapes(externalRules.stream().map(RuleSet::toFileContent).collect(Collectors.toList()));
+				shaclFiles = fileManager.getRemoteExternalShapes(parentFolder, externalRules.stream().map(RuleSet::toFileContent).collect(Collectors.toList()));
 			} catch (Exception e) {
 				throw new ValidatorException("An error occurred while trying to read the provided external shapes.");
 			}

@@ -30,6 +30,7 @@ import org.springframework.web.servlet.ModelAndView;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
@@ -43,32 +44,32 @@ public class UploadController {
 
     public static final String IS_MINIMAL = "isMinimal";
 
-    public static final String contentType_file     	= "fileType" ;
-    public static final String contentType_uri     		= "uriType" ;
-    public static final String contentType_string     	= "stringType" ;
+    private static final String contentType_file     	= "fileType" ;
+    private static final String contentType_uri     		= "uriType" ;
+    private static final String contentType_string     	= "stringType" ;
     
-    public static final String downloadType_report		= "reportType";
-    public static final String downloadType_shapes		= "shapesType";
-    public static final String downloadType_content		= "contentType";
+    static final String downloadType_report		= "reportType";
+    static final String downloadType_shapes		= "shapesType";
+    static final String downloadType_content		= "contentType";
     
-    public static final String fileName_input			= "inputFile";
-    public static final String fileName_report			= "reportFile";
-    public static final String fileName_shapes			= "shapesFile";
+    static final String fileName_input			= "inputFile";
+    static final String fileName_report			= "reportFile";
+    static final String fileName_shapes			= "shapesFile";
     
     @Autowired
-    FileManager fileManager;
+	private FileManager fileManager = null;
 
     @Autowired
-    DomainConfigCache domainConfigs;
+	private DomainConfigCache domainConfigs = null;
 
     @Autowired
-    ApplicationConfig appConfig;
+	private ApplicationConfig appConfig = null;
 
     @Autowired
-    ApplicationContext ctx;
+	private ApplicationContext ctx = null;
 
     @Autowired
-    ReportGeneratorBean reportGenerator;
+    private ReportGeneratorBean reportGenerator = null;
     
     @GetMapping(value = "/{domain}/upload")
     public ModelAndView upload(@PathVariable("domain") String domain, Model model, HttpServletRequest request) {
@@ -113,9 +114,9 @@ public class UploadController {
 		} catch (Exception e) {
 			throw new NotFoundException();
 		}
-		String folderName = UUID.randomUUID().toString();
-		String tmpFolder = this.appConfig.getTmpFolder() + "/web/" + folderName;
-		
+		// Temporary folder for the request.
+		File parentFolder = fileManager.getRequestTmpFolder();
+
 		File inputFile = null;
 		List<FileInfo> extFiles = null;
         Map<String, Object> attributes = new HashMap<>();
@@ -131,7 +132,7 @@ public class UploadController {
 			attributes.put("validationTypeLabel", domainConfig.getTypeLabel().get(validationType));
 		}
         org.apache.jena.rdf.model.Model reportModel;
-		org.apache.jena.rdf.model.Model agrregatedShapes;
+		org.apache.jena.rdf.model.Model aggregatedShapes;
         try {
 			if(StringUtils.isEmpty(contentSyntaxType) || contentSyntaxType.equals("empty")) {
 				if(!contentType.equals(contentType_string)) {
@@ -141,7 +142,7 @@ public class UploadController {
 					attributes.put("message", "Provided content syntax type is not valid");
 				}
 			}
-			inputFile = getInputFile(contentType, file.getInputStream(), uri, string, contentSyntaxType, tmpFolder);
+			inputFile = getInputFile(contentType, file.getInputStream(), uri, string, contentSyntaxType, parentFolder);
 			if (StringUtils.isBlank(validationType)) {
 				validationType = null;
 			}
@@ -152,7 +153,7 @@ public class UploadController {
 				if (inputFile != null) {
 
 					if (addExternalRules != null && addExternalRules && hasExternalShapes(domainConfig, validationType)) {
-						extFiles = getExternalShapes(externalContentType, externalFiles, externalUri, externalFilesSyntaxType);
+						extFiles = getExternalShapes(externalContentType, externalFiles, externalUri, externalFilesSyntaxType, parentFolder);
 					} else {
 						extFiles = Collections.emptyList();
 					}
@@ -160,13 +161,13 @@ public class UploadController {
 					SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile, validationType, contentSyntaxType, extFiles, domainConfig);
 
 					reportModel = validator.validateAll();
-					agrregatedShapes =  validator.getAggregatedShapes();
+					aggregatedShapes =  validator.getAggregatedShapes();
 
-					TAR TARreport = Utils.getTAR(reportModel, inputFile.toPath(), agrregatedShapes, domainConfig);
+					TAR TARreport = Utils.getTAR(reportModel, inputFile.toPath(), aggregatedShapes, domainConfig);
 					attributes.put("report", TARreport);
 					attributes.put("date", TARreport.getDate().toString());
 
-					File pdfReport = new File(tmpFolder, fileName_report+"PDF.pdf");
+					File pdfReport = new File(parentFolder, fileName_report+".pdf");
 					reportGenerator.writeReport(domainConfig, TARreport, pdfReport);
 
 					if(contentType.equals(contentType_file)) {
@@ -176,13 +177,13 @@ public class UploadController {
 					} else {
 						attributes.put("fileName", "-");
 					}
-					String reportString = fileManager.getShaclReport(reportModel, domainConfig.getDefaultReportSyntax());
-					fileManager.getStringFile(tmpFolder, reportString, domainConfig.getDefaultReportSyntax(), fileName_report);
-
-					String shapesString = fileManager.getShaclReport(agrregatedShapes, domainConfig.getDefaultReportSyntax());
-					fileManager.getStringFile(tmpFolder, shapesString, domainConfig.getDefaultReportSyntax(), fileName_shapes);
-
-					attributes.put("reportID", folderName);
+					try (FileWriter out = new FileWriter(fileManager.getTargetFilePath(parentFolder, domainConfig.getDefaultReportSyntax(), fileName_report).toFile())) {
+						fileManager.writeRdfModel(out, reportModel, domainConfig.getDefaultReportSyntax());
+					}
+					try (FileWriter out = new FileWriter(fileManager.getTargetFilePath(parentFolder, domainConfig.getDefaultReportSyntax(), fileName_shapes).toFile())) {
+						fileManager.writeRdfModel(out, aggregatedShapes, domainConfig.getDefaultReportSyntax());
+					}
+					attributes.put("reportID", parentFolder.getName());
 				}
 			}
 		} catch (ValidatorException e) {
@@ -192,7 +193,10 @@ public class UploadController {
             logger.error("An error occurred during the validation [" + e.getMessage() + "]", e);
             attributes.put("message", "An error occurred during the validation [" + e.getMessage() + "]");
         } finally {
-        	fileManager.removeContentToValidate(inputFile, extFiles);
+        	/*
+        	In the web UI case the cleanup cannot fully remove the temp folder as we need to keep the reports.
+        	 */
+        	fileManager.removeContentToValidate(null, extFiles);
 		}
         return new ModelAndView("uploadForm", attributes);
     }
@@ -259,7 +263,7 @@ public class UploadController {
     	return domainConfig.getExternalShapes().getOrDefault(validationType, Boolean.FALSE);
 	}
 
-	private File getInputFile(String contentType, InputStream inputStream, String uri, String string, String contentSyntaxType, String tmpFolder) throws IOException {
+	private File getInputFile(String contentType, InputStream inputStream, String uri, String string, String contentSyntaxType, File tmpFolder) throws IOException {
 		File inputFile = null;
 		
 		switch(contentType) {
@@ -290,7 +294,7 @@ public class UploadController {
 		return contentType;
 	}
 	
-	private List<FileInfo> getExternalShapes(String[] externalContentType, MultipartFile[] externalFiles, String[] externalUri, String[] externalFilesSyntaxType) throws IOException {
+	private List<FileInfo> getExternalShapes(String[] externalContentType, MultipartFile[] externalFiles, String[] externalUri, String[] externalFilesSyntaxType, File parentFolder) throws IOException {
 		List<FileInfo> shaclFiles = new ArrayList<>();
 
 		if(externalContentType != null) {
@@ -308,8 +312,7 @@ public class UploadController {
 							if(StringUtils.isEmpty(contentSyntaxType) || contentSyntaxType.equals("empty")) {
 				        		contentSyntaxType = getExtensionContentType(externalFiles[i].getOriginalFilename());
 				        	}
-							
-				        	inputFile = this.fileManager.getInputStreamFile(externalFiles[i].getInputStream(), contentSyntaxType);				
+				        	inputFile = this.fileManager.getInputStreamFile(parentFolder, externalFiles[i].getInputStream(), contentSyntaxType, null);
 						}
 						break;
 					case contentType_uri:					
@@ -317,7 +320,7 @@ public class UploadController {
 							if(StringUtils.isEmpty(contentSyntaxType) || contentSyntaxType.equals("empty")) {
 				        		contentSyntaxType = getExtensionContentType(externalUri[i]);
 				        	}
-							inputFile = this.fileManager.getURLFile(externalUri[i]);
+							inputFile = this.fileManager.getURLFile(parentFolder, externalUri[i]);
 						}
 						break;
 				}
@@ -341,7 +344,7 @@ public class UploadController {
      * @param domain The domain where the SHACL validator is executed as String.
      * @return DomainConfig
      */
-    private DomainConfig validateDomain(String domain) throws Exception {
+    private DomainConfig validateDomain(String domain) {
 		DomainConfig config = domainConfigs.getConfigForDomainName(domain);
         if (config == null || !config.isDefined() || !config.getChannels().contains(ValidatorChannel.REST_API)) {
             logger.error("The following domain does not exist: " + domain);
