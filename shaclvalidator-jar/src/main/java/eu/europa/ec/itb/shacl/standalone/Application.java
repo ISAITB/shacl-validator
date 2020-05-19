@@ -12,6 +12,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.*;
 import java.util.Enumeration;
+import java.util.UUID;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
@@ -41,7 +42,7 @@ public class Application {
         
         try {
 	        ValidationRunner runner = ctx.getBean(ValidationRunner.class);
-	        runner.bootstrap(args, config.getTmpFolder());
+	        runner.bootstrap(args, new File(config.getTmpFolder(), UUID.randomUUID().toString()));
         }catch(Exception e) {}
         
         removeConfigForStandalone(tempFolder);
@@ -49,7 +50,6 @@ public class Application {
     
     /**
      * Delete temporary folder
-     * @param File Temporary folder
      * @throws IOException
      */
     private static void removeConfigForStandalone(File tempFolder) throws IOException {
@@ -65,7 +65,6 @@ public class Application {
 
     /**
      * Store in temporary folder resource files.
-     * @param File Temporary folder
      * @throws IOException
      */
     private static void prepareConfigForStandalone(File tempFolder) throws IOException {

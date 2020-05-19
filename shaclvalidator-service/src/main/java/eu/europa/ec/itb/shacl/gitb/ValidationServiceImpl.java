@@ -9,6 +9,7 @@ import eu.europa.ec.itb.shacl.ValidatorContent;
 import eu.europa.ec.itb.shacl.errors.ValidatorException;
 import eu.europa.ec.itb.shacl.util.Utils;
 import eu.europa.ec.itb.shacl.validation.*;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.jena.rdf.model.Model;
 import org.slf4j.Logger;
@@ -114,13 +115,16 @@ public class ValidationServiceImpl implements ValidationService {
     	MDC.put("domain", domainConfig.getDomain());
 		File contentToValidate = null;
 		List<FileInfo> externalShapes = null;
+
+		// Temporary folder for the request.
+		File parentFolder = fileManager.getRequestTmpFolder();
 		try {
 			//Validation of the input data
 			String contentSyntax = validateContentSyntax(validateRequest);
 			String contentEmbeddingMethod = validateContentEmbeddingMethod(validateRequest);
-			contentToValidate = validateContentToValidate(validateRequest, contentEmbeddingMethod, contentSyntax);
+			contentToValidate = validateContentToValidate(validateRequest, contentEmbeddingMethod, contentSyntax, parentFolder);
 			String validationType = validateValidationType(validateRequest);
-			externalShapes = validateExternalShapes(validateRequest);
+			externalShapes = validateExternalShapes(validateRequest, parentFolder);
 
 			//Execution of the validation
 			TAR report = executeValidation(contentToValidate, validationType, contentSyntax, domainConfig, externalShapes);
@@ -135,7 +139,7 @@ public class ValidationServiceImpl implements ValidationService {
 			logger.error("Unexpected error", e);
 			throw new ValidatorException(e);
 		} finally {
-			fileManager.removeContentToValidate(contentToValidate, externalShapes);
+			FileUtils.deleteQuietly(parentFolder);
 		}
     }
     
@@ -218,7 +222,7 @@ public class ValidationServiceImpl implements ValidationService {
 	 * @param contentSyntax
 	 * @return The file to validate.
      */
-    private File validateContentToValidate(ValidateRequest validateRequest, String explicitEmbeddingMethod, String contentSyntax) {
+    private File validateContentToValidate(ValidateRequest validateRequest, String explicitEmbeddingMethod, String contentSyntax, File parentFolder) {
         List<AnyContent> listContentToValidate = getInputFor(validateRequest, ValidationConstants.INPUT_CONTENT);
         
         if(!listContentToValidate.isEmpty()) {
@@ -235,7 +239,7 @@ public class ValidationServiceImpl implements ValidationService {
 				// This is a URI or a plain text string encoded as BASE64.
 				valueToProcess = new String(Base64.getDecoder().decode(valueToProcess));
 			}
-	    	return validatorContent.getContentToValidate(explicitEmbeddingMethod, valueToProcess, contentSyntax);
+	    	return validatorContent.getContentToValidate(explicitEmbeddingMethod, valueToProcess, contentSyntax, parentFolder);
         } else {
         	throw new ValidatorException(String.format("No content was provided for validation (input parameter [%s]).", ValidationConstants.INPUT_CONTENT));
         }
@@ -246,7 +250,7 @@ public class ValidationServiceImpl implements ValidationService {
      * @param validateRequest The request's parameters.
      * @return The list of external shapes.
      */
-    private List<FileInfo> validateExternalShapes(ValidateRequest validateRequest) {
+    private List<FileInfo> validateExternalShapes(ValidateRequest validateRequest, File parentFolder) {
     	List<FileContent> filesContent = new ArrayList<>();
     	List<AnyContent> listInput = getInputFor(validateRequest, ValidationConstants.INPUT_EXTERNAL_RULES);
     	
@@ -264,7 +268,7 @@ public class ValidationServiceImpl implements ValidationService {
 				}
 	    	}
 	    	
-	    	return getExternalShapes(filesContent);
+	    	return getExternalShapes(filesContent, parentFolder);
     	}else {
     		return Collections.emptyList();
     	}
@@ -312,11 +316,11 @@ public class ValidationServiceImpl implements ValidationService {
      * @param externalRules The list of external shapes as FileContent.
      * @return The list of external shapes as FileInfo.
      */
-    private List<FileInfo> getExternalShapes(List<FileContent> externalRules) {
+    private List<FileInfo> getExternalShapes(List<FileContent> externalRules, File parentFolder) {
 		List<FileInfo> shaclFiles;
 		if (externalRules != null) {
 			try {
-				shaclFiles = fileManager.getRemoteExternalShapes(externalRules);
+				shaclFiles = fileManager.getRemoteExternalShapes(parentFolder, externalRules);
 			} catch (Exception e) {
 				throw new ValidatorException("An error occurred while trying to read the provided external shapes.", e);
 			}
