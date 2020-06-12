@@ -217,8 +217,13 @@ public class SHACLValidator {
          * Add the aggregated shapes' model to the input data model. This is done so that any vocabulary definitions
          * provided through the SHACL shape inputs (directly or as owl:imports) are also considered in the data graph.
          * This is primarily done to ensure subclass checks are correctly done (see SHACL specification section 3.2, "Data Graph".).
+         * 
+         * We can disable this merging for a domain if merging is undesirable. The only such case would be if we are
+         * validating SHACL shapes themselves.
          */
-        dataModel.add(shapesModel);
+        if (domainConfig.isMergeModelsBeforeValidation()) {
+            dataModel.add(shapesModel);
+        }
 		return dataModel;
 	}
     
