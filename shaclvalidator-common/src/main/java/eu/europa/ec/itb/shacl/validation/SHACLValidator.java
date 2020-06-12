@@ -213,6 +213,12 @@ public class SHACLValidator {
         } catch (Exception e) {
             throw new ValidatorException("An error occurred while reading the provided content: "+e.getMessage(), e);
         }
+        /*
+         * Add the aggregated shapes' model to the input data model. This is done so that any vocabulary definitions
+         * provided through the SHACL shape inputs (directly or as owl:imports) are also considered in the data graph.
+         * This is primarily done to ensure subclass checks are correctly done (see SHACL specification section 3.2, "Data Graph".).
+         */
+        dataModel.add(shapesModel);
 		return dataModel;
 	}
     
