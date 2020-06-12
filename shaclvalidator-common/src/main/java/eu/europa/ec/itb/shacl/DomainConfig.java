@@ -22,6 +22,7 @@ public class DomainConfig {
     private Map<String, String> webServiceDescription;
     private boolean reportsOrdered;
     private boolean supportMinimalUserInterface;
+    private boolean mergeModelsBeforeValidation;
     //UI
     private List<String> webContentSyntax;
     private String reportTitle = "Validation report";
@@ -163,6 +164,14 @@ public class DomainConfig {
     public void setReportsOrdered(boolean reportsOrdered) {
         this.reportsOrdered = reportsOrdered;
     }
+
+    public boolean isMergeModelsBeforeValidation() {
+		return mergeModelsBeforeValidation;
+	}
+
+	public void setMergeModelsBeforeValidation(boolean mergeModelsBeforeValidation) {
+		this.mergeModelsBeforeValidation = mergeModelsBeforeValidation;
+	}
 
     public boolean isSupportMinimalUserInterface() {
 		return supportMinimalUserInterface;
