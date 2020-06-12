@@ -8,3 +8,4 @@ target
 .settings
 .classpath
 **/bin/
+**/.factorypath
