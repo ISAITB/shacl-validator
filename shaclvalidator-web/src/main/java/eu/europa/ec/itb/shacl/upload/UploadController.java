@@ -11,6 +11,7 @@ import eu.europa.ec.itb.shacl.util.Utils;
 import eu.europa.ec.itb.shacl.validation.FileInfo;
 import eu.europa.ec.itb.shacl.validation.FileManager;
 import eu.europa.ec.itb.shacl.validation.SHACLValidator;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFLanguages;
@@ -117,7 +118,7 @@ public class UploadController {
 		// Temporary folder for the request.
 		File parentFolder = fileManager.getRequestTmpFolder();
 
-		File inputFile = null;
+		File inputFile;
 		List<FileInfo> extFiles = null;
         Map<String, Object> attributes = new HashMap<>();
         attributes.put("validationTypes", getValidationTypes(domainConfig));
@@ -133,6 +134,7 @@ public class UploadController {
 		}
         org.apache.jena.rdf.model.Model reportModel;
 		org.apache.jena.rdf.model.Model aggregatedShapes;
+		boolean forceCleanup = false;
         try {
 			if(StringUtils.isEmpty(contentSyntaxType) || contentSyntaxType.equals("empty")) {
 				if(!contentType.equals(contentType_string)) {
@@ -164,18 +166,16 @@ public class UploadController {
 					aggregatedShapes =  validator.getAggregatedShapes();
 
 					TAR TARreport = Utils.getTAR(reportModel, inputFile.toPath(), aggregatedShapes, domainConfig);
-					attributes.put("report", TARreport);
-					attributes.put("date", TARreport.getDate().toString());
 
 					File pdfReport = new File(parentFolder, fileName_report+".pdf");
 					reportGenerator.writeReport(domainConfig, TARreport, pdfReport);
-
+					String fileName;
 					if(contentType.equals(contentType_file)) {
-						attributes.put("fileName", file.getOriginalFilename());
+						fileName=  file.getOriginalFilename();
 					} else if(contentType.equals(contentType_uri)) {
-						attributes.put("fileName", uri);
+						fileName = uri;
 					} else {
-						attributes.put("fileName", "-");
+						fileName = "-";
 					}
 					try (FileWriter out = new FileWriter(fileManager.getTargetFilePath(parentFolder, domainConfig.getDefaultReportSyntax(), fileName_report).toFile())) {
 						fileManager.writeRdfModel(out, reportModel, domainConfig.getDefaultReportSyntax());
@@ -183,20 +183,34 @@ public class UploadController {
 					try (FileWriter out = new FileWriter(fileManager.getTargetFilePath(parentFolder, domainConfig.getDefaultReportSyntax(), fileName_shapes).toFile())) {
 						fileManager.writeRdfModel(out, aggregatedShapes, domainConfig.getDefaultReportSyntax());
 					}
+					// All ok - add attributes for the UI.
 					attributes.put("reportID", parentFolder.getName());
+					attributes.put("fileName", fileName);
+					attributes.put("report", TARreport);
+					attributes.put("date", TARreport.getDate().toString());
 				}
 			}
 		} catch (ValidatorException e) {
 			logger.error(e.getMessage(), e);
 			attributes.put("message", e.getMessage());
+			forceCleanup = true;
 		} catch (Exception e) {
             logger.error("An error occurred during the validation [" + e.getMessage() + "]", e);
-            attributes.put("message", "An error occurred during the validation [" + e.getMessage() + "]");
+            if (e.getMessage() != null) {
+				attributes.put("message", "An error occurred during the validation [" + e.getMessage() + "]");
+			} else {
+				attributes.put("message", "An error occurred during the validation");
+			}
+			forceCleanup = true;
         } finally {
         	/*
         	In the web UI case the cleanup cannot fully remove the temp folder as we need to keep the reports.
         	 */
-        	fileManager.removeContentToValidate(null, extFiles);
+        	if (forceCleanup) {
+				FileUtils.deleteQuietly(parentFolder);
+			} else {
+				fileManager.removeContentToValidate(null, extFiles);
+			}
 		}
         return new ModelAndView("uploadForm", attributes);
     }

@@ -29,6 +29,10 @@
             <artifactId>gitb-types</artifactId>
         </dependency>
         <dependency>
+            <groupId>eu.europa.ec.itb.shacl</groupId>
+            <artifactId>shaclvalidator-plugins</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-configuration2</artifactId>
         </dependency>
