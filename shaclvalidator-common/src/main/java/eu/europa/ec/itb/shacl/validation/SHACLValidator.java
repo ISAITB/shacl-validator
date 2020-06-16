@@ -1,15 +1,24 @@
 package eu.europa.ec.itb.shacl.validation;
 
+import com.gitb.core.AnyContent;
+import com.gitb.core.ValueEmbeddingEnumeration;
+import com.gitb.tr.BAR;
+import com.gitb.tr.TestAssertionReportType;
+import com.gitb.vs.ValidateRequest;
+import com.gitb.vs.ValidationResponse;
+import eu.europa.ec.itb.plugin.PluginManager;
+import eu.europa.ec.itb.plugin.ValidationPlugin;
 import eu.europa.ec.itb.shacl.DomainConfig;
+import eu.europa.ec.itb.shacl.DomainPluginConfigProvider;
 import eu.europa.ec.itb.shacl.errors.ValidatorException;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.jena.ontology.OntModel;
 import org.apache.jena.ontology.OntModelSpec;
-import org.apache.jena.rdf.model.Model;
-import org.apache.jena.rdf.model.ModelFactory;
-import org.apache.jena.rdf.model.ModelMaker;
-import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.rdf.model.*;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFLanguages;
+import org.apache.jena.vocabulary.RDF;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,13 +27,11 @@ import org.springframework.stereotype.Component;
 import org.topbraid.jenax.util.JenaUtil;
 import org.topbraid.shacl.validation.ValidationUtil;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import javax.xml.bind.JAXBElement;
+import java.io.*;
+import java.util.*;
+
+import static eu.europa.ec.itb.shacl.validation.SHACLResources.VALIDATION_REPORT;
 
 /**
  * 
@@ -35,15 +42,20 @@ import java.util.Set;
 @Scope("prototype")
 public class SHACLValidator {
 
-    private static final Logger logger = LoggerFactory.getLogger(SHACLValidator.class);
+    private static final Logger LOG = LoggerFactory.getLogger(SHACLValidator.class);
 
     @Autowired
-    private FileManager fileManager;
+    private FileManager fileManager = null;
+    @Autowired
+    private PluginManager pluginManager = null;
+    @Autowired
+    private DomainPluginConfigProvider pluginConfigProvider = null;
 
     private File inputFileToValidate;
     private final DomainConfig domainConfig;
     private String validationType;
     private String contentSyntax;
+    private Lang contentSyntaxLang;
     private List<FileInfo> filesInfo;
     private Model aggregatedShapes;
     private Model importedShapes;
@@ -72,10 +84,125 @@ public class SHACLValidator {
      * @return The Jena model with the report.
      */
     public Model validateAll() {
-    	logger.info("Starting validation..");
-        return validateAgainstShacl();
+    	LOG.info("Starting validation..");
+    	Model validationReport = validateAgainstShacl();
+        return validateAgainstPlugins(validationReport);
     }
-    
+
+    private AnyContent createPluginInputItem(String name, String value) {
+        AnyContent input = new AnyContent();
+        input.setName(name);
+        input.setValue(value);
+        input.setEmbeddingMethod(ValueEmbeddingEnumeration.STRING);
+        return input;
+    }
+
+    private ValidateRequest preparePluginInput(File pluginTmpFolder) {
+        // The content to validate is provided to plugins as a copu of the content in RDF/XML (for simpler processing).
+        File pluginInputFile = new File(pluginTmpFolder, UUID.randomUUID().toString()+".rdf");
+        Lang contentSyntax = contextSyntaxToUse();
+        if (Lang.RDFXML.equals(contentSyntax)) {
+            // Use file as-is.
+            try {
+                FileUtils.copyFile(inputFileToValidate, pluginInputFile);
+            } catch (IOException e) {
+                throw new IllegalStateException("Unable to copy input file for plugin", e);
+            }
+        } else {
+            // Make a converted copy.
+            Model fileModel = JenaUtil.createMemoryModel();
+            try (FileInputStream in = new FileInputStream(inputFileToValidate); FileWriter out = new FileWriter(pluginInputFile)) {
+                fileModel.read(in, null, contentSyntax.getContentType().getContentType());
+                fileManager.writeRdfModel(out, fileModel, Lang.RDFXML.getContentType().getContentType());
+            } catch (IOException e) {
+                throw new IllegalStateException("Unable to convert input file for plugin", e);
+            }
+        }
+        ValidateRequest request = new ValidateRequest();
+        request.getInput().add(createPluginInputItem("contentToValidate", pluginInputFile.getAbsolutePath()));
+        request.getInput().add(createPluginInputItem("domain", domainConfig.getDomainName()));
+        request.getInput().add(createPluginInputItem("validationType", validationType));
+        request.getInput().add(createPluginInputItem("tempFolder", pluginTmpFolder.getAbsolutePath()));
+        return request;
+    }
+
+    private Model validateAgainstPlugins(Model validationReport) {
+        ValidationPlugin[] plugins =  pluginManager.getPlugins(pluginConfigProvider.getPluginClassifier(domainConfig, validationType));
+        if (plugins != null && plugins.length > 0) {
+            File pluginTmpFolder = new File(inputFileToValidate.getParentFile(), UUID.randomUUID().toString());
+            try {
+                pluginTmpFolder.mkdirs();
+                ValidateRequest pluginInput = preparePluginInput(pluginTmpFolder);
+                for (ValidationPlugin plugin: plugins) {
+                    String pluginName = plugin.getName();
+                    ValidationResponse response = plugin.validate(pluginInput);
+                    if (response != null && response.getReport() != null && response.getReport().getReports() != null) {
+                        LOG.info("Plugin [{}] produced [{}] report item(s).", pluginName, response.getReport().getReports().getInfoOrWarningOrError().size());
+                        Resource reportResource = validationReport.listSubjectsWithProperty(RDF.type, VALIDATION_REPORT).nextResource();
+                        if (!response.getReport().getReports().getInfoOrWarningOrError().isEmpty()) {
+                            // Ensure the overall result is set to a failure if needed.
+                            Statement conformsStatement = reportResource.getProperty(SHACLResources.CONFORMS);
+                            if (conformsStatement.getBoolean()) {
+                                conformsStatement.changeLiteralObject(false);
+                            }
+                            // Add plugin results to report.
+                            List<Statement> statements = new ArrayList<>();
+                            for (JAXBElement<TestAssertionReportType> item: response.getReport().getReports().getInfoOrWarningOrError()) {
+                                if (item.getValue() instanceof BAR) {
+                                    if (StringUtils.isBlank(((BAR) item.getValue()).getLocation())) {
+                                        LOG.warn("Plugin [{}] report item without location. Skipping.", pluginName);
+                                    } else if (StringUtils.isBlank(((BAR) item.getValue()).getAssertionID())) {
+                                        LOG.warn("Plugin [{}] report item without assertion ID. Skipping.", pluginName);
+                                    } else {
+                                        Resource itemResource = validationReport.createResource();
+                                        statements.add(validationReport.createStatement(reportResource, SHACLResources.RESULT, itemResource));
+                                        // Map TDL report item to validation result:
+                                        statements.add(validationReport.createStatement(itemResource, RDF.type, validationReport.createResource(SHACLResources.SHACL_VALIDATION_RESULT)));
+                                        // Description -> result message
+                                        if (StringUtils.isNotBlank(((BAR)item.getValue()).getDescription())) {
+                                            statements.add(validationReport.createLiteralStatement(itemResource, SHACLResources.RESULT_MESSAGE, ((BAR)item.getValue()).getDescription()));
+                                        }
+                                        // Location -> focus node (e.g. "http://my.sample.po/po#item3")
+                                        statements.add(validationReport.createStatement(itemResource, SHACLResources.FOCUS_NODE, validationReport.createResource(((BAR) item.getValue()).getLocation())));
+                                        // Item name -> severity
+                                        statements.add(validationReport.createStatement(itemResource, SHACLResources.RESULT_SEVERITY, validationReport.createResource(getShaclSeverity(item.getName().getLocalPart()))));
+                                        // Assertion ID -> source constraint component (e.g. "http://www.w3.org/ns/shacl#MinExclusiveConstraintComponent")
+                                        statements.add(validationReport.createStatement(itemResource, SHACLResources.SOURCE_CONSTRAINT_COMPONENT, validationReport.createResource(((BAR) item.getValue()).getAssertionID())));
+                                        // Value -> value
+                                        if (StringUtils.isNotBlank(((BAR)item.getValue()).getValue())) {
+                                            statements.add(validationReport.createLiteralStatement(itemResource, SHACLResources.VALUE, ((BAR) item.getValue()).getValue()));
+                                        }
+                                        // Test -> result path (e.g. "http://itb.ec.europa.eu/sample/po#quantity")
+                                        if (StringUtils.isNotBlank(((BAR)item.getValue()).getTest())) {
+                                            statements.add(validationReport.createStatement(itemResource, SHACLResources.RESULT_PATH, validationReport.createResource(((BAR) item.getValue()).getTest())));
+                                        }
+                                    }
+                                } else {
+                                    LOG.warn("Plugin [{}] report item that is not instance of BAR. Skipping.", pluginName);
+                                }
+                            }
+                            validationReport.add(statements);
+                        }
+                    }
+                }
+            } finally {
+                // Cleanup plugin tmp folder.
+                FileUtils.deleteQuietly(pluginTmpFolder);
+            }
+        }
+        return validationReport;
+    }
+
+    private String getShaclSeverity(String tdlItemType) {
+        if ("error".equals(tdlItemType)) {
+            return SHACLResources.SHACL_VIOLATION;
+        } else if ("warning".equals(tdlItemType)) {
+            return SHACLResources.SHACL_WARNING;
+        } else {
+            return SHACLResources.SHACL_INFO;
+        }
+    }
+
     /**
      * Validation of the model
      * @return Model The Jena model with the report
@@ -84,14 +211,20 @@ public class SHACLValidator {
         try {
             fileManager.signalValidationStart(domainConfig.getDomainName());
             List<FileInfo> shaclFiles = fileManager.getAllShaclFiles(domainConfig, validationType, filesInfo);
-            if (shaclFiles.isEmpty()) {
-                throw new ValidatorException("No SHACL files are defined for the validation.");
-            } else {
-                return validateShacl(shaclFiles);
-            }
+            return validateShacl(shaclFiles);
         } finally {
             fileManager.signalValidationEnd(domainConfig.getDomainName());
         }
+    }
+
+    private Model emptyValidationReport() {
+        Model reportModel = ModelFactory.createDefaultModel();
+        List<Statement> statements = new ArrayList<>();
+        Resource reportResource = reportModel.createResource();
+        statements.add(reportModel.createStatement(reportResource, RDF.type, VALIDATION_REPORT));
+        statements.add(reportModel.createLiteralStatement(reportResource, SHACLResources.CONFORMS, true));
+        reportModel.add(statements);
+        return reportModel;
     }
 
     /**
@@ -99,16 +232,21 @@ public class SHACLValidator {
      * @param shaclFiles The SHACL files
      * @return Model The Jena Model with the report
      */
-    private Model validateShacl(List<FileInfo> shaclFiles){
-        // Get data to validate from file
-        this.aggregatedShapes = getShapesModel(shaclFiles);
-        Model dataModel = getDataModel(inputFileToValidate, this.aggregatedShapes);
-
-        // Perform the validation of data, using the shapes model. Do not validate any shapes inside the data model.
-        Resource resource = ValidationUtil.validateModel(dataModel, this.aggregatedShapes, false);
-        Model reportModel = resource.getModel();
-        reportModel.setNsPrefix("sh", "http://www.w3.org/ns/shacl#");
-    	return reportModel;
+    private Model validateShacl(List<FileInfo> shaclFiles) {
+        Model reportModel;
+        if (shaclFiles.isEmpty()) {
+            reportModel = emptyValidationReport();
+            this.aggregatedShapes = ModelFactory.createDefaultModel();
+        } else {
+            // Get data to validate from file
+            this.aggregatedShapes = getShapesModel(shaclFiles);
+            Model dataModel = getDataModel(inputFileToValidate, this.aggregatedShapes);
+            // Perform the validation of data, using the shapes model. Do not validate any shapes inside the data model.
+            Resource resource = ValidationUtil.validateModel(dataModel, this.aggregatedShapes, false);
+            reportModel = resource.getModel();
+        }
+        reportModel.setNsPrefix("sh", SHACLResources.NS_SHACL);
+        return reportModel;
     }
 
     /**
@@ -118,7 +256,7 @@ public class SHACLValidator {
     private Model getShapesModel(List<FileInfo> shaclFiles) {
         Model aggregateModel = JenaUtil.createMemoryModel();
         for (FileInfo shaclFile: shaclFiles) {
-            logger.info("Validating against ["+shaclFile.getFile().getName()+"]");
+            LOG.info("Validating against ["+shaclFile.getFile().getName()+"]");
             if (shaclFile.getContentLang() == null) {
                 throw new ValidatorException("Unable to determine the content type of a SHACL shape file.");
             }
@@ -178,7 +316,31 @@ public class SHACLValidator {
         
         return reachedURIs;
     }
-    
+
+    private Lang contextSyntaxToUse() {
+        if (contentSyntaxLang == null) {
+            // Determine language.
+            Lang lang = null;
+            if (this.contentSyntax != null) {
+                lang = RDFLanguages.contentTypeToLang(this.contentSyntax);
+                if (lang != null) {
+                    LOG.info("Using provided data content type ["+this.contentSyntax+"] as ["+lang.getName()+"]");
+                }
+            }
+            if (lang == null) {
+                lang = RDFLanguages.contentTypeToLang(RDFLanguages.guessContentType(inputFileToValidate.getName()));
+                if (lang != null) {
+                    LOG.info("Guessed lang ["+lang.getName()+"] from file ["+inputFileToValidate.getName()+"]");
+                }
+            }
+            if (lang == null) {
+                throw new ValidatorException("The RDF language could not be determined for the provided content.");
+            }
+            contentSyntaxLang = lang;
+        }
+        return contentSyntaxLang;
+    }
+
     /**
      * 
      * @param dataFile File with RDF data
@@ -191,25 +353,8 @@ public class SHACLValidator {
         if (shapesModel != null) {
             dataModel.setNsPrefixes(shapesModel.getNsPrefixMap());
         }
-        // Determine language.
-        Lang lang = null;
-        if (this.contentSyntax != null) {
-            lang = RDFLanguages.contentTypeToLang(this.contentSyntax);
-            if (lang != null) {
-                logger.info("Using provided data content type ["+this.contentSyntax+"] as ["+lang.getName()+"]");
-            }
-        }
-        if (lang == null) {
-            lang = RDFLanguages.contentTypeToLang(RDFLanguages.guessContentType(dataFile.getName()));
-            if (lang != null) {
-                logger.info("Guessed lang ["+lang.getName()+"] from file ["+dataFile.getName()+"]");
-            }
-        }
-        if (lang == null) {
-            throw new ValidatorException("The RDF language could not be determined for the provided content.");
-        }
         try (InputStream dataStream = new FileInputStream(dataFile)) {
-            dataModel.read(dataStream, null, lang.getName());
+            dataModel.read(dataStream, null, contextSyntaxToUse().getName());
         } catch (Exception e) {
             throw new ValidatorException("An error occurred while reading the provided content: "+e.getMessage(), e);
         }

@@ -17,6 +17,7 @@
         <module>shaclvalidator-service</module>
         <module>shaclvalidator-jar</module>
         <module>shaclvalidator-web</module>
+        <module>shaclvalidator-plugins</module>
     </modules>
     <properties>
         <validatorTimestamp>${maven.build.timestamp}</validatorTimestamp>
@@ -80,11 +81,16 @@
                 <artifactId>shaclvalidator-web</artifactId>
                 <version>1.0.0-SNAPSHOT</version>
             </dependency>
+            <dependency>
+                <groupId>eu.europa.ec.itb.shacl</groupId>
+                <artifactId>shaclvalidator-plugins</artifactId>
+                <version>1.0.0-SNAPSHOT</version>
+            </dependency>
             <!-- ITB resources. -->
             <dependency>
                 <groupId>eu.europa.ec.itb</groupId>
                 <artifactId>gitb-types</artifactId>
-                <version>1.6.0</version>
+                <version>1.9.1</version>
             </dependency>
             <dependency>
                 <groupId>com.gitb</groupId>

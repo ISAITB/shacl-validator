@@ -156,3 +156,31 @@ The properties here define how a specific validation domain is configured. They 
 | `validator.supportMinimalUserInterface` | A minimal UI is available if this is enabled. | Boolean | `false` |
 | `validator.bannerHtml` | Configurable HTML banner replacing the text title. | String | - |
 
+# Plugin development
+
+The SHACL validator supports custom plugins to extend the validation report. Plugins are implementations of the GITB validation service API for which the following
+applies. Note that plugin JAR files need to be built as "all-in-one" JARs.
+
+## Input to plugins
+
+The SHACL validator calls plugins in sequence passing in the following input:
+
+| Input name | Type | Description |
+| `contentToValidate` | `String` | The absolute and full path to the input provided to the validator. This is stored in the file system as an RDF/XML file. |
+| `domain` | `String` | The validation domain relevant to the specific validation call. |
+| `validationType` | `String` | The validation type of the domain that is selected for the specific validation call. |
+| `tempFolder` | `String` | The absolute and full path to a temporary folder for plugins. This will be automatically deleted after all plugins complete validation. |
+
+## Output from plugins
+
+The output of plugins is essentially a GITB `ValidationResponse` that wraps a `TAR` instance. The report items within this `TAR` instance are mapped to a SHACL
+validation report as follows (where `sh` below this is a shorthand for `http://www.w3.org/ns/shacl`):
+
+| TAR report item property | sh:ValidationResult property | Required? | Description |
+| --- | --- | --- | --- |
+| `item.location` | `sh#focusNode` | Yes | Set with the IRI of the relevant resource (e.g. `http://my.sample.po/po#item3`). |
+| `item.description` | `sh#resultMessage` | No | The message to be used in the report (this is optional but should be provided). |
+| - | `sh#resultSeverity` | Yes | This is determined by the item's type given its element name (mapping `error`, `warning`, `info` to `sh#Violation`, `sh#Warning`, `sh#Info` respectively). |
+| `item.test` | `sh#resultPath` | No | This is set as an IRI to identify the specific path linked to this (e.g. `http://itb.ec.europa.eu/sample/po#quantity`). |
+| `item.assertionID` | `sh#sourceConstraintComponent` | Yes | Set as an IRI for the source contraint component using the values defined in the SHACL specification (e.g. `sh#MinExclusiveConstraintComponent`). |
+| `item.value` | `sh#value` | No | Optionally set as a literal string in case a value should be included. |
