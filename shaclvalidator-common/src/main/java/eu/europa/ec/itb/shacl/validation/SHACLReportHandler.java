@@ -87,7 +87,7 @@ public class SHACLReportHandler {
             NodeIterator niResult = this.shaclReport.listObjectsOfProperty(this.shaclReport.getProperty("http://www.w3.org/ns/shacl#conforms"));
             NodeIterator niValidationResult = this.shaclReport.listObjectsOfProperty(this.shaclReport.getProperty("http://www.w3.org/ns/shacl#result"));
             ArrayList reports = new ArrayList();
-        	
+
             if(niResult.hasNext() && !niResult.next().asLiteral().getBoolean()) {
             	while(niValidationResult.hasNext()) {
             		RDFNode node = niValidationResult.next();
@@ -121,8 +121,8 @@ public class SHACLReportHandler {
                             value = getStatementSafe(statement);
                         }
             		}
-            		error.setLocation(createStringMessageFromParts(new String [] {"[%s]", " [%s]", "[%s]", " [%s]"}, new String[] {domainConfig.getLabel().getReportItemFocusNode(), focusNode, domainConfig.getLabel().getReportItemResultPath(), resultPath}));
-                    error.setTest(createStringMessageFromParts(new String [] {"[%s]", " [%s]", "[%s]"," [%s]"}, new String[] {domainConfig.getLabel().getReportItemShape(), shape, domainConfig.getLabel().getReportItemValue(), value}));
+            		error.setLocation(createStringMessageFromParts(new String[] {domainConfig.getLabel().getReportItemFocusNode(), domainConfig.getLabel().getReportItemResultPath()}, new String[] {focusNode, resultPath}));
+                    error.setTest(createStringMessageFromParts(new String[] {domainConfig.getLabel().getReportItemShape(), domainConfig.getLabel().getReportItemValue()}, new String[] {shape, value}));
                     JAXBElement element;
                     if (severity.equals("http://www.w3.org/ns/shacl#Info")) {
                         element = this.objectFactory.createTestAssertionGroupReportsTypeInfo(error);
@@ -164,17 +164,17 @@ public class SHACLReportHandler {
 		return this.report;
 	}
 
-    private String createStringMessageFromParts(String[] messageParts, String[] values) {
-	    if (messageParts.length != values.length) {
-            throw new IllegalArgumentException("Wrong number of arguments supplied ["+messageParts.length+"]["+values.length+"]");
+    private String createStringMessageFromParts(String[] labels, String[] values) {
+	    if (labels.length != values.length) {
+            throw new IllegalArgumentException("Wrong number of arguments supplied ["+labels.length+"]["+values.length+"]");
         }
         StringBuilder str = new StringBuilder();
-        for (int i=0; i < messageParts.length; i++) {
+        for (int i=0; i < labels.length; i++) {
 	        if (StringUtils.isNotBlank(values[i])) {
-	            str.append(String.format(messageParts[i], values[i]));
-                if ((messageParts.length > i+1) && StringUtils.isNotBlank(values[i+1])) {
-                    str.append(" - ");
+	            if (str.length() > 0) {
+	                str.append(" - ");
                 }
+	            str.append(String.format("[%s] - [%s]", labels[i], values[i]));
             }
         }
         if (str.length() > 0) {

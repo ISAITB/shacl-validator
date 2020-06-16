@@ -3,6 +3,7 @@ package eu.europa.ec.itb.shacl.validation;
 import eu.europa.ec.itb.shacl.ApplicationConfig;
 import eu.europa.ec.itb.shacl.DomainConfig;
 import eu.europa.ec.itb.shacl.DomainConfigCache;
+import eu.europa.ec.itb.shacl.errors.ValidatorException;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -375,8 +376,9 @@ public class FileManager {
 		} else {
 			try {
 				rdfModel.write(outputWriter, lang.getName());
-			}catch(Exception e) {
-				rdfModel.write(outputWriter, null);
+			} catch(Exception e) {
+				logger.error("Error writing RDF model", e);
+				throw new IllegalStateException("Error writing RDF model", e);
 			}
 		}
 	}

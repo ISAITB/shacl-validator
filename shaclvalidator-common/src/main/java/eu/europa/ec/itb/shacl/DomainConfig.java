@@ -1,5 +1,7 @@
 package eu.europa.ec.itb.shacl;
 
+import eu.europa.ec.itb.plugin.PluginInfo;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -22,6 +24,9 @@ public class DomainConfig {
     private Map<String, String> webServiceDescription;
     private boolean reportsOrdered;
     private boolean supportMinimalUserInterface;
+    // Plugin configuration.
+    private List<PluginInfo> pluginDefaultConfig;
+    private Map<String, List<PluginInfo>> pluginPerTypeConfig;
     private boolean mergeModelsBeforeValidation;
     //UI
     private List<String> webContentSyntax;
@@ -39,7 +44,23 @@ public class DomainConfig {
     public DomainConfig(boolean isDefined) {
         this.isDefined = isDefined;
     }
-    
+
+    public List<PluginInfo> getPluginDefaultConfig() {
+        return pluginDefaultConfig;
+    }
+
+    public void setPluginDefaultConfig(List<PluginInfo> pluginDefaultConfig) {
+        this.pluginDefaultConfig = pluginDefaultConfig;
+    }
+
+    public Map<String, List<PluginInfo>> getPluginPerTypeConfig() {
+        return pluginPerTypeConfig;
+    }
+
+    public void setPluginPerTypeConfig(Map<String, List<PluginInfo>> pluginPerTypeConfig) {
+        this.pluginPerTypeConfig = pluginPerTypeConfig;
+    }
+
     public void setExternalShapes(Map<String, Boolean> externalShapes) {
     	this.externalShapes = externalShapes;
     }
@@ -214,7 +235,6 @@ public class DomainConfig {
 	public void setWebContentSyntax(List<String> webContentSyntax) {
 		this.webContentSyntax = webContentSyntax;
 	}
-
 
 	public static class ShaclFileInfo {
     	String localFolder;
