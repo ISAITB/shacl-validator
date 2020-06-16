@@ -166,6 +166,7 @@ applies. Note that plugin JAR files need to be built as "all-in-one" JARs.
 The SHACL validator calls plugins in sequence passing in the following input:
 
 | Input name | Type | Description |
+| --- | --- | --- |
 | `contentToValidate` | `String` | The absolute and full path to the input provided to the validator. This is stored in the file system as an RDF/XML file. |
 | `domain` | `String` | The validation domain relevant to the specific validation call. |
 | `validationType` | `String` | The validation type of the domain that is selected for the specific validation call. |
