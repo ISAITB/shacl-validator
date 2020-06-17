@@ -26,7 +26,7 @@ installation.
 Issue `mvn clean install`
 
 The resulting artefacts can then be retrieved from:
-- `shaclvalidator-service` when running as a web app
+- `shaclvalidator-war` when running as a web app
 - `shaclvalidator-jar` when running as a command line tool
 
 ## For development
@@ -35,7 +35,7 @@ An `application-dev.properties` configuration file is present in the `shaclvalid
 to easily run from an IDE or a completely separate configuration file can be provided from an external config location.
 
 To run change first to the required module:
-- `shaclvalidator-service` to run as a web app
+- `shaclvalidator-war` to run as a web app
 - `shaclvalidator-jar` to run as a command line tool
 
 Then, from this directory do
