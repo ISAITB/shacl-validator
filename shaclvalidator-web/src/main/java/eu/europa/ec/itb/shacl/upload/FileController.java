@@ -2,9 +2,9 @@ package eu.europa.ec.itb.shacl.upload;
 
 import eu.europa.ec.itb.shacl.DomainConfig;
 import eu.europa.ec.itb.shacl.DomainConfigCache;
-import eu.europa.ec.itb.shacl.ValidatorChannel;
-import eu.europa.ec.itb.shacl.upload.errors.NotFoundException;
 import eu.europa.ec.itb.shacl.validation.FileManager;
+import eu.europa.ec.itb.validation.commons.ValidatorChannel;
+import eu.europa.ec.itb.validation.commons.web.errors.NotFoundException;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.filefilter.TrueFileFilter;
@@ -75,7 +75,7 @@ public class FileController {
 			}
 			extension = "pdf";
 		} else {
-			extension = fileManager.getExtensionForContentType(syntax);
+			extension = fileManager.getFileExtension(syntax);
 		}
 		File targetFile = new File(tmpFolder, baseFileName+"."+extension);
 		if (!targetFile.exists()) {

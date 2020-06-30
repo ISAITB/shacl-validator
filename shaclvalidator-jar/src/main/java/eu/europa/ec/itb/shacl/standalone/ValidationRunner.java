@@ -2,17 +2,18 @@ package eu.europa.ec.itb.shacl.standalone;
 
 
 import com.gitb.tr.TAR;
-import com.google.common.base.Strings;
 import eu.europa.ec.itb.shacl.DomainConfig;
 import eu.europa.ec.itb.shacl.DomainConfigCache;
-import eu.europa.ec.itb.shacl.errors.ValidatorException;
 import eu.europa.ec.itb.shacl.util.Utils;
-import eu.europa.ec.itb.shacl.validation.FileInfo;
 import eu.europa.ec.itb.shacl.validation.FileManager;
 import eu.europa.ec.itb.shacl.validation.FileReport;
 import eu.europa.ec.itb.shacl.validation.SHACLValidator;
+import eu.europa.ec.itb.validation.commons.FileInfo;
+import eu.europa.ec.itb.validation.commons.artifact.ExternalArtifactSupport;
+import eu.europa.ec.itb.validation.commons.error.ValidatorException;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jena.atlas.web.ContentType;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.riot.Lang;
@@ -59,27 +60,20 @@ public class ValidationRunner {
     @PostConstruct
     public void init() {
         // Determine the domain configuration.
-        DomainConfig[] domainConfigurations = domainConfigCache.getAllDomainConfigurations();
+        List<DomainConfig> domainConfigurations = domainConfigCache.getAllDomainConfigurations();
         
-        if (domainConfigurations.length == 1) {
-            this.domainConfig = domainConfigurations[0];
-        } else if (domainConfigurations.length > 1) {
+        if (domainConfigurations.size() == 1) {
+            this.domainConfig = domainConfigurations.get(0);
+        } else if (domainConfigurations.size() > 1) {
             StringBuilder message = new StringBuilder();
             message.append("A specific validation domain needs to be selected. Do this by supplying the -Dvalidator.domain argument. Possible values for this are [");
-        	
-        	for(int i=0; i<domainConfigurations.length; i++) {
-        		DomainConfig dc = domainConfigurations[i];
+        	for (DomainConfig dc: domainConfigurations) {
         		message.append(dc.getDomainName());
-        		
-        		if(i<domainConfigurations.length-1) {
-        			message.append("|");
-        		}
+                message.append("|");
         	}
-        	message.append("].");
-        	
+        	message.delete(message.length()-1, message.length()).append("].");
             loggerFeedback.info(message.toString());
             logger.error(message.toString());
-            
             throw new IllegalArgumentException();
         } else {
         	String message = "No validation domains could be found.";
@@ -98,6 +92,7 @@ public class ValidationRunner {
         boolean requireType = domainConfig.hasMultipleValidationTypes();
 
         String reportSyntax = null;
+        String inputContentType = null;
         String type = null;
         
         if (!requireType) {
@@ -128,7 +123,7 @@ public class ValidationRunner {
                         }
                     } else if ("-contentToValidate".equalsIgnoreCase(args[i])) {
                         //File or URI and content lang
-                        String contentToValidate = null;
+                        String contentToValidate;
                         String contentSyntax = null;
 
                         if (args.length > i+1) {
@@ -137,7 +132,8 @@ public class ValidationRunner {
                             if(args.length > i+1 && !args[i+1].startsWith("-")) {
                                 contentSyntax = args[++i];
                             }
-                            File inputFile = getContent(contentToValidate, contentSyntax, parentFolder, "inputFile."+inputs.size());
+                            inputContentType = contentSyntax;
+                            File inputFile = getContent(contentToValidate, inputContentType, parentFolder, "inputFile."+inputs.size());
                             inputs.add(new ValidationInput(inputFile, type, contentToValidate));
                         }
                     } else if ("-externalShapes".equalsIgnoreCase(args[i])) {
@@ -166,8 +162,8 @@ public class ValidationRunner {
 
                     throw new IllegalArgumentException(sb.toString());
                 }
-                Boolean hasExternalShapes = domainConfig.getExternalShapes().get(type);
-                if ((hasExternalShapes == null || !hasExternalShapes) && externalShapesList.size()>0) {
+                boolean hasExternalShapes = domainConfig.getShapeInfo(type).getExternalArtifactSupport() != ExternalArtifactSupport.NONE;
+                if (!hasExternalShapes && externalShapesList.size() > 0) {
                     throw new ValidatorException(String.format("Loading external shape files is not supported for validation type [%s] of domain [%s].", type, domainConfig.getDomainName()));
                 }
 
@@ -192,7 +188,7 @@ public class ValidationRunner {
                     File inputFile = input.getInputFile();
 
                     try {
-                        SHACLValidator validator = applicationContext.getBean(SHACLValidator.class, inputFile, type, FilenameUtils.getExtension(inputFile.getAbsolutePath()), externalShapesList, domainConfig);
+                        SHACLValidator validator = applicationContext.getBean(SHACLValidator.class, inputFile, type, inputContentType, externalShapesList, domainConfig);
                         Model report = validator.validateAll();
 
                         String outputData = getShaclReport(report, reportSyntax);
@@ -203,7 +199,7 @@ public class ValidationRunner {
 
                         summary.append("\n").append(reporter.toString()).append("\n");
                         if (!noReports) {
-                            File out = fileManager.getStringFile(f, outputData, reportSyntax, "report."+i);
+                            File out = fileManager.getFileFromString(f, outputData, reportSyntax, "report."+i);
 
                             summary.append("- Detailed report in: [").append(out.getAbsolutePath()).append("] \n");
                         }
@@ -285,7 +281,7 @@ public class ValidationRunner {
      * @return
      */
     private boolean validReportSyntax(String syntax) {
-    	if(!Strings.isNullOrEmpty(syntax)) {
+    	if(!StringUtils.isBlank(syntax)) {
     		Lang lang = RDFLanguages.contentTypeToLang(syntax.toLowerCase());
 		
 			return lang != null;
@@ -298,63 +294,59 @@ public class ValidationRunner {
      * Get the content and save it in the folder
      * @return File
      */
-    private File getContent(String contentToValidate, String contentSyntax, File parentFolder, String filename) {
-        File inputFile = new File(contentToValidate);
+    private File getContent(String file, String contentType, File parentFolder, String filename) {
+        File inputFile = new File(file);
         
     	try {
-        	contentSyntax = getSyntax(contentToValidate, contentSyntax);
-        	boolean validSyntax = validReportSyntax(contentSyntax);
-			Lang langExtension = RDFLanguages.contentTypeToLang(contentSyntax); 
+        	contentType = getContentType(file, contentType);
+        	boolean validSyntax = validReportSyntax(contentType);
+			Lang langExtension = RDFLanguages.contentTypeToLang(contentType);
 			
             if(!inputFile.exists() || !inputFile.isFile() || !inputFile.canRead()) {           	
             	
             	if(validSyntax && langExtension!=null) {
             	    try {
-            	        new URL(contentToValidate);
-                        inputFile = this.fileManager.getURLFile(parentFolder, contentToValidate, langExtension.getFileExtensions().get(0), filename);
+            	        new URL(file);
+                        inputFile = this.fileManager.getFileFromURL(parentFolder, file, langExtension.getFileExtensions().get(0), filename);
                     } catch (MalformedURLException e) {
-                        throw new IllegalArgumentException("Unable to load content from ["+contentToValidate+"]");
+                        throw new IllegalArgumentException("Unable to load content from ["+file+"]");
                     }
             	}else {
-                    throw new IllegalArgumentException("Unknown content syntax ["+contentSyntax+"]");		
+                    throw new IllegalArgumentException("Unknown content syntax ["+contentType+"]");
             	}
             }else {
-            	inputFile = this.fileManager.getInputStreamFile(parentFolder, new FileInputStream(inputFile), contentSyntax, FilenameUtils.removeExtension(inputFile.getName()));
+            	inputFile = this.fileManager.getFileFromInputStream(parentFolder, new FileInputStream(inputFile), contentType, FilenameUtils.removeExtension(inputFile.getName()));
             }
             if (!inputFile.exists() || !inputFile.isFile() || !inputFile.canRead()) {
-                throw new IllegalArgumentException("Unable to read file or URL ["+contentToValidate+"]");
+                throw new IllegalArgumentException("Unable to read file or URL ["+file+"]");
             }
         }catch(IOException e) {
-            throw new IllegalArgumentException("Unable to read file or URL ["+contentToValidate+"]");
+            throw new IllegalArgumentException("Unable to read file or URL ["+file+"]");
         }
     	
     	return inputFile;
     }
     
-    private String getSyntax(String contentToValidate, String contentSyntax) {
-    	if(Strings.isNullOrEmpty(contentSyntax)) {
+    private String getContentType(String contentToValidate, String contentType) {
+    	if (StringUtils.isBlank(contentType)) {
     		ContentType ct = RDFLanguages.guessContentType(contentToValidate);
-    		
     		if(ct!=null) {
-    			contentSyntax = ct.getContentType();
+    			contentType = ct.getContentType();
     		}
     	}
-    	
-		return contentSyntax;
+		return contentType;
 	}
 
 	/**
      * Validate the content syntax and save the external shapes
      * @return FileInfo
      */
-    private FileInfo getExternalShapes(String file, String contentLang, File parentFolder) {
-		File f = getContent(file, contentLang, parentFolder, UUID.randomUUID().toString()+"."+FilenameUtils.getExtension(file));
-		contentLang = getSyntax(file, contentLang);
+    private FileInfo getExternalShapes(String file, String contentType, File parentFolder) {
+		File f = getContent(file, contentType, parentFolder, UUID.randomUUID().toString()+"."+FilenameUtils.getExtension(file));
+		contentType = getContentType(file, contentType);
 				
-		if(validReportSyntax(contentLang)) {
-			Lang langExtension = RDFLanguages.contentTypeToLang(contentLang); 
-
-			return new FileInfo(f, langExtension.getFileExtensions().get(0));
+		if(validReportSyntax(contentType)) {
+			return new FileInfo(f, contentType);
 		}else {
             throw new IllegalArgumentException("The RDF language could not be determined for the provided external shape ["+file+"]");			
 		}

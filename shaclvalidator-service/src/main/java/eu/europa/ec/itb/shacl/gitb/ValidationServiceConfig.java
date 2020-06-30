@@ -14,7 +14,7 @@ import org.springframework.context.annotation.Configuration;
 
 import eu.europa.ec.itb.shacl.DomainConfig;
 import eu.europa.ec.itb.shacl.DomainConfigCache;
-import eu.europa.ec.itb.shacl.ValidatorChannel;
+import eu.europa.ec.itb.validation.commons.ValidatorChannel;
 
 /**
  * Configuration class responsible for creating the Spring beans required by the service.

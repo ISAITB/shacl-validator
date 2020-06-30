@@ -1,16 +1,22 @@
 package eu.europa.ec.itb.shacl.rest;
 
-import eu.europa.ec.itb.shacl.*;
-import eu.europa.ec.itb.shacl.rest.errors.NotFoundException;
-import eu.europa.ec.itb.shacl.errors.ValidatorException;
+import com.gitb.core.ValueEmbeddingEnumeration;
+import eu.europa.ec.itb.shacl.ApplicationConfig;
+import eu.europa.ec.itb.shacl.DomainConfig;
+import eu.europa.ec.itb.shacl.DomainConfigCache;
+import eu.europa.ec.itb.shacl.InputHelper;
 import eu.europa.ec.itb.shacl.rest.model.ApiInfo;
 import eu.europa.ec.itb.shacl.rest.model.Input;
 import eu.europa.ec.itb.shacl.rest.model.Output;
 import eu.europa.ec.itb.shacl.rest.model.RuleSet;
-import eu.europa.ec.itb.shacl.validation.FileContent;
-import eu.europa.ec.itb.shacl.validation.FileInfo;
 import eu.europa.ec.itb.shacl.validation.FileManager;
 import eu.europa.ec.itb.shacl.validation.SHACLValidator;
+import eu.europa.ec.itb.validation.commons.FileContent;
+import eu.europa.ec.itb.validation.commons.FileInfo;
+import eu.europa.ec.itb.validation.commons.ValidatorChannel;
+import eu.europa.ec.itb.validation.commons.artifact.ExternalArtifactSupport;
+import eu.europa.ec.itb.validation.commons.error.ValidatorException;
+import eu.europa.ec.itb.validation.commons.web.errors.NotFoundException;
 import io.swagger.annotations.*;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -54,7 +60,8 @@ public class ShaclController {
     @Autowired
 	FileManager fileManager;
     @Autowired
-	ValidatorContent validatorContent;
+	InputHelper inputHelper;
+
     @Value("${validator.acceptedHeaderAcceptTypes}")
 	Set<String> acceptedHeaderAcceptTypes;
     @Value("${validator.hydraServer}")
@@ -103,7 +110,7 @@ public class ShaclController {
 			HttpServletRequest request
 	) {
 		DomainConfig domainConfig = validateDomain(domain);
-		String reportSyntax = getValidateReportSyntax(in.getReportSyntax(), getFirstSupportedAcceptHeader(request), domainConfig.getDefaultReportSyntax());
+		String reportSyntax = getValidationReportSyntax(in.getReportSyntax(), getFirstSupportedAcceptHeader(request), domainConfig.getDefaultReportSyntax());
 
 		//Start validation process of the Input
 		String shaclResult = executeValidationProcess(in, domainConfig, reportSyntax);
@@ -133,28 +140,27 @@ public class ShaclController {
 	
 	/**
 	 * Returns the report syntax of the content to validate
-	 * @param inputRS Report syntax from the Input data
+	 * @param inputReportSyntax Report syntax from the Input data
 	 * @param acceptHeader Report syntax from the Header
-	 * @param defaultRS Default report syntax
+	 * @param defaultReportSyntax Default report syntax
 	 * @return Report syntax as string
 	 */
-	private String getValidateReportSyntax(String inputRS, String acceptHeader, String defaultRS) {
+	private String getValidationReportSyntax(String inputReportSyntax, String acceptHeader, String defaultReportSyntax) {
 		// Consider first the report syntax requested as part of the input properties.
-		String reportSyntax = inputRS;
+		String reportSyntax = inputReportSyntax;
 		if (reportSyntax == null) {
 			// If unspecified consider the first acceptable syntax from the Accept header.
 			reportSyntax = acceptHeader;
 		}
 		if (reportSyntax == null) {
 			// No syntax specified by client - use the configuration default.
-			reportSyntax = defaultRS;
+			reportSyntax = defaultReportSyntax;
 		} else {
 			if (!validReportSyntax(reportSyntax)) {
 				// The requested syntax is invalid.
 				throw new ValidatorException(String.format("The requested report syntax [%s] is not supported.", reportSyntax));
 			}
 		}
-		
 		return reportSyntax;
 	}
 	
@@ -166,17 +172,33 @@ public class ShaclController {
 	 * @return Report of the validation as String.
 	 */
 	private String executeValidationProcess(Input in, DomainConfig domainConfig, String reportSyntax) {
-		// Temporary folder for the request.
-		File parentFolder = fileManager.getRequestTmpFolder();
-		String shaclResult;
+		String validationResult;
 		//Start validation of the input file
+		File parentFolder = fileManager.createTemporaryFolderPath();
 		try {
-			File inputFile = getContentToValidate(in, domainConfig, parentFolder);
-			List<FileInfo> remoteShaclFiles = getExternalShapes(in.getExternalRules(), parentFolder);
-			//Execute one single validation
-			Model shaclReport = executeValidation(inputFile, in, domainConfig, remoteShaclFiles);
+			// Prepare input
+			String validationType = inputHelper.validateValidationType(domainConfig, in.getValidationType());
+			if (domainConfig.getShapeInfo(validationType).getExternalArtifactSupport() != ExternalArtifactSupport.NONE) {
+				if (StringUtils.isBlank(in.getContentSyntax()) && in.getExternalRules() != null) {
+					for (RuleSet rulesSet: in.getExternalRules()) {
+						if (FileContent.isValidEmbeddingMethod(rulesSet.getEmbeddingMethod()) && FileContent.embeddingMethodFromString(rulesSet.getEmbeddingMethod()) == ValueEmbeddingEnumeration.BASE_64) {
+							throw new ValidatorException("External shape files that are provided in BASE64 need to also define their syntax.");
+						}
+					}
+				}
+			} else {
+				if (in.getExternalRules() == null || in.getExternalRules().isEmpty()) {
+					throw new ValidatorException(String.format("Loading external shape files is not supported for validation type [%s] of domain [%s].", validationType, domainConfig.getDomainName()));
+				}
+			}
+			ValueEmbeddingEnumeration embeddingMethod = inputHelper.getEmbeddingMethod(in.getEmbeddingMethod());
+			File inputFile = inputHelper.validateContentToValidate(in.getContentToValidate(), embeddingMethod, parentFolder);
+			List<FileInfo> externalShapes = getExternalShapes(domainConfig, validationType, in.getExternalRules(), parentFolder);
+			// Execute validation
+			SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile, validationType, in.getContentSyntax(), externalShapes, domainConfig);
+			Model validationReport = validator.validateAll();
 			//Process the result according to content-type
-			shaclResult = getShaclReport(shaclReport, reportSyntax);
+			validationResult = getShaclReport(validationReport, reportSyntax);
 		} catch (ValidatorException | NotFoundException e) {
 			throw e;
 		} catch (Exception e) {
@@ -184,7 +206,7 @@ public class ShaclController {
 		} finally {
 			FileUtils.deleteQuietly(parentFolder);
 		}
-		return shaclResult;
+		return validationResult;
 	}
 
 	
@@ -218,7 +240,7 @@ public class ShaclController {
 		int i = 0;
 		for(Input input: inputs) {
 			Output output = new Output();
-			String reportSyntax = getValidateReportSyntax(input.getReportSyntax(), acceptHeader, domainConfig.getDefaultReportSyntax());
+			String reportSyntax = getValidationReportSyntax(input.getReportSyntax(), acceptHeader, domainConfig.getDefaultReportSyntax());
 
 			//Start validation process of the Input
 			String shaclResult = executeValidationProcess(input, domainConfig, reportSyntax);
@@ -247,19 +269,6 @@ public class ShaclController {
     }
     
     /**
-     * Executes the validation
-     * @param inputFile The input RDF (or other) content to validate.
-     * @param input Configuration of the current RDF.
-     * @param domainConfig The domain where the SHACL validator is executed.
-     * @param remoteShaclFiles Any shapes to consider that are externally provided.
-     * @return Model SHACL report
-     */
-    private Model executeValidation(File inputFile, Input input, DomainConfig domainConfig, List<FileInfo> remoteShaclFiles) {
-		SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile, input.getValidationType(), input.getContentSyntax(), remoteShaclFiles, domainConfig);
-		return validator.validateAll();
-    }
-    
-    /**
      * Get report in the provided content type
      * @param shaclReport Model with the report
      * @param reportSyntax Content type
@@ -282,50 +291,13 @@ public class ShaclController {
 		return writer.toString();
     }
 
-    /**
-     * Validates that the JSON send via parameters has all necessary data.
-     * @param input JSON send via REST API
-     * @return File to validate
-     */
-    private File getContentToValidate(Input input, DomainConfig domainConfig, File parentFolder) {
-    	String embeddingMethod = input.getEmbeddingMethod();
-    	String contentToValidate = input.getContentToValidate();
-    	List<RuleSet> externalRules = input.getExternalRules();
-    	String contentSyntax = input.getContentSyntax();
-    	String validationType = input.getValidationType();
-
-    	if (StringUtils.isBlank(contentToValidate)) {
-    		throw new ValidatorException("No content was provided for validation");
-		}
-
-    	//ValidationType validation
-    	validationType = validatorContent.validateValidationType(validationType, domainConfig);
-    	
-    	//ExternalRules validation
-    	Boolean hasExternalShapes = domainConfig.getExternalShapes().get(validationType);
-    	if (externalRules!=null) {
-    		if (!externalRules.isEmpty() && !hasExternalShapes) {
-				throw new ValidatorException(String.format("Loading external shape files is not supported for validation type [%s] of domain [%s].", validationType, domainConfig.getDomainName()));
-			} else {
-				for (RuleSet ruleSet: externalRules) {
-					if (FileContent.embedding_BASE64.equals(ruleSet.getEmbeddingMethod()) && StringUtils.isEmpty(ruleSet.getRuleSyntax())) {
-						throw new ValidatorException("External shape files that are provided in BASE64 need to also define their syntax.");
-					}
-				}
-			}
-		}
-    	
-    	//EmbeddingMethod validation and returns the content    	
-    	return validatorContent.getContentToValidate(embeddingMethod, contentToValidate, contentSyntax, parentFolder);
-    }
-    
-    private List<FileInfo> getExternalShapes(List<RuleSet> externalRules, File parentFolder) {
+    private List<FileInfo> getExternalShapes(DomainConfig domainConfig, String validationType, List<RuleSet> externalRules, File parentFolder) {
 		List<FileInfo> shaclFiles;
 		if (externalRules != null) {
 			try {
-				shaclFiles = fileManager.getRemoteExternalShapes(parentFolder, externalRules.stream().map(RuleSet::toFileContent).collect(Collectors.toList()));
+				shaclFiles = fileManager.getExternalValidationArtifacts(domainConfig, validationType, null, parentFolder, externalRules.stream().map(RuleSet::toFileContent).collect(Collectors.toList()));
 			} catch (Exception e) {
-				throw new ValidatorException("An error occurred while trying to read the provided external shapes.");
+				throw new ValidatorException("An error occurred while trying to read the provided external shapes.", e);
 			}
 		} else {
 			shaclFiles = Collections.emptyList();

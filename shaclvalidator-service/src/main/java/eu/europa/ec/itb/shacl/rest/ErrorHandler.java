@@ -1,8 +1,8 @@
 package eu.europa.ec.itb.shacl.rest;
 
 import eu.europa.ec.itb.shacl.rest.errors.ErrorInfo;
-import eu.europa.ec.itb.shacl.rest.errors.NotFoundException;
-import eu.europa.ec.itb.shacl.errors.ValidatorException;
+import eu.europa.ec.itb.validation.commons.error.ValidatorException;
+import eu.europa.ec.itb.validation.commons.web.errors.NotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;

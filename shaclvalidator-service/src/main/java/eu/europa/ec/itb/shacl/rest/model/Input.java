@@ -3,11 +3,9 @@ package eu.europa.ec.itb.shacl.rest.model;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import eu.europa.ec.itb.validation.commons.FileContent;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
-
-import static eu.europa.ec.itb.shacl.validation.FileContent.embedding_BASE64;
-import static eu.europa.ec.itb.shacl.validation.FileContent.embedding_URL;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @ApiModel(description = "The content and metadata specific to input content that is to be validated.")
@@ -17,7 +15,7 @@ public class Input {
 	private String contentToValidate;
     @ApiModelProperty(notes = "The mime type of the provided RDF content (e.g. \"application/rdf+xml\", \"application/ld+json\", \"text/turtle\"). If not provided the type is determined from the provided content (if possible).")
 	private String contentSyntax;
-    @ApiModelProperty(notes = "The way in which to interpret the contentToValidate. If not provided, the method will be determined from the contentToValidate value (i.e. check it is a valid URL).", allowableValues = embedding_URL+","+embedding_BASE64)
+    @ApiModelProperty(notes = "The way in which to interpret the contentToValidate. If not provided, the method will be determined from the contentToValidate value (i.e. check it is a valid URL).", allowableValues = FileContent.embedding_URL+","+FileContent.embedding_BASE64)
 	private String embeddingMethod;
     @ApiModelProperty(notes = "The type of validation to perform (e.g. the profile to apply or the version to validate against). This can be skipped if a single validation type is supported by the validator. Otherwise, if multiple are supported, the service should fail with an error.")
 	private String validationType;

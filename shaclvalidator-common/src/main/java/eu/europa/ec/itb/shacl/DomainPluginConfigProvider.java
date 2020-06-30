@@ -1,7 +1,7 @@
 package eu.europa.ec.itb.shacl;
 
-import eu.europa.ec.itb.plugin.PluginConfigProvider;
-import eu.europa.ec.itb.plugin.PluginInfo;
+import eu.europa.ec.itb.validation.plugin.PluginConfigProvider;
+import eu.europa.ec.itb.validation.plugin.PluginInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -20,10 +20,7 @@ import java.util.Map;
 public class DomainPluginConfigProvider implements PluginConfigProvider {
 
     @Autowired
-    private ApplicationConfig appConfig;
-
-    @Autowired
-    private DomainConfigCache domainConfigCache;
+    private DomainConfigCache domainConfigCache = null;
 
     /**
      * The plugin classifier is used to split plugin implementations in sets.

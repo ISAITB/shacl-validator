@@ -13,32 +13,56 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.apache.tika</groupId>
-            <artifactId>tika-core</artifactId>
+            <groupId>eu.europa.ec.itb</groupId>
+            <artifactId>gitb-types</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>eu.europa.ec.itb.commons</groupId>
+            <artifactId>validation-commons</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>eu.europa.ec.itb.commons</groupId>
+            <artifactId>validation-plugins</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.jena</groupId>
+            <artifactId>jena-arq</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
         </dependency>
-		<dependency>
-		    <groupId>org.topbraid</groupId>
-		    <artifactId>shacl</artifactId>
-		</dependency>
         <dependency>
-            <groupId>eu.europa.ec.itb</groupId>
-            <artifactId>gitb-types</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
         </dependency>
         <dependency>
-            <groupId>eu.europa.ec.itb.shacl</groupId>
-            <artifactId>shaclvalidator-plugins</artifactId>
+            <groupId>javax.xml.bind</groupId>
+            <artifactId>jaxb-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.glassfish.jaxb</groupId>
+            <artifactId>jaxb-runtime</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.topbraid</groupId>
+            <artifactId>shacl</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>javax.annotation</groupId>
+            <artifactId>javax.annotation-api</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-configuration2</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>commons-beanutils</groupId>
-            <artifactId>commons-beanutils</artifactId>
         </dependency>
     </dependencies>
 </project>
