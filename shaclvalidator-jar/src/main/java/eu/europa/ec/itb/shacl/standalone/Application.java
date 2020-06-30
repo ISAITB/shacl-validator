@@ -20,7 +20,7 @@ import java.util.jar.JarFile;
  * Created by mfontsan on 16/07/2019.
  */
 @SpringBootApplication
-@ComponentScan("eu.europa.ec.itb.shacl")
+@ComponentScan("eu.europa.ec.itb")
 public class Application {
 
     public static void main(String[] args) throws IOException {
@@ -43,7 +43,7 @@ public class Application {
         try {
 	        ValidationRunner runner = ctx.getBean(ValidationRunner.class);
 	        runner.bootstrap(args, new File(config.getTmpFolder(), UUID.randomUUID().toString()));
-        }catch(Exception e) {}
+        } catch(Exception e) {}
         
         removeConfigForStandalone(tempFolder);
     }
@@ -53,12 +53,14 @@ public class Application {
      * @throws IOException
      */
     private static void removeConfigForStandalone(File tempFolder) throws IOException {
-        if(tempFolder.isDirectory()) {
-        	for(File f: tempFolder.listFiles()){
-        		removeConfigForStandalone(f);
-        	}     	
+        if (tempFolder.isDirectory()) {
+            File[] files = tempFolder.listFiles();
+            if (files != null) {
+                for (File f: files){
+                    removeConfigForStandalone(f);
+                }
+            }
         }
-        
     	Files.deleteIfExists(tempFolder.toPath());
     }
     

@@ -4,15 +4,18 @@ import com.gitb.tr.TAR;
 import eu.europa.ec.itb.shacl.ApplicationConfig;
 import eu.europa.ec.itb.shacl.DomainConfig;
 import eu.europa.ec.itb.shacl.DomainConfigCache;
-import eu.europa.ec.itb.shacl.ValidatorChannel;
-import eu.europa.ec.itb.shacl.errors.ValidatorException;
-import eu.europa.ec.itb.shacl.upload.errors.NotFoundException;
 import eu.europa.ec.itb.shacl.util.Utils;
-import eu.europa.ec.itb.shacl.validation.FileInfo;
 import eu.europa.ec.itb.shacl.validation.FileManager;
 import eu.europa.ec.itb.shacl.validation.SHACLValidator;
+import eu.europa.ec.itb.validation.commons.FileInfo;
+import eu.europa.ec.itb.validation.commons.ValidatorChannel;
+import eu.europa.ec.itb.validation.commons.artifact.ExternalArtifactSupport;
+import eu.europa.ec.itb.validation.commons.error.ValidatorException;
+import eu.europa.ec.itb.validation.commons.web.KeyWithLabel;
+import eu.europa.ec.itb.validation.commons.web.ReportGeneratorBean;
+import eu.europa.ec.itb.validation.commons.web.errors.NotFoundException;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFLanguages;
 import org.slf4j.Logger;
@@ -37,13 +40,13 @@ import java.io.InputStream;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static eu.europa.ec.itb.validation.commons.web.Constants.IS_MINIMAL;
+
 
 @Controller
 public class UploadController {
 
     private static final Logger logger = LoggerFactory.getLogger(UploadController.class);
-
-    public static final String IS_MINIMAL = "isMinimal";
 
     private static final String contentType_file     	= "fileType" ;
     private static final String contentType_uri     		= "uriType" ;
@@ -83,10 +86,9 @@ public class UploadController {
 		}
 		
         Map<String, Object> attributes = new HashMap<>();
-        attributes.put("validationTypes", getValidationTypes(domainConfig));
         attributes.put("contentType", getContentType(domainConfig));
         attributes.put("contentSyntax", getContentSyntax(domainConfig));
-        attributes.put("externalShapes", includeExternalShapes(domainConfig));
+        attributes.put("externalArtifactInfo", domainConfig.getExternalArtifactInfoMap());
         attributes.put("minimalUI", false);
         attributes.put("config", domainConfig);
         attributes.put("appConfig", appConfig);
@@ -102,11 +104,10 @@ public class UploadController {
     		@RequestParam(value = "contentType", defaultValue = "") String contentType,  
     		@RequestParam(value = "validationType", defaultValue = "") String validationType, 
     		@RequestParam(value = "contentSyntaxType", defaultValue = "") String contentSyntaxType,
-    		@RequestParam(value = "contentType-externalShape", required = false) String[] externalContentType,
-    		@RequestParam(value = "inputFile-externalShape", required= false) MultipartFile[] externalFiles,
-    		@RequestParam(value = "uri-externalShape", required = false) String[] externalUri,
-    		@RequestParam(value = "addExternalRules", required = false) Boolean addExternalRules,
-    		@RequestParam(value = "contentSyntaxType-externalShape", required = false) String[] externalFilesSyntaxType,
+    		@RequestParam(value = "contentType-external_default", required = false) String[] externalContentType,
+    		@RequestParam(value = "inputFile-external_default", required= false) MultipartFile[] externalFiles,
+    		@RequestParam(value = "uri-external_default", required = false) String[] externalUri,
+    		@RequestParam(value = "contentSyntaxType-external_default", required = false) String[] externalFilesSyntaxType,
 			HttpServletRequest request) {
 		setMinimalUIFlag(request, false);
 		DomainConfig domainConfig;
@@ -116,15 +117,14 @@ public class UploadController {
 			throw new NotFoundException();
 		}
 		// Temporary folder for the request.
-		File parentFolder = fileManager.getRequestTmpFolder();
+		File parentFolder = fileManager.createTemporaryFolderPath();
 
 		File inputFile;
 		List<FileInfo> extFiles = null;
         Map<String, Object> attributes = new HashMap<>();
-        attributes.put("validationTypes", getValidationTypes(domainConfig));
         attributes.put("contentType", getContentType(domainConfig));
         attributes.put("contentSyntax", getContentSyntax(domainConfig));
-        attributes.put("externalShapes", includeExternalShapes(domainConfig));
+		attributes.put("externalArtifactInfo", domainConfig.getExternalArtifactInfoMap());
         attributes.put("minimalUI", false);
         attributes.put("downloadType", getDownloadType(domainConfig));
         attributes.put("config", domainConfig);
@@ -154,7 +154,7 @@ public class UploadController {
 			} else {
 				if (inputFile != null) {
 
-					if (addExternalRules != null && addExternalRules && hasExternalShapes(domainConfig, validationType)) {
+					if (hasExternalShapes(domainConfig, validationType)) {
 						extFiles = getExternalShapes(externalContentType, externalFiles, externalUri, externalFilesSyntaxType, parentFolder);
 					} else {
 						extFiles = Collections.emptyList();
@@ -177,10 +177,11 @@ public class UploadController {
 					} else {
 						fileName = "-";
 					}
-					try (FileWriter out = new FileWriter(fileManager.getTargetFilePath(parentFolder, domainConfig.getDefaultReportSyntax(), fileName_report).toFile())) {
+					String extension = fileManager.getFileExtension(domainConfig.getDefaultReportSyntax());
+					try (FileWriter out = new FileWriter(fileManager.createFile(parentFolder, extension, fileName_report).toFile())) {
 						fileManager.writeRdfModel(out, reportModel, domainConfig.getDefaultReportSyntax());
 					}
-					try (FileWriter out = new FileWriter(fileManager.getTargetFilePath(parentFolder, domainConfig.getDefaultReportSyntax(), fileName_shapes).toFile())) {
+					try (FileWriter out = new FileWriter(fileManager.createFile(parentFolder, extension, fileName_shapes).toFile())) {
 						fileManager.writeRdfModel(out, aggregatedShapes, domainConfig.getDefaultReportSyntax());
 					}
 					// All ok - add attributes for the UI.
@@ -230,10 +231,9 @@ public class UploadController {
 		}
 
         Map<String, Object> attributes = new HashMap<>();
-        attributes.put("validationTypes", getValidationTypes(domainConfig));
         attributes.put("contentType", getContentType(domainConfig));
         attributes.put("contentSyntax", getContentSyntax(domainConfig));
-        attributes.put("externalShapes", includeExternalShapes(domainConfig));
+		attributes.put("externalArtifactInfo", domainConfig.getExternalArtifactInfoMap());
         attributes.put("minimalUI", true);
         attributes.put("config", domainConfig);
         attributes.put("appConfig", appConfig);
@@ -249,14 +249,13 @@ public class UploadController {
     		@RequestParam(value = "contentType", defaultValue = "") String contentType,  
     		@RequestParam(value = "validationType", defaultValue = "") String validationType, 
     		@RequestParam(value = "contentSyntaxType", defaultValue = "") String contentSyntaxType,
-    		@RequestParam(value = "contentType-externalShape", required = false) String[] externalContentType,
-    		@RequestParam(value = "inputFile-externalShape", required= false) MultipartFile[] externalFiles,
-    		@RequestParam(value = "uri-externalShape", required = false) String[] externalUri,
-    		@RequestParam(value = "addExternalRules", required = false) Boolean addExternalRules,
-    		@RequestParam(value = "contentSyntaxType-externalShape", required = false) String[] externalFilesSyntaxType,
+    		@RequestParam(value = "contentType-external_default", required = false) String[] externalContentType,
+    		@RequestParam(value = "inputFile-external_default", required= false) MultipartFile[] externalFiles,
+    		@RequestParam(value = "uri-external_default", required = false) String[] externalUri,
+    		@RequestParam(value = "contentSyntaxType-external_default", required = false) String[] externalFilesSyntaxType,
 		  HttpServletRequest request) {
 		setMinimalUIFlag(request, true);
-		ModelAndView mv = handleUpload(domain, file, uri, string, contentType, validationType, contentSyntaxType, externalContentType, externalFiles, externalUri, addExternalRules, externalFilesSyntaxType, request);
+		ModelAndView mv = handleUpload(domain, file, uri, string, contentType, validationType, contentSyntaxType, externalContentType, externalFiles, externalUri, externalFilesSyntaxType, request);
 		
 		Map<String, Object> attributes = mv.getModel();
         attributes.put("minimalUI", true);
@@ -274,7 +273,7 @@ public class UploadController {
     	if (validationType == null) {
 			validationType = domainConfig.getType().get(0);
 		}
-    	return domainConfig.getExternalShapes().getOrDefault(validationType, Boolean.FALSE);
+    	return domainConfig.getShapeInfo(validationType).getExternalArtifactSupport() != ExternalArtifactSupport.NONE;
 	}
 
 	private File getInputFile(String contentType, InputStream inputStream, String uri, String string, String contentSyntaxType, File tmpFolder) throws IOException {
@@ -282,15 +281,15 @@ public class UploadController {
 		
 		switch(contentType) {
 			case contentType_file:
-		    	inputFile = this.fileManager.getInputStreamFile(tmpFolder, inputStream, contentSyntaxType, fileName_input);
+		    	inputFile = this.fileManager.getFileFromInputStream(tmpFolder, inputStream, contentSyntaxType, fileName_input);
 				break;
 			
 			case contentType_uri:
-				inputFile = this.fileManager.getURLFile(tmpFolder, uri, fileName_input);
+				inputFile = this.fileManager.getFileFromURL(tmpFolder, uri, fileName_input);
 				break;
 				
 			case contentType_string:
-				inputFile = this.fileManager.getStringFile(tmpFolder, string, contentSyntaxType, fileName_input);
+				inputFile = this.fileManager.getFileFromString(tmpFolder, string, contentSyntaxType, fileName_input);
 				break;
 		}
 
@@ -314,7 +313,6 @@ public class UploadController {
 		if(externalContentType != null) {
 			for(int i=0; i<externalContentType.length; i++) {
 				File inputFile = null;
-				
 				String contentSyntaxType = "";
 				if(externalFilesSyntaxType.length > i) {
 					contentSyntaxType = externalFilesSyntaxType[i];
@@ -322,11 +320,11 @@ public class UploadController {
 	        	
 				switch(externalContentType[i]) {
 					case contentType_file:
-						if(!externalFiles[i].isEmpty()) {
+						if (!externalFiles[i].isEmpty()) {
 							if(StringUtils.isEmpty(contentSyntaxType) || contentSyntaxType.equals("empty")) {
-				        		contentSyntaxType = getExtensionContentType(externalFiles[i].getOriginalFilename());
-				        	}
-				        	inputFile = this.fileManager.getInputStreamFile(parentFolder, externalFiles[i].getInputStream(), contentSyntaxType, null);
+								contentSyntaxType = getExtensionContentType(externalFiles[i].getOriginalFilename());
+							}
+							inputFile = this.fileManager.getFileFromInputStream(parentFolder, externalFiles[i].getInputStream(), contentSyntaxType, null);
 						}
 						break;
 					case contentType_uri:					
@@ -334,7 +332,7 @@ public class UploadController {
 							if(StringUtils.isEmpty(contentSyntaxType) || contentSyntaxType.equals("empty")) {
 				        		contentSyntaxType = getExtensionContentType(externalUri[i]);
 				        	}
-							inputFile = this.fileManager.getURLFile(parentFolder, externalUri[i]);
+							inputFile = this.fileManager.getFileFromURL(parentFolder, externalUri[i]);
 						}
 						break;
 				}
@@ -368,58 +366,37 @@ public class UploadController {
         return config;
     }
 
-	private List<UploadTypes> includeExternalShapes(DomainConfig config){
-        List<UploadTypes> types = new ArrayList<>();
-    	Map<String, Boolean> externalShapes = config.getExternalShapes();
-    	
-    	for(Map.Entry<String, Boolean> entry : externalShapes.entrySet()) {
-    		types.add(new UploadTypes(entry.getKey(), entry.getValue().toString()));
-    	}
-    	
-    	return types;
-    }
+    private List<KeyWithLabel> getContentType(DomainConfig config){
+        List<KeyWithLabel> types = new ArrayList<>();
 
-	private List<UploadTypes> getValidationTypes(DomainConfig config) {
-        List<UploadTypes> types = new ArrayList<>();
-        if (config.hasMultipleValidationTypes()) {
-            for (String type: config.getType()) {
-                types.add(new UploadTypes(type, config.getTypeLabel().get(type)));
-            }
-        }
-        return types.stream().sorted(Comparator.comparing(UploadTypes::getKey)).collect(Collectors.toList());
-    }
-    
-    private List<UploadTypes> getContentType(DomainConfig config){
-        List<UploadTypes> types = new ArrayList<>();
-
-		types.add(new UploadTypes(contentType_file, config.getLabel().getOptionContentFile()));
-		types.add(new UploadTypes(contentType_uri, config.getLabel().getOptionContentURI()));
-		types.add(new UploadTypes(contentType_string, config.getLabel().getOptionContentDirectInput()));
+		types.add(new KeyWithLabel(contentType_file, config.getLabel().getOptionContentFile()));
+		types.add(new KeyWithLabel(contentType_uri, config.getLabel().getOptionContentURI()));
+		types.add(new KeyWithLabel(contentType_string, config.getLabel().getOptionContentDirectInput()));
 		
 		return types;        
     }
 
-	private List<UploadTypes> getDownloadType(DomainConfig config){
-        List<UploadTypes> types = new ArrayList<>();
-		types.add(new UploadTypes(downloadType_report, config.getLabel().getOptionDownloadReport()));
-		types.add(new UploadTypes(downloadType_shapes, config.getLabel().getOptionDownloadShapes()));
-		types.add(new UploadTypes(downloadType_content, config.getLabel().getOptionDownloadContent()));
+	private List<KeyWithLabel> getDownloadType(DomainConfig config){
+        List<KeyWithLabel> types = new ArrayList<>();
+		types.add(new KeyWithLabel(downloadType_report, config.getLabel().getOptionDownloadReport()));
+		types.add(new KeyWithLabel(downloadType_shapes, config.getLabel().getOptionDownloadShapes()));
+		types.add(new KeyWithLabel(downloadType_content, config.getLabel().getOptionDownloadContent()));
 		return types;
     }
     
-    private List<UploadTypes> getContentSyntax(DomainConfig config) {
+    private List<KeyWithLabel> getContentSyntax(DomainConfig config) {
     	List<String> contentSyntax = config.getWebContentSyntax();    
     	if(contentSyntax.isEmpty()) {
     		contentSyntax = new ArrayList<>(appConfig.getContentSyntax());
     	}
-        List<UploadTypes> types = new ArrayList<>();
+        List<KeyWithLabel> types = new ArrayList<>();
     	
         for(String cs : contentSyntax) {
         	Lang lang = RDFLanguages.contentTypeToLang(cs);
-			types.add(new UploadTypes(lang.getLabel(), lang.getContentType().getContentType()));
+			types.add(new KeyWithLabel(lang.getLabel(), lang.getContentType().getContentType()));
         }
     	
-    	return types.stream().sorted(Comparator.comparing(UploadTypes::getKey)).collect(Collectors.toList());
+    	return types.stream().sorted(Comparator.comparing(KeyWithLabel::getKey)).collect(Collectors.toList());
     }
 
 }

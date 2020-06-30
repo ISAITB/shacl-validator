@@ -6,13 +6,14 @@ import com.gitb.tr.BAR;
 import com.gitb.tr.TestAssertionReportType;
 import com.gitb.vs.ValidateRequest;
 import com.gitb.vs.ValidationResponse;
-import eu.europa.ec.itb.plugin.PluginManager;
-import eu.europa.ec.itb.plugin.ValidationPlugin;
 import eu.europa.ec.itb.shacl.DomainConfig;
 import eu.europa.ec.itb.shacl.DomainPluginConfigProvider;
-import eu.europa.ec.itb.shacl.errors.ValidatorException;
+import eu.europa.ec.itb.validation.commons.FileInfo;
+import eu.europa.ec.itb.validation.commons.error.ValidatorException;
+import eu.europa.ec.itb.validation.plugin.PluginManager;
+import eu.europa.ec.itb.validation.plugin.ValidationPlugin;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jena.ontology.OntModel;
 import org.apache.jena.ontology.OntModelSpec;
 import org.apache.jena.rdf.model.*;
@@ -56,7 +57,7 @@ public class SHACLValidator {
     private String validationType;
     private String contentSyntax;
     private Lang contentSyntaxLang;
-    private List<FileInfo> filesInfo;
+    private List<FileInfo> externalShaclFiles;
     private Model aggregatedShapes;
     private Model importedShapes;
 
@@ -65,15 +66,15 @@ public class SHACLValidator {
      * @param inputFileToValidate The input RDF (or other) content to validate.
      * @param validationType The type of validation to perform.
      * @param contentSyntax The mime type of the provided RDF content.
-     * @param remoteShaclFiles Any shapes to consider that are externally provided 
+     * @param externalShaclFiles Any shapes to consider that are externally provided
      * @param domainConfig Domain
      */
-    public SHACLValidator(File inputFileToValidate, String validationType, String contentSyntax, List<FileInfo> remoteShaclFiles, DomainConfig domainConfig) {
+    public SHACLValidator(File inputFileToValidate, String validationType, String contentSyntax, List<FileInfo> externalShaclFiles, DomainConfig domainConfig) {
     	this.contentSyntax = contentSyntax;
     	this.inputFileToValidate = inputFileToValidate;
         this.validationType = validationType;
         this.domainConfig = domainConfig;
-        this.filesInfo = remoteShaclFiles;
+        this.externalShaclFiles = externalShaclFiles;
         if (validationType == null) {
             this.validationType = domainConfig.getType().get(0);
         }
@@ -210,7 +211,8 @@ public class SHACLValidator {
     private Model validateAgainstShacl() {
         try {
             fileManager.signalValidationStart(domainConfig.getDomainName());
-            List<FileInfo> shaclFiles = fileManager.getAllShaclFiles(domainConfig, validationType, filesInfo);
+            List<FileInfo> shaclFiles = fileManager.getPreconfiguredValidationArtifacts(domainConfig, validationType);
+            shaclFiles.addAll(externalShaclFiles);
             return validateShacl(shaclFiles);
         } finally {
             fileManager.signalValidationEnd(domainConfig.getDomainName());
@@ -257,13 +259,13 @@ public class SHACLValidator {
         Model aggregateModel = JenaUtil.createMemoryModel();
         for (FileInfo shaclFile: shaclFiles) {
             LOG.info("Validating against ["+shaclFile.getFile().getName()+"]");
-            if (shaclFile.getContentLang() == null) {
+            Lang rdfLanguage = RDFLanguages.contentTypeToLang(shaclFile.getType());
+            if (rdfLanguage == null) {
                 throw new ValidatorException("Unable to determine the content type of a SHACL shape file.");
             }
             try (InputStream dataStream = new FileInputStream(shaclFile.getFile())) {
                 Model fileModel = JenaUtil.createMemoryModel();
-                fileModel.read(dataStream, null, shaclFile.getContentLang());
-                
+                fileModel.read(dataStream, null, rdfLanguage.getName());
                 aggregateModel.add(fileModel);
             } catch (IOException e) {
                 throw new ValidatorException("An error occurred while reading a SHACL file.", e);

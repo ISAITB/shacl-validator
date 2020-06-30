@@ -1,372 +1,46 @@
 package eu.europa.ec.itb.shacl.validation;
 
 import eu.europa.ec.itb.shacl.ApplicationConfig;
-import eu.europa.ec.itb.shacl.DomainConfig;
-import eu.europa.ec.itb.shacl.DomainConfigCache;
-import eu.europa.ec.itb.shacl.errors.ValidatorException;
+import eu.europa.ec.itb.validation.commons.BaseFileManager;
+import eu.europa.ec.itb.validation.commons.FileInfo;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.jena.atlas.web.ContentType;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFLanguages;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
-import java.io.*;
-import java.net.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.io.File;
+import java.io.Writer;
+import java.util.List;
 
 @Component
-public class FileManager {
+public class FileManager extends BaseFileManager<ApplicationConfig> {
 
 	private static final Logger logger = LoggerFactory.getLogger(FileManager.class);
 
-	@Autowired
-	private ApplicationConfig config = null;
-
-	@Autowired
-	private DomainConfigCache domainConfigCache = null;
-
-	private ConcurrentHashMap<String, ReadWriteLock> externalDomainFileCacheLocks = new ConcurrentHashMap<>();
-
-	public File getURLFile(File targetFolder, String URLConvert, String fileName) throws IOException {
-		URL url = new URL(URLConvert);
-		
-		String extension = FilenameUtils.getExtension(url.getFile());
-		
-		return getURLFile(targetFolder, URLConvert, extension, fileName);
-	}
-	
-	public File getURLFile(File targetFolder, String URLConvert, String contentSyntax, String fileName) throws IOException {
-		Path tmpPath;
-
-		if(contentSyntax!=null) {
-			contentSyntax = "." + contentSyntax;
-		}
-		
-		if(fileName == null || fileName.isEmpty()) {
-			tmpPath = getFilePath(targetFolder, contentSyntax);
-		}else {
-			tmpPath = getFilePath(targetFolder, contentSyntax, fileName);
-		}
-
-		try(InputStream in = getURIInputStream(URLConvert)){
-			Files.copy(in, tmpPath, StandardCopyOption.REPLACE_EXISTING);
-		}
-
-		return tmpPath.toFile();
-	}
-	
-	private InputStream getURIInputStream(String URLConvert) {
-        // Read the string from the provided URI.
-        URI uri = URI.create(URLConvert);
-        Proxy proxy = null;
-        List<Proxy> proxies = ProxySelector.getDefault().select(uri);
-        if (proxies != null && !proxies.isEmpty()) {
-            proxy = proxies.get(0);
-        }
-        
-        try {
-	        URLConnection connection;
-	        if (proxy == null) {
-	            connection = uri.toURL().openConnection();
-	        } else {
-	            connection = uri.toURL().openConnection(proxy);
-	        }
-	        
-	        return connection.getInputStream();
-        } catch (IOException e) {
-            throw new IllegalArgumentException("Unable to read provided URI", e);
-        }
-        
-	}
-
-	public String getExtensionForContentType(String contentSyntax) {
-		Lang langExtension = RDFLanguages.contentTypeToLang(contentSyntax);
-		if (langExtension == null) {
-			throw new IllegalArgumentException("Syntax ["+contentSyntax+"] could not resolve to extension");
-		} else {
-			return langExtension.getFileExtensions().get(0);
-		}
-	}
-
-	public Path getTargetFilePath(File targetFolder, String contentSyntax, String fileName) {
-		Lang langExtension = RDFLanguages.contentTypeToLang(contentSyntax);
+	@Override
+	public String getFileExtension(String contentType) {
 		String extension = null;
-		Path tmpPath;
-		if (langExtension!=null) {
-			extension = "." + langExtension.getFileExtensions().get(0);
+		Lang language = RDFLanguages.contentTypeToLang(contentType);
+		if (language != null) {
+			extension = language.getFileExtensions().get(0);
 		}
-		if (fileName == null || fileName.isEmpty()) {
-			tmpPath = getFilePath(targetFolder, extension);
-		} else {
-			tmpPath = getFilePath(targetFolder, extension, fileName);
-		}
-		return tmpPath;
+		return extension;
 	}
 
-	public File getStringFile(File targetFolder, String stringConvert, String contentSyntax, String fileName) throws IOException {
-		Path tmpPath = getTargetFilePath(targetFolder, contentSyntax, fileName);
-		try(InputStream in = new ByteArrayInputStream(stringConvert.getBytes())){
-			Files.copy(in, tmpPath, StandardCopyOption.REPLACE_EXISTING);
-		}
-		return tmpPath.toFile();
-	}
-
-	public File getWebTmpFolder() {
-		return new File(getTempFolder(), "web");
-	}
-
-	public File getRequestTmpFolder() {
-		return new File(getWebTmpFolder(), UUID.randomUUID().toString());
-	}
-
-	public File getInputStreamFile(File targetFolder, InputStream stream, String contentSyntax, String fileName) throws IOException {
-		String lang = getLanguage(contentSyntax);
-		String extension = null;
-		Path tmpPath;
-
-		if(lang!=null) {
-			extension = "." + lang;
-		}
-
-		if(fileName == null || fileName.isEmpty()) {
-			tmpPath = getFilePath(targetFolder, extension);
-		}else {
-			tmpPath = getFilePath(targetFolder, extension, fileName);
-		}
-		Files.copy(stream, tmpPath, StandardCopyOption.REPLACE_EXISTING);
-
-		return tmpPath.toFile();
-	}
-
-	public File getURLFile(File targetFolder, String URLConvert) throws IOException {
-		return getURLFile(targetFolder, URLConvert, null);
-	}
-
-    public File getStringFile(File targetFolder, String contentToValidate, String contentSyntax) throws IOException {
-    	return getStringFile(targetFolder, contentToValidate, contentSyntax, null);
-    }
-
-	private Path getFilePath(File folder, String extension) {
-		Path tmpPath = Paths.get(folder.getAbsolutePath(), UUID.randomUUID().toString() + extension);
-		tmpPath.toFile().getParentFile().mkdirs();
-
-		return tmpPath;
-	}
-
-	private Path getFilePath(File folder, String extension, String fileName) {
-		Path tmpPath = Paths.get(folder.getAbsolutePath(), fileName + extension);
-		tmpPath.toFile().getParentFile().mkdirs();
-
-		return tmpPath;
-	}
-
-    /**
-     * Remove the external files linked to the validation.
-     */
-    public void removeContentToValidate(File inputFile, List<FileInfo> externalShaclFiles) {
-    	// Remove content that was validated.
-    	if (inputFile != null && inputFile.exists() && inputFile.isFile()) {
-            FileUtils.deleteQuietly(inputFile);
-        }
-    	// Remove externally provided SHACL files.
-		if (externalShaclFiles != null) {
-			for (FileInfo externalFile: externalShaclFiles) {
-				FileUtils.deleteQuietly(externalFile.getFile());
+	@Override
+	protected String getContentTypeForFile(File file, String declaredContentType) {
+		if (StringUtils.isBlank(declaredContentType)) {
+			ContentType detectedContentType = RDFLanguages.guessContentType(file.getName());
+			if (detectedContentType != null) {
+				declaredContentType = detectedContentType.getContentType();
 			}
 		}
-    }
-
-    private File getTempFolder() {
-    	return new File(config.getTmpFolder());
-	}
-
-	public File getHydraDocsRootFolder() {
-		return new File(config.getTmpFolder(), "hydra");
-	}
-
-	public File getHydraDocsFolder(String domainName) {
-		return new File(getHydraDocsRootFolder(), domainName);
-	}
-
-    private File getRemoteFileCacheFolder() {
-    	return new File(getTempFolder(), "remote_config");
-	}
-
-	public File getBase64File(File targetFolder, String base64Convert) {
-		if (targetFolder == null) {
-			targetFolder = getTempFolder();
-		}
-		File tempFile;
-		try {
-			tempFile = getFilePath(targetFolder, "").toFile();
-			// Construct the string from its BASE64 encoded bytes.
-			byte[] decodedBytes = Base64.getDecoder().decode(base64Convert);
-			FileUtils.writeByteArrayToFile(tempFile, decodedBytes);
-		} catch (IOException e) {
-			throw new IllegalStateException("Error when transforming the Base64 into File.", e);
-		}
-		return tempFile;
-	}
-
-	public File getFileAsUrlOrBase64(File targetFolder, String content) throws IOException {
-		if (targetFolder == null) {
-			targetFolder = getTempFolder();
-		}
-		File outputFile;
-		try {
-			outputFile = getURLFile(targetFolder, content);
-		} catch(MalformedURLException e) {
-			outputFile = getBase64File(targetFolder, content);
-		}
-		return outputFile;
-	}
-
-	private List<FileInfo> getRemoteShaclFiles(DomainConfig domainConfig, String validationType) {
-		File remoteConfigFolder = new File(new File(getRemoteFileCacheFolder(), domainConfig.getDomainName()), validationType);
-		if (remoteConfigFolder.exists()) {
-			return getLocalShaclFiles(remoteConfigFolder);
-		} else {
-			return Collections.emptyList();
-		}
-	}
-
-	public List<FileInfo> getRemoteExternalShapes(File parentFolder, List<FileContent> externalRules) throws IOException {
-		List<FileInfo> externalShapeFiles = new ArrayList<>();
-    	if (externalRules != null && !externalRules.isEmpty()) {
-    		File externalShapeFolder = new File(parentFolder, UUID.randomUUID().toString());
-			for (FileContent externalRule: externalRules) {
-				File contentFile;
-				if (externalRule.getEmbeddingMethod() != null) {
-					switch(externalRule.getEmbeddingMethod()) {
-						case FileContent.embedding_URL:
-							try{
-								contentFile = getURLFile(externalShapeFolder, externalRule.getContent());
-							} catch(IOException e) {
-								throw new IllegalArgumentException("Error when transforming the URL into File.", e);
-							}
-							break;
-						case FileContent.embedding_BASE64:
-							contentFile = getBase64File(externalShapeFolder, externalRule.getContent());
-							break;
-		    			case FileContent.embedding_STRING:
-		    				try{
-		        				contentFile = getStringFile(externalShapeFolder, externalRule.getContent(), externalRule.getSyntax());
-		    				}catch(IOException e) {
-								throw new IllegalArgumentException("Error when transforming the STRING into File.", e);
-							}
-		    				break;
-						default:
-							throw new IllegalArgumentException("Unexpected embedding method ["+externalRule.getEmbeddingMethod()+"]");
-					}
-				} else {
-					contentFile = getFileAsUrlOrBase64(externalShapeFolder, externalRule.getContent());
-				}
-				externalShapeFiles.add(new FileInfo(contentFile, getContentLang(contentFile, externalRule.getSyntax())));
-			}
-		}
-		return externalShapeFiles;
-	}
-
-	List<FileInfo> getAllShaclFiles(DomainConfig domainConfig, String validationType, List<FileInfo> filesInfo){
-		List<FileInfo> shaclFiles = new ArrayList<>();
-		for (File localFile: getShaclFiles(domainConfig, validationType)) {
-			shaclFiles.addAll(getLocalShaclFiles(localFile));
-		}
-		shaclFiles.addAll(getRemoteShaclFiles(domainConfig, validationType));
-		shaclFiles.addAll(filesInfo);
-		return shaclFiles;
-	}
-
-	/**
-	 * Return the SHACL files loaded for a given validation type
-	 * @return File
-	 */
-	private List<File> getShaclFiles(DomainConfig domainConfig, String validationType) {
-		List<File> localFileReferences = new ArrayList<>();
-		String localFolderConfigValue = domainConfig.getShaclFile().get(validationType).getLocalFolder();
-		if (StringUtils.isNotEmpty(localFolderConfigValue)) {
-			String[] localFiles = StringUtils.split(localFolderConfigValue, ',');
-			for (String localFile: localFiles) {
-				localFileReferences.add(Paths.get(config.getResourceRoot(), domainConfig.getDomain(), localFile.trim()).toFile());
-			}
-		}
-		return localFileReferences;
-	}
-
-	/**
-	 * Returns the list of files (if it is a directory) or the file and the corresponding content type.
-	 * @return Map<File, String> with all files and content types
-	 */
-	private List<FileInfo> getLocalShaclFiles(File shaclFileOrFolder){
-		List<FileInfo> fileInfo = new ArrayList<>();
-		if (shaclFileOrFolder != null && shaclFileOrFolder.exists()) {
-			if (shaclFileOrFolder.isFile()) {
-				// We are pointing to a single master SHACL file.
-				fileInfo.add(new FileInfo(shaclFileOrFolder, getContentLang(shaclFileOrFolder)));
-			} else {
-				// All SHACL are processed.
-				File[] files = shaclFileOrFolder.listFiles();
-				if (files != null) {
-					for (File aShaclFile: files) {
-						if (aShaclFile.isFile()) {
-							if (config.getAcceptedShaclExtensions().contains(FilenameUtils.getExtension(aShaclFile.getName().toLowerCase()))) {
-								fileInfo.add(new FileInfo(aShaclFile, getContentLang(aShaclFile)));
-							}
-						}
-					}
-				}
-			}
-		}
-
-		return fileInfo;
-	}
-
-	private String getContentLang(File file) {
-		return getContentLang(file, null);
-	}
-
-	private String getLanguage(String contentSyntax) {
-		String lang = null;
-		Lang langExtension = RDFLanguages.contentTypeToLang(contentSyntax);
-
-		if(langExtension!=null) {
-			lang = langExtension.getFileExtensions().get(0);
-		}
-
-		return lang;
-	}
-
-	/**
-	 * Return the content type as Lang of the File
-	 * @return String content type as String
-	 */
-	private String getContentLang(File file, String contentSyntax) {
-		String stringLang = null;
-		Lang contentLang;
-		if (StringUtils.isEmpty(contentSyntax)) {
-			contentLang = RDFLanguages.contentTypeToLang(RDFLanguages.guessContentType(file.getName()));
-		} else {
-			contentLang = RDFLanguages.contentTypeToLang(contentSyntax);
-		}
-		
-		if(contentLang != null) {
-			stringLang = contentLang.getName();
-		}
-		return stringLang;
+		return declaredContentType;
 	}
 
 	public void writeRdfModel(Writer outputWriter, Model rdfModel, String outputSyntax) {
@@ -383,78 +57,29 @@ public class FileManager {
 		}
 	}
 
-	@PostConstruct
-	public void init() {
-		FileUtils.deleteQuietly(getTempFolder());
-		for (DomainConfig config: domainConfigCache.getAllDomainConfigurations()) {
-			externalDomainFileCacheLocks.put(config.getDomainName(), new ReentrantReadWriteLock());
+	/**
+	 * Remove the external files linked to the validation.
+	 */
+	public void removeContentToValidate(File inputFile, List<FileInfo> externalShaclFiles) {
+		// TODO see if this is needed.
+		// Remove content that was validated.
+		if (inputFile != null && inputFile.exists() && inputFile.isFile()) {
+			FileUtils.deleteQuietly(inputFile);
 		}
-		FileUtils.deleteQuietly(getRemoteFileCacheFolder());
-		resetRemoteFileCache();
-	}
-
-	@Scheduled(fixedDelayString = "${validator.cleanupWebRate}")
-	public void removeWebFiles() {
-		logger.debug("Remove SHACL file cache");
-		long currentMillis = System.currentTimeMillis();
-		File reportFolder = getWebTmpFolder();
-		if (reportFolder.exists()) {
-			File[] files = reportFolder.listFiles();
-			if (files != null) {
-				for (File file: files) {
-					if (currentMillis - file.lastModified() > config.getCleanupWebRate()) {
-						FileUtils.deleteQuietly(file);
-					}
-				}
+		// Remove externally provided SHACL files.
+		if (externalShaclFiles != null) {
+			for (FileInfo externalFile: externalShaclFiles) {
+				FileUtils.deleteQuietly(externalFile.getFile());
 			}
 		}
 	}
 
-	@Scheduled(fixedDelayString = "${validator.cleanupRate}")
-	public void resetRemoteFileCache() {
-		logger.debug("Resetting remote SHACL file cache");
-		for (DomainConfig domainConfig: domainConfigCache.getAllDomainConfigurations()) {
-			try {
-				// Get write lock for domain.
-				logger.debug("Waiting for lock to reset cache for ["+domainConfig.getDomainName()+"]");
-				externalDomainFileCacheLocks.get(domainConfig.getDomainName()).writeLock().lock();
-				logger.debug("Locked cache for ["+domainConfig.getDomainName()+"]");
-				for (String validationType: domainConfig.getType()) {
-					// Empty cache folder.
-					File remoteConfigFolder = new File(new File(getRemoteFileCacheFolder(), domainConfig.getDomainName()), validationType);
-					FileUtils.deleteQuietly(remoteConfigFolder);
-					remoteConfigFolder.mkdirs();
-					// Download remote SHACL files (if needed).
-					List<DomainConfig.RemoteInfo> ri = domainConfig.getShaclFile().get(validationType).getRemote();
-					if (ri != null) {
-						try {
-							for (DomainConfig.RemoteInfo info: ri) {								
-								getURLFile(remoteConfigFolder, info.getUrl(), getLanguage(info.getType()), null);
-							}
-						} catch (IOException e) {
-							logger.error("Error to load the remote SHACL file", e);
-							throw new IllegalStateException("Error to load the remote SHACL file", e);
-						}
-					}
-				}
-			} finally {
-				// Unlock domain.
-				externalDomainFileCacheLocks.get(domainConfig.getDomainName()).writeLock().unlock();
-				logger.debug("Reset remote SHACL file cache for ["+domainConfig.getDomainName()+"]");
-			}
-		}
+	public File getHydraDocsRootFolder() {
+		return new File(config.getTmpFolder(), "hydra");
 	}
 
-	void signalValidationStart(String domainName) {
-		logger.debug("Signalling validation start for ["+domainName+"]");
-		externalDomainFileCacheLocks.get(domainName).readLock().lock();
-		logger.debug("Signalled validation start for ["+domainName+"]");
-	}
-
-	void signalValidationEnd(String domainName) {
-		logger.debug("Signalling validation end for ["+domainName+"]");
-		externalDomainFileCacheLocks.get(domainName).readLock().unlock();
-		logger.debug("Signalled validation end for ["+domainName+"]");
+	public File getHydraDocsFolder(String domainName) {
+		return new File(getHydraDocsRootFolder(), domainName);
 	}
 
 }
