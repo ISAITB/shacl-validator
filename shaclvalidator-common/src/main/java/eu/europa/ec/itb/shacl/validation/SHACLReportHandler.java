@@ -32,11 +32,7 @@ public class SHACLReportHandler {
 		this.domainConfig = domainConfig;
 		report = new TAR();
         report.setResult(TestResultType.SUCCESS);
-        try {
-            report.setDate(Utils.getXMLGregorianCalendarDateTime());
-        } catch (DatatypeConfigurationException e) {
-            throw new IllegalStateException("Exception while creating XMLGregorianCalendar", e);
-        }
+        report.setDate(Utils.getXMLGregorianCalendarDateTime());
         this.report.setName("SHACL Validation");
         this.report.setReports(new TestAssertionGroupReportsType());
 
