@@ -187,7 +187,7 @@ public class ShaclController {
 					}
 				}
 			} else {
-				if (in.getExternalRules() == null || in.getExternalRules().isEmpty()) {
+				if (in.getExternalRules() != null && !in.getExternalRules().isEmpty()) {
 					throw new ValidatorException(String.format("Loading external shape files is not supported for validation type [%s] of domain [%s].", validationType, domainConfig.getDomainName()));
 				}
 			}
