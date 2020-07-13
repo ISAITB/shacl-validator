@@ -1,7 +1,9 @@
 package eu.europa.ec.itb.shacl.rest.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.gitb.core.ValueEmbeddingEnumeration;
 import eu.europa.ec.itb.validation.commons.FileContent;
+import eu.europa.ec.itb.validation.commons.error.ValidatorException;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 
@@ -38,6 +40,9 @@ public class RuleSet {
     }
 
     public FileContent toFileContent() {
+        if (ruleSyntax == null && FileContent.isValidEmbeddingMethod(embeddingMethod) && FileContent.embeddingMethodFromString(embeddingMethod) == ValueEmbeddingEnumeration.BASE_64) {
+            throw new ValidatorException("External shape files that are provided in BASE64 need to also define their syntax.");
+        }
         FileContent content = new FileContent();
         content.setContent(ruleSet);
         content.setEmbeddingMethod(FileContent.embeddingMethodFromString(embeddingMethod));
