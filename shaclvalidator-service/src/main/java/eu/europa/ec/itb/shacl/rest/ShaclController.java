@@ -14,12 +14,10 @@ import eu.europa.ec.itb.shacl.validation.SHACLValidator;
 import eu.europa.ec.itb.validation.commons.FileContent;
 import eu.europa.ec.itb.validation.commons.FileInfo;
 import eu.europa.ec.itb.validation.commons.ValidatorChannel;
-import eu.europa.ec.itb.validation.commons.artifact.ExternalArtifactSupport;
 import eu.europa.ec.itb.validation.commons.error.ValidatorException;
 import eu.europa.ec.itb.validation.commons.web.errors.NotFoundException;
 import io.swagger.annotations.*;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFLanguages;
@@ -178,22 +176,9 @@ public class ShaclController {
 		try {
 			// Prepare input
 			String validationType = inputHelper.validateValidationType(domainConfig, in.getValidationType());
-			if (domainConfig.getShapeInfo(validationType).getExternalArtifactSupport() != ExternalArtifactSupport.NONE) {
-				if (StringUtils.isBlank(in.getContentSyntax()) && in.getExternalRules() != null) {
-					for (RuleSet rulesSet: in.getExternalRules()) {
-						if (FileContent.isValidEmbeddingMethod(rulesSet.getEmbeddingMethod()) && FileContent.embeddingMethodFromString(rulesSet.getEmbeddingMethod()) == ValueEmbeddingEnumeration.BASE_64) {
-							throw new ValidatorException("External shape files that are provided in BASE64 need to also define their syntax.");
-						}
-					}
-				}
-			} else {
-				if (in.getExternalRules() != null && !in.getExternalRules().isEmpty()) {
-					throw new ValidatorException(String.format("Loading external shape files is not supported for validation type [%s] of domain [%s].", validationType, domainConfig.getDomainName()));
-				}
-			}
+			List<FileInfo> externalShapes = getExternalShapes(domainConfig, validationType, in.getExternalRules(), parentFolder);
 			ValueEmbeddingEnumeration embeddingMethod = inputHelper.getEmbeddingMethod(in.getEmbeddingMethod());
 			File inputFile = inputHelper.validateContentToValidate(in.getContentToValidate(), embeddingMethod, parentFolder);
-			List<FileInfo> externalShapes = getExternalShapes(domainConfig, validationType, in.getExternalRules(), parentFolder);
 			// Execute validation
 			SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile, validationType, in.getContentSyntax(), externalShapes, domainConfig);
 			Model validationReport = validator.validateAll();
@@ -209,7 +194,14 @@ public class ShaclController {
 		return validationResult;
 	}
 
-	
+	private List<FileInfo> getExternalShapes(DomainConfig domainConfig, String validationType, List<RuleSet> externalRules, File parentFolder) {
+		List<FileContent> shapeContents = null;
+		if (externalRules != null) {
+			shapeContents = externalRules.stream().map(RuleSet::toFileContent).collect(Collectors.toList());
+		}
+		return inputHelper.validateExternalArtifacts(domainConfig, shapeContents, validationType, null, parentFolder);
+	}
+
 	/**
      * POST service to receive multiple RDF instances to validate
      * 
@@ -291,20 +283,6 @@ public class ShaclController {
 		return writer.toString();
     }
 
-    private List<FileInfo> getExternalShapes(DomainConfig domainConfig, String validationType, List<RuleSet> externalRules, File parentFolder) {
-		List<FileInfo> shaclFiles;
-		if (externalRules != null) {
-			try {
-				shaclFiles = fileManager.getExternalValidationArtifacts(domainConfig, validationType, null, parentFolder, externalRules.stream().map(RuleSet::toFileContent).collect(Collectors.toList()));
-			} catch (Exception e) {
-				throw new ValidatorException("An error occurred while trying to read the provided external shapes.", e);
-			}
-		} else {
-			shaclFiles = Collections.emptyList();
-		}
-    	return shaclFiles;
-    }
-    
 	@ApiOperation(hidden = true, value="")
 	@RequestMapping(value = "/{domain}/api", method = RequestMethod.GET, produces = "application/ld+json")
 	public ResponseEntity<String> hydraApi(@PathVariable String domain) throws IOException {
