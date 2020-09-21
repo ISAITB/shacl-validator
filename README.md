@@ -155,6 +155,10 @@ The properties here define how a specific validation domain is configured. They 
 | `validator.webServiceDescription.externalRules` | The description of the web service for element "externalRules". | String | - |
 | `validator.supportMinimalUserInterface` | A minimal UI is available if this is enabled. | Boolean | `false` |
 | `validator.bannerHtml` | Configurable HTML banner replacing the text title. | String | - |
+| `validator.defaultPlugins.A.class` | The default class to execute the JAR file. | - |
+| `validator.defaultPlugins.A.jar` | The default JAR file containing the plugin development. | - |
+| `validator.plugins.XYZ.A.class` | The class to execute the JAR file for a given validation type (added as a postfix). | - |
+| `validator.plugins.XYZ.A.jar` | The JAR file containing the plugin development for a given validation type (added as a postfix). | - |
 
 # Plugin development
 
