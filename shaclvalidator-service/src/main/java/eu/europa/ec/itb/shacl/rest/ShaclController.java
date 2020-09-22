@@ -82,6 +82,29 @@ public class ShaclController {
 		DomainConfig domainConfig = validateDomain(domain);
 		return ApiInfo.fromDomainConfig(domainConfig);
 	}
+
+	/**
+	 * GET service to receive all domains and its validation types.
+	 * @return The data as List.
+	 */
+	@ApiOperation(value = "Get API information.", response = List.class, notes="Retrieve the supported validation " +
+			"types per each domain that can be requested when calling this API's validation operations.")
+	@ApiResponses({
+			@ApiResponse(code = 200, message = "Success", response = List.class),
+			@ApiResponse(code = 500, message = "Error (If a problem occurred with processing the request)", response = String.class),
+			@ApiResponse(code = 404, message = "Not found (for a non existing domains configuration)", response = String.class)
+	})
+	@RequestMapping(value = "/api/info", method = RequestMethod.GET, consumes = MediaType.ALL_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+	public List<ApiInfo> info() {
+		List<DomainConfig> listDomainsConfig = domainConfigs.getAllDomainConfigurations();
+		List<ApiInfo> listApiInfo = new ArrayList<>();
+		
+		for(DomainConfig domainConfig : listDomainsConfig) {
+			listApiInfo.add(ApiInfo.fromDomainConfig(domainConfig));
+		}
+		
+		return listApiInfo;
+	}
 	
 	/**
 	 * POST service to receive a single RDF instance to validate
