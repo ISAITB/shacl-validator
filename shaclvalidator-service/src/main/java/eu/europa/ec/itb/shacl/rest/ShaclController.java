@@ -87,20 +87,22 @@ public class ShaclController {
 	 * GET service to receive all domains and its validation types.
 	 * @return The data as List.
 	 */
-	@ApiOperation(value = "Get API information.", response = List.class, notes="Retrieve the supported validation " +
-			"types per each domain that can be requested when calling this API's validation operations.")
+	@ApiOperation(value = "Get API information.", response = ApiInfo.class, notes="Retrieve the supported domains and validation types configured in this validator. "
+			+ "These are the domain and validation types that can be used as parameters with the API's other operations.")
 	@ApiResponses({
-			@ApiResponse(code = 200, message = "Success", response = List.class),
-			@ApiResponse(code = 500, message = "Error (If a problem occurred with processing the request)", response = String.class),
-			@ApiResponse(code = 404, message = "Not found (for a non existing domains configuration)", response = String.class)
+			@ApiResponse(code = 200, message = "Success", response = ApiInfo.class),
+			@ApiResponse(code = 500, message = "Error (If a problem occurred with processing the request)", response = String.class)
 	})
 	@RequestMapping(value = "/api/info", method = RequestMethod.GET, consumes = MediaType.ALL_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-	public List<ApiInfo> info() {
+	public ApiInfo[] info() {
 		List<DomainConfig> listDomainsConfig = domainConfigs.getAllDomainConfigurations();
-		List<ApiInfo> listApiInfo = new ArrayList<>();
+		ApiInfo[] listApiInfo = new ApiInfo[listDomainsConfig.size()];
 		
+		int i=0;
 		for(DomainConfig domainConfig : listDomainsConfig) {
-			listApiInfo.add(ApiInfo.fromDomainConfig(domainConfig));
+			listApiInfo[i] = ApiInfo.fromDomainConfig(domainConfig);
+			
+			i++;
 		}
 		
 		return listApiInfo;
