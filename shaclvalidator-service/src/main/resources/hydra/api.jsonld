@@ -5,5 +5,5 @@
   "info": "${rootPath}/${domainName}/api/info/",
   "validate": "${rootPath}/${domainName}/api/validate/",
   "validateMultiple": "${rootPath}/${domainName}/api/validateMultiple/",
-  "info": "${rootPath}/api/info/"
+  "infoAll": "${rootPath}/api/infoAll/"
 }

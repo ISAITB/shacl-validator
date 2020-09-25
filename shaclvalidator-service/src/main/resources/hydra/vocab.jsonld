@@ -107,6 +107,24 @@
       "supportedProperty": []
     },
     {
+      "@id": "vocab:ApiInfoCollection",
+      "@type": "hydra:Class",
+      "subClassOf": "http://www.w3.org/ns/hydra/core#Collection",
+      "title": "ApiInfoCollection",
+      "description": "A collection of ApiInfo",
+      "supportedOperation": [],
+      "supportedProperty": [
+        {
+          "property": "http://www.w3.org/ns/hydra/core#member",
+          "title": "members",
+          "required": false,
+          "readonly": false,
+          "writeonly": false,
+          "description": "An apiInfo"
+        }
+      ]
+    },
+    {
       "@id": "vocab:Input",
       "@type": "hydra:Class",
       "hydra:title": "Input",
@@ -290,20 +308,20 @@
       "supportedProperty": []
     },
     {
-      "@id": "vocab:EntryPoint/info",
+      "@id": "vocab:EntryPoint/infoAll",
       "@type": "hydra:Class",
       "subClassOf": null,
-      "label": "info",
+      "label": "infoAll",
       "description": "Retrieve the supported domains and validation types configured in this validator. These are the domain and validation types that can be used as parameters with the API's other operations.",
       "supportedOperation": [
         {
-          "@id": "_:info",
+          "@id": "_:infoAll",
           "@type": "hydra:Operation",
           "method": "GET",
           "label": "The information on how to call the API methods (domain and validation types).",
           "description": "Retrieve the supported domains and validation types configured in this validator. These are the domain and validation types that can be used as parameters with the API's other operations.",
           "expects": null,
-          "returns": "vocab:ApiInfo",
+          "returns": "vocab:ApiInfoCollection",
           "statusCodes": [
             {
               "code": 200,
@@ -311,7 +329,7 @@
             },
             {
               "code": 500,
-              "description": "Error (If a problem occurred with processing the request)"
+              "description": "Error (If a problem occurred with processing the request)" 
             }
           ]
         }
