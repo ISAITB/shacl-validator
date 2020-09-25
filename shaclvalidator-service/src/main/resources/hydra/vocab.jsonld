@@ -288,6 +288,35 @@
         }
       ],
       "supportedProperty": []
+    },
+    {
+      "@id": "vocab:EntryPoint/info",
+      "@type": "hydra:Class",
+      "subClassOf": null,
+      "label": "info",
+      "description": "Retrieve the supported domains and validation types configured in this validator. These are the domain and validation types that can be used as parameters with the API's other operations.",
+      "supportedOperation": [
+        {
+          "@id": "_:info",
+          "@type": "hydra:Operation",
+          "method": "GET",
+          "label": "The information on how to call the API methods (domain and validation types).",
+          "description": "Retrieve the supported domains and validation types configured in this validator. These are the domain and validation types that can be used as parameters with the API's other operations.",
+          "expects": null,
+          "returns": "vocab:ApiInfo",
+          "statusCodes": [
+            {
+              "code": 200,
+              "description": "Success"
+            },
+            {
+              "code": 500,
+              "description": "Error (If a problem occurred with processing the request)"
+            }
+          ]
+        }
+      ],
+      "supportedProperty": []
     }
   ]
 }

@@ -4,5 +4,6 @@
   "@type": "EntryPoint",
   "info": "${rootPath}/${domainName}/api/info/",
   "validate": "${rootPath}/${domainName}/api/validate/",
-  "validateMultiple": "${rootPath}/${domainName}/api/validateMultiple/"
+  "validateMultiple": "${rootPath}/${domainName}/api/validateMultiple/",
+  "info": "${rootPath}/api/info/"
 }
