@@ -87,10 +87,10 @@ public class ShaclController {
 	 * GET service to receive all domains and its validation types.
 	 * @return The data as List.
 	 */
-	@ApiOperation(value = "Get API information.", response = ApiInfo.class, notes="Retrieve the supported domains and validation types configured in this validator. "
+	@ApiOperation(value = "Get API information.", response = ApiInfo[].class, notes="Retrieve the supported domains and validation types configured in this validator. "
 			+ "These are the domain and validation types that can be used as parameters with the API's other operations.")
 	@ApiResponses({
-			@ApiResponse(code = 200, message = "Success", response = ApiInfo.class),
+			@ApiResponse(code = 200, message = "Success", response = ApiInfo[].class),
 			@ApiResponse(code = 500, message = "Error (If a problem occurred with processing the request)", response = String.class)
 	})
 	@RequestMapping(value = "/api/info", method = RequestMethod.GET, consumes = MediaType.ALL_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
