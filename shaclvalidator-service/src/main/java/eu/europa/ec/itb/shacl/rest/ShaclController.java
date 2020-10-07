@@ -93,8 +93,8 @@ public class ShaclController {
 			@ApiResponse(code = 200, message = "Success", response = ApiInfo[].class),
 			@ApiResponse(code = 500, message = "Error (If a problem occurred with processing the request)", response = String.class)
 	})
-	@RequestMapping(value = "/api/info", method = RequestMethod.GET, consumes = MediaType.ALL_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-	public ApiInfo[] info() {
+	@RequestMapping(value = "/api/infoAll", method = RequestMethod.GET, consumes = MediaType.ALL_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+	public ApiInfo[] infoAll() {
 		List<DomainConfig> listDomainsConfig = domainConfigs.getAllDomainConfigurations();
 		ApiInfo[] listApiInfo = new ApiInfo[listDomainsConfig.size()];
 		
