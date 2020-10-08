@@ -67,7 +67,7 @@ public class ShaclController {
 	@Value("${validator.hydraRootPath}")
 	private String hydraRootPath;
 
-	@ApiOperation(value = "Get API information.", response = ApiInfo.class, notes="Retrieve the supported validation " +
+	@ApiOperation(value = "Get API information (for a given domain).", response = ApiInfo.class, notes="Retrieve the supported validation " +
 			"types that can be requested when calling this API's validation operations.")
 	@ApiResponses({
 			@ApiResponse(code = 200, message = "Success", response = ApiInfo.class),
@@ -87,7 +87,7 @@ public class ShaclController {
 	 * GET service to receive all domains and its validation types.
 	 * @return The data as List.
 	 */
-	@ApiOperation(value = "Get API information.", response = ApiInfo[].class, notes="Retrieve the supported domains and validation types configured in this validator. "
+	@ApiOperation(value = "Get API information (all supported domains and validation types).", response = ApiInfo[].class, notes="Retrieve the supported domains and validation types configured in this validator. "
 			+ "These are the domain and validation types that can be used as parameters with the API's other operations.")
 	@ApiResponses({
 			@ApiResponse(code = 200, message = "Success", response = ApiInfo[].class),
