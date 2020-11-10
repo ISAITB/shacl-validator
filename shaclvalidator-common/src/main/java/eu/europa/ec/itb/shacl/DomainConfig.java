@@ -1,10 +1,12 @@
 package eu.europa.ec.itb.shacl;
 
+import eu.europa.ec.itb.validation.commons.artifact.ExternalArtifactSupport;
 import eu.europa.ec.itb.validation.commons.artifact.ValidationArtifactInfo;
 import eu.europa.ec.itb.validation.commons.config.LabelConfig;
 import eu.europa.ec.itb.validation.commons.config.WebDomainConfig;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by simatosc on 21/03/2016.
@@ -14,6 +16,8 @@ public class DomainConfig extends WebDomainConfig<DomainConfig.Label> {
     private String defaultReportSyntax;
     private boolean reportsOrdered;
     private boolean mergeModelsBeforeValidation;
+    Map<String, Boolean> defaultLoadImportsType;
+    Map<String, ExternalArtifactSupport> userInputForLoadImportsType;
     private List<String> webContentSyntax;
 
     public ValidationArtifactInfo getShapeInfo(String validationType) {
@@ -33,13 +37,21 @@ public class DomainConfig extends WebDomainConfig<DomainConfig.Label> {
         this.defaultReportSyntax = defaultReportSyntax;
     }
 
-    public boolean isReportsOrdered() {
+	public boolean isReportsOrdered() {
         return reportsOrdered;
     }
 
     public void setReportsOrdered(boolean reportsOrdered) {
         this.reportsOrdered = reportsOrdered;
     }
+	
+    public Map<String, Boolean> getDefaultLoadImportsType() {
+		return defaultLoadImportsType;
+	}
+
+	public void setDefaultLoadImportsType(Map<String, Boolean> loadImportsType) {
+		this.defaultLoadImportsType = loadImportsType;
+	}
 
     public boolean isMergeModelsBeforeValidation() {
 		return mergeModelsBeforeValidation;
@@ -47,6 +59,14 @@ public class DomainConfig extends WebDomainConfig<DomainConfig.Label> {
 
 	public void setMergeModelsBeforeValidation(boolean mergeModelsBeforeValidation) {
 		this.mergeModelsBeforeValidation = mergeModelsBeforeValidation;
+	}
+
+	public Map<String, ExternalArtifactSupport> getUserInputForLoadImportsType() {
+		return userInputForLoadImportsType;
+	}
+
+	public void setUserInputForLoadImportsType(Map<String, ExternalArtifactSupport> userInputForLoadImportsType) {
+		this.userInputForLoadImportsType = userInputForLoadImportsType;
 	}
 
 	public List<String> getWebContentSyntax() {
@@ -57,7 +77,7 @@ public class DomainConfig extends WebDomainConfig<DomainConfig.Label> {
 		this.webContentSyntax = webContentSyntax;
 	}
 
-    public static class Label extends LabelConfig {
+	public static class Label extends LabelConfig {
 
         private String contentSyntaxLabel;
         private String externalShapesLabel;
@@ -74,6 +94,7 @@ public class DomainConfig extends WebDomainConfig<DomainConfig.Label> {
         private String reportItemShape;
         private String reportItemValue;
         private String includeExternalShapes;
+        private String loadImportsLabel;
 
         public String getReportItemFocusNode() {
             return reportItemFocusNode;
@@ -193,6 +214,14 @@ public class DomainConfig extends WebDomainConfig<DomainConfig.Label> {
 
 		public void setExternalShapesLabel(String externalShapesLabel) {
 			this.externalShapesLabel = externalShapesLabel;
+		}
+
+		public String getLoadImportsLabel() {
+			return loadImportsLabel;
+		}
+
+		public void setLoadImportsLabel(String loadImportsLabel) {
+			this.loadImportsLabel = loadImportsLabel;
 		}
 
     }

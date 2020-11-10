@@ -77,6 +77,7 @@ public class ValidationServiceImpl implements ValidationService {
         response.getModule().getInputs().getParam().add(Utils.createParameter(ValidationConstants.INPUT_SYNTAX, "string", UsageEnumeration.O, ConfigurationType.SIMPLE, domainConfig.getWebServiceDescription().get(ValidationConstants.INPUT_SYNTAX)));
         response.getModule().getInputs().getParam().add(Utils.createParameter(ValidationConstants.INPUT_VALIDATION_TYPE, "string", UsageEnumeration.O, ConfigurationType.SIMPLE, domainConfig.getWebServiceDescription().get(ValidationConstants.INPUT_VALIDATION_TYPE)));
         response.getModule().getInputs().getParam().add(Utils.createParameter(ValidationConstants.INPUT_EXTERNAL_RULES, "list[map]", UsageEnumeration.O, ConfigurationType.SIMPLE, domainConfig.getWebServiceDescription().get(ValidationConstants.INPUT_EXTERNAL_RULES)));
+        response.getModule().getInputs().getParam().add(Utils.createParameter(ValidationConstants.INPUT_LOAD_IMPORTS, "boolean", UsageEnumeration.O, ConfigurationType.SIMPLE, domainConfig.getWebServiceDescription().get(ValidationConstants.INPUT_LOAD_IMPORTS)));
         
         return response;
     }
@@ -100,7 +101,9 @@ public class ValidationServiceImpl implements ValidationService {
 			File contentToValidate = inputHelper.validateContentToValidate(validateRequest, ValidationConstants.INPUT_CONTENT, contentEmbeddingMethod, parentFolder);
 			String validationType = inputHelper.validateValidationType(domainConfig, validateRequest, ValidationConstants.INPUT_VALIDATION_TYPE);
 			List<FileInfo> externalShapes = inputHelper.validateExternalArtifacts(domainConfig, validateRequest, ValidationConstants.INPUT_EXTERNAL_RULES, ValidationConstants.INPUT_RULE_SET, ValidationConstants.INPUT_EMBEDDING_METHOD, validationType, null, parentFolder);
-			SHACLValidator validator = ctx.getBean(SHACLValidator.class, contentToValidate, validationType, contentSyntax, externalShapes, domainConfig);
+			Boolean loadImports = inputHelper.validateLoadInputs(domainConfig, getInputLoadImports(validateRequest), validationType);
+			
+			SHACLValidator validator = ctx.getBean(SHACLValidator.class, contentToValidate, validationType, contentSyntax, externalShapes, loadImports, domainConfig);
 			Model reportModel = validator.validateAll();
 			TAR report = Utils.getTAR(reportModel, contentToValidate.toPath(), validator.getAggregatedShapes(), domainConfig);
 			ValidationResponse result = new ValidationResponse();
@@ -127,6 +130,15 @@ public class ValidationServiceImpl implements ValidationService {
         if (!listContentSyntax.isEmpty()) {
         	AnyContent content = listContentSyntax.get(0);
         	return content.getValue();
+        } else {
+        	return null;
+        }
+    }
+    private Boolean getInputLoadImports(ValidateRequest validateRequest){
+        List<AnyContent> listLoadImports = Utils.getInputFor(validateRequest, ValidationConstants.INPUT_LOAD_IMPORTS);
+        if (!listLoadImports.isEmpty()) {
+        	AnyContent content = listLoadImports.get(0);
+        	return Boolean.valueOf(content.getValue());
         } else {
         	return null;
         }

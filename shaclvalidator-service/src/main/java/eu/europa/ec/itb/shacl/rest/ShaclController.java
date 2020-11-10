@@ -67,7 +67,7 @@ public class ShaclController {
 	@Value("${validator.hydraRootPath}")
 	private String hydraRootPath;
 
-	@ApiOperation(value = "Get API information.", response = ApiInfo.class, notes="Retrieve the supported validation " +
+	@ApiOperation(value = "Get API information (for a given domain).", response = ApiInfo.class, notes="Retrieve the supported validation " +
 			"types that can be requested when calling this API's validation operations.")
 	@ApiResponses({
 			@ApiResponse(code = 200, message = "Success", response = ApiInfo.class),
@@ -81,6 +81,31 @@ public class ShaclController {
 	) {
 		DomainConfig domainConfig = validateDomain(domain);
 		return ApiInfo.fromDomainConfig(domainConfig);
+	}
+
+	/** 
+	 * GET service to receive all domains and its validation types.
+	 * @return The data as List.
+	 */
+	@ApiOperation(value = "Get API information (all supported domains and validation types).", response = ApiInfo[].class, notes="Retrieve the supported domains and validation types configured in this validator. "
+			+ "These are the domain and validation types that can be used as parameters with the API's other operations.")
+	@ApiResponses({
+			@ApiResponse(code = 200, message = "Success", response = ApiInfo[].class),
+			@ApiResponse(code = 500, message = "Error (If a problem occurred with processing the request)", response = String.class)
+	})
+	@RequestMapping(value = "/api/info", method = RequestMethod.GET, consumes = MediaType.ALL_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+	public ApiInfo[] infoAll() {
+		List<DomainConfig> listDomainsConfig = domainConfigs.getAllDomainConfigurations();
+		ApiInfo[] listApiInfo = new ApiInfo[listDomainsConfig.size()];
+		
+		int i=0;
+		for(DomainConfig domainConfig : listDomainsConfig) {
+			listApiInfo[i] = ApiInfo.fromDomainConfig(domainConfig);
+			
+			i++;
+		}
+
+		return listApiInfo;
 	}
 	
 	/**
@@ -179,8 +204,10 @@ public class ShaclController {
 			List<FileInfo> externalShapes = getExternalShapes(domainConfig, validationType, in.getExternalRules(), parentFolder);
 			ValueEmbeddingEnumeration embeddingMethod = inputHelper.getEmbeddingMethod(in.getEmbeddingMethod());
 			File inputFile = inputHelper.validateContentToValidate(in.getContentToValidate(), embeddingMethod, parentFolder);
+			Boolean loadImports = inputHelper.validateLoadInputs(domainConfig, in.isLoadImports(), validationType);
+			
 			// Execute validation
-			SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile, validationType, in.getContentSyntax(), externalShapes, domainConfig);
+			SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile, validationType, in.getContentSyntax(), externalShapes, loadImports, domainConfig);
 			Model validationReport = validator.validateAll();
 			//Process the result according to content-type
 			validationResult = getShaclReport(validationReport, reportSyntax);

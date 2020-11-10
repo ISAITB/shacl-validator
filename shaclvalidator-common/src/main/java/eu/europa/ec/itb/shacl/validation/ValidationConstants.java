@@ -12,5 +12,6 @@ public class ValidationConstants {
     public static String INPUT_EXTERNAL_RULES = "externalRules";
     public static String INPUT_RULE_SET = "ruleSet";
     public static String INPUT_RULE_SYNTAX = "ruleSyntax";
+    public static String INPUT_LOAD_IMPORTS = "loadImports";
 
 }
