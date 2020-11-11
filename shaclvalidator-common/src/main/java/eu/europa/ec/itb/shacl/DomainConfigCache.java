@@ -53,6 +53,7 @@ public class DomainConfigCache extends WebDomainConfigCache<DomainConfig> {
         domainConfig.getLabel().setOptionDownloadShapes(config.getString("validator.label.optionDownloadShapes", "Shapes"));
         domainConfig.getLabel().setContentSyntaxTooltip(config.getString("validator.label.contentSyntaxTooltip", "Optional for content provided as a file or a URI if a known file extension is detected"));
         domainConfig.getLabel().setExternalRulesTooltip(config.getString("validator.label.externalRulesTooltip", "Additional shapes that will be considered for the validation"));
+        domainConfig.getLabel().setLoadImportsTooltip(config.getString("validator.label.loadImportsTooltip", "Load imported resources defined via owl:imports when defining the data graph to validate."));
         domainConfig.getLabel().setSaveDownload(config.getString("validator.label.saveDownload", "Download"));
         domainConfig.getLabel().setSaveAs(config.getString("validator.label.saveAs", "as"));
         domainConfig.getLabel().setIncludeExternalShapes(config.getString("validator.label.includeExternalShapes", "Include external shapes"));
