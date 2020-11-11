@@ -12,6 +12,7 @@ import eu.europa.ec.itb.validation.commons.config.DomainPluginConfigProvider;
 import eu.europa.ec.itb.validation.commons.error.ValidatorException;
 import eu.europa.ec.itb.validation.plugin.PluginManager;
 import eu.europa.ec.itb.validation.plugin.ValidationPlugin;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jena.ontology.OntModel;
@@ -60,6 +61,7 @@ public class SHACLValidator {
     private List<FileInfo> externalShaclFiles;
     private Model aggregatedShapes;
     private Model importedShapes;
+    private boolean loadImports;
 
     /**
      * Constructor to start the SHACL validator.
@@ -69,12 +71,13 @@ public class SHACLValidator {
      * @param externalShaclFiles Any shapes to consider that are externally provided
      * @param domainConfig Domain
      */
-    public SHACLValidator(File inputFileToValidate, String validationType, String contentSyntax, List<FileInfo> externalShaclFiles, DomainConfig domainConfig) {
+    public SHACLValidator(File inputFileToValidate, String validationType, String contentSyntax, List<FileInfo> externalShaclFiles, boolean loadImports, DomainConfig domainConfig) {
     	this.contentSyntax = contentSyntax;
     	this.inputFileToValidate = inputFileToValidate;
         this.validationType = validationType;
         this.domainConfig = domainConfig;
         this.externalShaclFiles = externalShaclFiles;
+        this.loadImports = loadImports;
         if (validationType == null) {
             this.validationType = domainConfig.getType().get(0);
         }
@@ -352,11 +355,22 @@ public class SHACLValidator {
     private Model getDataModel(File dataFile, Model shapesModel) {
         // Upload the data in the Model. First set the prefixes of the model to those of the shapes model to avoid mismatches.
         Model dataModel = JenaUtil.createMemoryModel();
+        
         if (shapesModel != null) {
             dataModel.setNsPrefixes(shapesModel.getNsPrefixMap());
         }
         try (InputStream dataStream = new FileInputStream(dataFile)) {
             dataModel.read(dataStream, null, contextSyntaxToUse().getName());
+            
+            if(this.loadImports) {
+                LOG.info("Loading imports...");
+	            createImportedModels(dataModel);
+	            
+	            if(this.importedShapes != null) {
+	            	dataModel.add(importedShapes);
+	            	this.importedShapes.removeAll();
+	            }
+            }
         } catch (Exception e) {
             throw new ValidatorException("An error occurred while reading the provided content: "+e.getMessage(), e);
         }

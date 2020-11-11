@@ -4,6 +4,7 @@ package eu.europa.ec.itb.shacl.standalone;
 import com.gitb.tr.TAR;
 import eu.europa.ec.itb.shacl.DomainConfig;
 import eu.europa.ec.itb.shacl.DomainConfigCache;
+import eu.europa.ec.itb.shacl.InputHelper;
 import eu.europa.ec.itb.shacl.util.Utils;
 import eu.europa.ec.itb.shacl.validation.FileManager;
 import eu.europa.ec.itb.shacl.validation.FileReport;
@@ -56,6 +57,8 @@ public class ValidationRunner {
     ApplicationContext applicationContext;
     @Autowired
     DomainConfigCache domainConfigCache;
+    @Autowired
+    InputHelper inputHelper;
 
     @PostConstruct
     public void init() {
@@ -90,6 +93,8 @@ public class ValidationRunner {
         List<FileInfo> externalShapesList = new ArrayList<>();
         boolean noReports = false;        
         boolean requireType = domainConfig.hasMultipleValidationTypes();
+        Boolean loadImports = null;
+
 
         String reportSyntax = null;
         String inputContentType = null;
@@ -149,6 +154,10 @@ public class ValidationRunner {
                             FileInfo fi = getExternalShapes(file, contentLang, parentFolder);
                             externalShapesList.add(fi);
                         }
+                    } else if ("-loadImports".equalsIgnoreCase(args[i])) {
+                    	if (args.length > i+1) {
+                    		loadImports = Boolean.valueOf(args[++i]);
+                    	}
                     } else {
                         throw new IllegalArgumentException("Unexpected parameter ["+args[i]+"]");
                     }
@@ -166,6 +175,8 @@ public class ValidationRunner {
                 if (!hasExternalShapes && externalShapesList.size() > 0) {
                     throw new ValidatorException(String.format("Loading external shape files is not supported for validation type [%s] of domain [%s].", type, domainConfig.getDomainName()));
                 }
+
+                loadImports = inputHelper.validateLoadInputs(domainConfig, loadImports, type);
 
             } catch (Exception e) {
                 loggerFeedback.info("\nInvalid arguments provided: "+e.getMessage()+"\n");
@@ -188,7 +199,7 @@ public class ValidationRunner {
                     File inputFile = input.getInputFile();
 
                     try {
-                        SHACLValidator validator = applicationContext.getBean(SHACLValidator.class, inputFile, type, inputContentType, externalShapesList, domainConfig);
+                        SHACLValidator validator = applicationContext.getBean(SHACLValidator.class, inputFile, type, inputContentType, externalShapesList, loadImports, domainConfig);
                         Model report = validator.validateAll();
 
                         String outputData = getShaclReport(report, reportSyntax);
@@ -232,7 +243,7 @@ public class ValidationRunner {
         boolean requireType = domainConfig.hasMultipleValidationTypes();
         StringBuilder msg = new StringBuilder();
         if (requireType) {
-            msg.append("\nExpected usage: java -jar validator.jar [-noreports] [-validationType VALIDATION_TYPE] [-reportSyntax REPORT_SYNTAX] -contentToValidate FILE_1/URI_1 CONTENT_SYNTAX_1 ... [-contentToValidate FILE_N/URI_N CONTENT_SYNTAX_N] [-externalShapes SHAPE_FILE_1/SHAPE_URI_1 CONTENT_SYNTAX_1] ... [-externalShapes SHAPE_FILE_N/SHAPE_URI_N CONTENT_SYNTAX_N]");
+            msg.append("\nExpected usage: java -jar validator.jar [-noreports] [-validationType VALIDATION_TYPE] [-reportSyntax REPORT_SYNTAX] -contentToValidate FILE_1/URI_1 CONTENT_SYNTAX_1 ... [-contentToValidate FILE_N/URI_N CONTENT_SYNTAX_N] [-externalShapes SHAPE_FILE_1/SHAPE_URI_1 CONTENT_SYNTAX_1] ... [-externalShapes SHAPE_FILE_N/SHAPE_URI_N CONTENT_SYNTAX_N] [-loadImports LOAD_IMPORTS]");
             msg.append("\n   Where:");
             msg.append("\n      - VALIDATION_TYPE is the type of validation to perform, one of [");
             for (int i=0; i < domainConfig.getType().size(); i++) {
@@ -244,13 +255,13 @@ public class ValidationRunner {
             }            
             msg.append("].");
         } else {
-        	msg.append("\nExpected usage: java -jar validator.jar [-noreports] [-reportSyntax REPORT_SYNTAX] -contentToValidate FILE_1/URI_1 CONTENT_SYNTAX_1 ... [-contentToValidate FILE_N/URI_N CONTENT_SYNTAX_N] [-externalShapes SHAPE_FILE_1/SHAPE_URI_1 CONTENT_SYNTAX_1] ... [-externalShapes SHAPE_FILE_N/SHAPE_URI_N CONTENT_SYNTAX_N]");
+        	msg.append("\nExpected usage: java -jar validator.jar [-noreports] [-reportSyntax REPORT_SYNTAX] -contentToValidate FILE_1/URI_1 CONTENT_SYNTAX_1 ... [-contentToValidate FILE_N/URI_N CONTENT_SYNTAX_N] [-externalShapes SHAPE_FILE_1/SHAPE_URI_1 CONTENT_SYNTAX_1] ... [-externalShapes SHAPE_FILE_N/SHAPE_URI_N CONTENT_SYNTAX_N] [-loadImports LOAD_IMPORTS]\"");
         	msg.append("\n   Where:");
         }
         msg.append("\n      - REPORT_SYNTAX is the mime type for the validation report(s).");
         msg.append("\n      - FILE_X or URI_X is the full file path or URI to the content to validate, optionally followed by CONTENT_SYNTAX_X as the content's mime type.");
         msg.append("\n      - SHAPE_FILE_X or SHAPE_URI_X is the full file path or URI to additional shapes to consider, optionally followed by CONTENT_SYNTAX_X as the shapes' mime type.");
-        
+        msg.append("\n      - LOAD_IMPORTS is a boolean indicating whether the owl:Imports should be loaded (true) or not (false).");        
         msg.append("\n\nThe summary of each validation will be printed and the detailed report produced in the current directory (as \"report.X.SUFFIX\").");
         System.out.println(msg.toString());
     }

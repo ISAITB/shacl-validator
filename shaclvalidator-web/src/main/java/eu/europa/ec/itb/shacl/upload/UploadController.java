@@ -4,6 +4,7 @@ import com.gitb.tr.TAR;
 import eu.europa.ec.itb.shacl.ApplicationConfig;
 import eu.europa.ec.itb.shacl.DomainConfig;
 import eu.europa.ec.itb.shacl.DomainConfigCache;
+import eu.europa.ec.itb.shacl.InputHelper;
 import eu.europa.ec.itb.shacl.util.Utils;
 import eu.europa.ec.itb.shacl.validation.FileManager;
 import eu.europa.ec.itb.shacl.validation.SHACLValidator;
@@ -75,6 +76,9 @@ public class UploadController {
     @Autowired
     private ReportGeneratorBean reportGenerator = null;
     
+    @Autowired
+    private InputHelper inputHelper = null;
+    
     @GetMapping(value = "/{domain}/upload")
     public ModelAndView upload(@PathVariable("domain") String domain, Model model, HttpServletRequest request) {
 		setMinimalUIFlag(request, false);
@@ -89,6 +93,7 @@ public class UploadController {
         attributes.put("contentType", getContentType(domainConfig));
         attributes.put("contentSyntax", getContentSyntax(domainConfig));
         attributes.put("externalArtifactInfo", domainConfig.getExternalArtifactInfoMap());
+		attributes.put("loadImportsInfo", domainConfig.getUserInputForLoadImportsType());
         attributes.put("minimalUI", false);
         attributes.put("config", domainConfig);
         attributes.put("appConfig", appConfig);
@@ -108,6 +113,7 @@ public class UploadController {
     		@RequestParam(value = "inputFile-external_default", required= false) MultipartFile[] externalFiles,
     		@RequestParam(value = "uri-external_default", required = false) String[] externalUri,
     		@RequestParam(value = "contentSyntaxType-external_default", required = false) String[] externalFilesSyntaxType,
+            @RequestParam(value = "loadImportsCheck", required = false, defaultValue = "false") Boolean loadImportsValue,
 			HttpServletRequest request) {
 		setMinimalUIFlag(request, false);
 		DomainConfig domainConfig;
@@ -125,6 +131,7 @@ public class UploadController {
         attributes.put("contentType", getContentType(domainConfig));
         attributes.put("contentSyntax", getContentSyntax(domainConfig));
 		attributes.put("externalArtifactInfo", domainConfig.getExternalArtifactInfoMap());
+		attributes.put("loadImportsInfo", domainConfig.getUserInputForLoadImportsType());
         attributes.put("minimalUI", false);
         attributes.put("downloadType", getDownloadType(domainConfig));
         attributes.put("config", domainConfig);
@@ -159,8 +166,13 @@ public class UploadController {
 					} else {
 						extFiles = Collections.emptyList();
 					}
+	
+					if(domainConfig.getUserInputForLoadImportsType().get(validationType) == ExternalArtifactSupport.NONE) {
+						loadImportsValue = null;
+					}
+					loadImportsValue = inputHelper.validateLoadInputs(domainConfig, loadImportsValue, validationType);
 
-					SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile, validationType, contentSyntaxType, extFiles, domainConfig);
+					SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile, validationType, contentSyntaxType, extFiles, loadImportsValue, domainConfig);
 
 					reportModel = validator.validateAll();
 					aggregatedShapes =  validator.getAggregatedShapes();
@@ -234,6 +246,7 @@ public class UploadController {
         attributes.put("contentType", getContentType(domainConfig));
         attributes.put("contentSyntax", getContentSyntax(domainConfig));
 		attributes.put("externalArtifactInfo", domainConfig.getExternalArtifactInfoMap());
+		attributes.put("loadImportsInfo", domainConfig.getUserInputForLoadImportsType());
         attributes.put("minimalUI", true);
         attributes.put("config", domainConfig);
         attributes.put("appConfig", appConfig);
@@ -253,9 +266,10 @@ public class UploadController {
     		@RequestParam(value = "inputFile-external_default", required= false) MultipartFile[] externalFiles,
     		@RequestParam(value = "uri-external_default", required = false) String[] externalUri,
     		@RequestParam(value = "contentSyntaxType-external_default", required = false) String[] externalFilesSyntaxType,
+            @RequestParam(value = "loadImportsCheck", required = false, defaultValue = "false") Boolean loadImportsValue,
 		  HttpServletRequest request) {
 		setMinimalUIFlag(request, true);
-		ModelAndView mv = handleUpload(domain, file, uri, string, contentType, validationType, contentSyntaxType, externalContentType, externalFiles, externalUri, externalFilesSyntaxType, request);
+		ModelAndView mv = handleUpload(domain, file, uri, string, contentType, validationType, contentSyntaxType, externalContentType, externalFiles, externalUri, externalFilesSyntaxType, loadImportsValue, request);
 		
 		Map<String, Object> attributes = mv.getModel();
         attributes.put("minimalUI", true);

@@ -159,6 +159,10 @@ The properties here define how a specific validation domain is configured. They 
 | `validator.defaultPlugins.A.jar` | The default JAR file containing the plugin development. | - |
 | `validator.plugins.XYZ.A.class` | The class to execute the JAR file for a given validation type (added as a postfix). | - |
 | `validator.plugins.XYZ.A.jar` | The JAR file containing the plugin development for a given validation type (added as a postfix). | - |
+| `validator.loadImports` | Whether the specific domain should load imports. | Boolean | `false` |
+| `validator.loadImports.XYZ` | Whether the domain should load imports for a given validation type (added as a postfix). | Boolean | `false` |
+| `validator.input.loadImports` | If for the domain's validation types, the user can specify whether owl:Imports should be loaded. | required, optional, none | `none` |
+| `validator.input.loadImports.XYZ` | If the user can specify whether owl:Imports should be loaded for a given validation type (added as a postfix). | required, optional, none | `none` |
 
 # Plugin development
 

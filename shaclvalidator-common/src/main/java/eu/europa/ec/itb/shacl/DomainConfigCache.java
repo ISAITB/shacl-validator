@@ -1,6 +1,7 @@
 package eu.europa.ec.itb.shacl;
 
 import eu.europa.ec.itb.validation.commons.ValidatorChannel;
+import eu.europa.ec.itb.validation.commons.artifact.ExternalArtifactSupport;
 import eu.europa.ec.itb.validation.commons.config.WebDomainConfigCache;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.lang3.StringUtils;
@@ -42,6 +43,8 @@ public class DomainConfigCache extends WebDomainConfigCache<DomainConfig> {
         domainConfig.setReportsOrdered(config.getBoolean("validator.reportsOrdered", false));
         domainConfig.setMergeModelsBeforeValidation(config.getBoolean("validator.mergeModelsBeforeValidation", true));
         // Labels
+        domainConfig.setDefaultLoadImportsType(parseBooleanMap("validator.loadImports", config, domainConfig.getType(), config.getBoolean("validator.loadImports", false)));
+        domainConfig.setUserInputForLoadImportsType(parseEnumMap("validator.input.loadImports", ExternalArtifactSupport.byName(config.getString("validator.input.loadImports", ExternalArtifactSupport.NONE.getName())), config, domainConfig.getType(), ExternalArtifactSupport::byName));
         domainConfig.getLabel().setContentSyntaxLabel(config.getString("validator.label.contentSyntaxLabel", "Content syntax"));
         domainConfig.getLabel().setExternalShapesLabel(config.getString("validator.label.externalShapesLabel", "External shapes"));
         domainConfig.getLabel().setResultLocationLabel(config.getString("validator.label.resultLocationLabel", "Location:"));
@@ -57,6 +60,7 @@ public class DomainConfigCache extends WebDomainConfigCache<DomainConfig> {
         domainConfig.getLabel().setReportItemResultPath(config.getString("validator.label.reportItemResultPath", "Result path"));
         domainConfig.getLabel().setReportItemShape(config.getString("validator.label.reportItemShape", "Shape"));
         domainConfig.getLabel().setReportItemValue(config.getString("validator.label.reportItemValue", "Value"));
+        domainConfig.getLabel().setLoadImportsLabel(config.getString("validator.label.loadImports", "Load imports defined in the input?"));
         addMissingDefaultValues(domainConfig.getWebServiceDescription(), appConfig.getDefaultLabels());
     }
 
