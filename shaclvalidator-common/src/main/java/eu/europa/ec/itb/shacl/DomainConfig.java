@@ -95,6 +95,7 @@ public class DomainConfig extends WebDomainConfig<DomainConfig.Label> {
         private String reportItemValue;
         private String includeExternalShapes;
         private String loadImportsLabel;
+        private String loadImportsTooltip;
 
         public String getReportItemFocusNode() {
             return reportItemFocusNode;
@@ -222,6 +223,14 @@ public class DomainConfig extends WebDomainConfig<DomainConfig.Label> {
 
 		public void setLoadImportsLabel(String loadImportsLabel) {
 			this.loadImportsLabel = loadImportsLabel;
+		}
+
+		public String getLoadImportsTooltip() {
+			return loadImportsTooltip;
+		}
+
+		public void setLoadImportsTooltip(String loadImportsTooltip) {
+			this.loadImportsTooltip = loadImportsTooltip;
 		}
 
     }
