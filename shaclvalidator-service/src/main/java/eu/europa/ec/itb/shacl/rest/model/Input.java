@@ -23,6 +23,8 @@ public class Input {
 	private String reportSyntax;
     @ApiModelProperty(notes = "Any shapes to consider that are externally provided (i.e. provided at the time of the call).")
 	private List<RuleSet> externalRules;
+    @ApiModelProperty(notes = "If owl:Imports should be loaded from the RDF content. This can be skipped if defined in the configuration. If not provided, the decision is determined from the configuration for the domain in question.")
+	private Boolean loadImports;
 
 	public String getContentToValidate() { return this.contentToValidate; }
 	
@@ -37,6 +39,8 @@ public class Input {
 	public List<RuleSet> getExternalRules(){ return this.externalRules; }
 	
 	public RuleSet getExternalRules(int value) { return this.externalRules.get(value); }
+	
+	public Boolean isLoadImports(){ return this.loadImports; }
 
 	public void setContentToValidate(String contentToValidate) {
 		this.contentToValidate = contentToValidate;
@@ -60,6 +64,10 @@ public class Input {
 
 	public void setExternalRules(List<RuleSet> externalRules) {
 		this.externalRules = externalRules;
+	}
+
+	public void setLoadImports(Boolean loadImports) {
+		this.loadImports = loadImports;
 	}
 
 }

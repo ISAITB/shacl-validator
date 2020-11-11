@@ -83,7 +83,7 @@ public class ShaclController {
 		return ApiInfo.fromDomainConfig(domainConfig);
 	}
 
-	/**
+	/** 
 	 * GET service to receive all domains and its validation types.
 	 * @return The data as List.
 	 */
@@ -104,7 +104,7 @@ public class ShaclController {
 			
 			i++;
 		}
-		
+
 		return listApiInfo;
 	}
 	
@@ -204,8 +204,10 @@ public class ShaclController {
 			List<FileInfo> externalShapes = getExternalShapes(domainConfig, validationType, in.getExternalRules(), parentFolder);
 			ValueEmbeddingEnumeration embeddingMethod = inputHelper.getEmbeddingMethod(in.getEmbeddingMethod());
 			File inputFile = inputHelper.validateContentToValidate(in.getContentToValidate(), embeddingMethod, parentFolder);
+			Boolean loadImports = inputHelper.validateLoadInputs(domainConfig, in.isLoadImports(), validationType);
+			
 			// Execute validation
-			SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile, validationType, in.getContentSyntax(), externalShapes, domainConfig);
+			SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile, validationType, in.getContentSyntax(), externalShapes, loadImports, domainConfig);
 			Model validationReport = validator.validateAll();
 			//Process the result according to content-type
 			validationResult = getShaclReport(validationReport, reportSyntax);

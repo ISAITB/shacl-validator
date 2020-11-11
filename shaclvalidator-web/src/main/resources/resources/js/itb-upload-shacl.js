@@ -1,6 +1,23 @@
+addListener('FORM_READY', loadImportInputs)
 addListener('ADDED_EXTERNAL_ARTIFACT_INPUT', externalShapeAdded);
 addListener('REMOVED_EXTERNAL_ARTIFACT_INPUT', externalShapeRemoved);
 addListener('INPUT_CONTENT_TYPE_CHANGED', inputContentTypeChanged);
+addListener('VALIDATION_TYPE_CHANGED', loadImportInputs);
+
+function loadImportInputs(){
+    $("#loadImportsCheck").prop('checked', false);	
+    var validationType = getCompleteValidationType();
+    
+    if (validationType) {
+    	if(loadImportsArtifacts[validationType] == 'REQUIRED' || loadImportsArtifacts[validationType] == 'OPTIONAL'){
+    		$('#loadImportsDiv').removeClass('hidden');
+    	    $("#loadImportsCheck").prop('checked', false);
+    	}
+    	if(loadImportsArtifacts[validationType] == 'NONE'){
+    		$('#loadImportsDiv').addClass('hidden');
+    	}
+    }
+}
 
 function inputContentTypeChanged() {
 	var type = $('#contentType').val();

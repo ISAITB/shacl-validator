@@ -25,6 +25,7 @@ public class ApplicationConfig extends eu.europa.ec.itb.validation.commons.confi
     private String defaultContentSyntaxDescription;
     private String defaultValidationTypeDescription;
     private String defaultExternalRulesDescription;
+    private String defaultLoadImportsDescription;
 
     public Set<String> getAcceptedShaclExtensions() {
         return acceptedShaclExtensions;
@@ -62,6 +63,10 @@ public class ApplicationConfig extends eu.europa.ec.itb.validation.commons.confi
         return defaultExternalRulesDescription;
     }
 
+    public String getDefaultLoadImportsDescription() {
+        return defaultLoadImportsDescription;
+    }
+
     public void setDefaultContentToValidateDescription(String defaultContentToValidateDescription) {
         this.defaultContentToValidateDescription = defaultContentToValidateDescription;
     }
@@ -80,6 +85,10 @@ public class ApplicationConfig extends eu.europa.ec.itb.validation.commons.confi
 
     public void setDefaultExternalRulesDescription(String defaultExternalRulesDescription) {
         this.defaultExternalRulesDescription = defaultExternalRulesDescription;
+    }
+
+    public void setDefaultLoadImportsDescription(String defaultLoadImportsDescription) {
+        this.defaultLoadImportsDescription = defaultLoadImportsDescription;
     }
 
 	public Set<String> getContentSyntax() {
@@ -103,6 +112,7 @@ public class ApplicationConfig extends eu.europa.ec.itb.validation.commons.confi
         defaultLabels.put("embeddingMethod", defaultEmbeddingMethodDescription);
         defaultLabels.put("externalRules", defaultExternalRulesDescription);
         defaultLabels.put("validationType", defaultValidationTypeDescription);
+        defaultLabels.put("loadImports", defaultLoadImportsDescription);
     }
 
 }
