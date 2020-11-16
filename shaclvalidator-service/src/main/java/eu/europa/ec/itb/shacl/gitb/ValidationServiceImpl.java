@@ -6,6 +6,7 @@ import com.gitb.vs.Void;
 import com.gitb.vs.*;
 import eu.europa.ec.itb.shacl.DomainConfig;
 import eu.europa.ec.itb.shacl.InputHelper;
+import eu.europa.ec.itb.shacl.SparqlQueryConfig;
 import eu.europa.ec.itb.shacl.util.Utils;
 import eu.europa.ec.itb.shacl.validation.FileManager;
 import eu.europa.ec.itb.shacl.validation.SHACLValidator;
@@ -13,6 +14,7 @@ import eu.europa.ec.itb.shacl.validation.ValidationConstants;
 import eu.europa.ec.itb.validation.commons.FileInfo;
 import eu.europa.ec.itb.validation.commons.error.ValidatorException;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jena.rdf.model.Model;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,14 +74,37 @@ public class ValidationServiceImpl implements ValidationService {
         response.getModule().getMetadata().setName(domainConfig.getWebServiceId());
         response.getModule().getMetadata().setVersion("1.0.0");
         response.getModule().setInputs(new TypedParameters());
-        response.getModule().getInputs().getParam().add(Utils.createParameter(ValidationConstants.INPUT_CONTENT, "binary", UsageEnumeration.R, ConfigurationType.SIMPLE, domainConfig.getWebServiceDescription().get(ValidationConstants.INPUT_CONTENT)));
+        UsageEnumeration contentUsage = UsageEnumeration.R;
+        if (domainConfig.isSupportsQueries()) {
+            contentUsage = UsageEnumeration.O;
+        }
+        response.getModule().getInputs().getParam().add(Utils.createParameter(ValidationConstants.INPUT_CONTENT, "binary", contentUsage, ConfigurationType.SIMPLE, domainConfig.getWebServiceDescription().get(ValidationConstants.INPUT_CONTENT)));
         response.getModule().getInputs().getParam().add(Utils.createParameter(ValidationConstants.INPUT_EMBEDDING_METHOD, "string", UsageEnumeration.O, ConfigurationType.SIMPLE, domainConfig.getWebServiceDescription().get(ValidationConstants.INPUT_EMBEDDING_METHOD)));
         response.getModule().getInputs().getParam().add(Utils.createParameter(ValidationConstants.INPUT_SYNTAX, "string", UsageEnumeration.O, ConfigurationType.SIMPLE, domainConfig.getWebServiceDescription().get(ValidationConstants.INPUT_SYNTAX)));
-        response.getModule().getInputs().getParam().add(Utils.createParameter(ValidationConstants.INPUT_VALIDATION_TYPE, "string", UsageEnumeration.O, ConfigurationType.SIMPLE, domainConfig.getWebServiceDescription().get(ValidationConstants.INPUT_VALIDATION_TYPE)));
-        response.getModule().getInputs().getParam().add(Utils.createParameter(ValidationConstants.INPUT_EXTERNAL_RULES, "list[map]", UsageEnumeration.O, ConfigurationType.SIMPLE, domainConfig.getWebServiceDescription().get(ValidationConstants.INPUT_EXTERNAL_RULES)));
-        response.getModule().getInputs().getParam().add(Utils.createParameter(ValidationConstants.INPUT_LOAD_IMPORTS, "boolean", UsageEnumeration.O, ConfigurationType.SIMPLE, domainConfig.getWebServiceDescription().get(ValidationConstants.INPUT_LOAD_IMPORTS)));
+        if (domainConfig.hasMultipleValidationTypes()) {
+            response.getModule().getInputs().getParam().add(Utils.createParameter(ValidationConstants.INPUT_VALIDATION_TYPE, "string", UsageEnumeration.R, ConfigurationType.SIMPLE, domainConfig.getWebServiceDescription().get(ValidationConstants.INPUT_VALIDATION_TYPE)));
+        }
+        if (domainConfig.supportsExternalArtifacts()) {
+            response.getModule().getInputs().getParam().add(Utils.createParameter(ValidationConstants.INPUT_EXTERNAL_RULES, "list[map]", UsageEnumeration.O, ConfigurationType.SIMPLE, domainConfig.getWebServiceDescription().get(ValidationConstants.INPUT_EXTERNAL_RULES)));
+        }
+        if (domainConfig.supportsUserProvidedLoadImports()) {
+            response.getModule().getInputs().getParam().add(Utils.createParameter(ValidationConstants.INPUT_LOAD_IMPORTS, "boolean", UsageEnumeration.O, ConfigurationType.SIMPLE, domainConfig.getWebServiceDescription().get(ValidationConstants.INPUT_LOAD_IMPORTS)));
+        }
         response.getModule().getInputs().getParam().add(Utils.createParameter(ValidationConstants.INPUT_ADD_INPUT_TO_REPORT, "boolean", UsageEnumeration.O, ConfigurationType.SIMPLE, domainConfig.getWebServiceDescription().get(ValidationConstants.INPUT_ADD_INPUT_TO_REPORT)));
         response.getModule().getInputs().getParam().add(Utils.createParameter(ValidationConstants.INPUT_ADD_RULES_TO_REPORT, "boolean", UsageEnumeration.O, ConfigurationType.SIMPLE, domainConfig.getWebServiceDescription().get(ValidationConstants.INPUT_ADD_RULES_TO_REPORT)));
+        if (domainConfig.isSupportsQueries()) {
+            // Query
+            response.getModule().getInputs().getParam().add(Utils.createParameter(ValidationConstants.INPUT_CONTENT_QUERY, "string", UsageEnumeration.O, ConfigurationType.SIMPLE, domainConfig.getWebServiceDescription().get(ValidationConstants.INPUT_CONTENT_QUERY)));
+            // Endpoint
+            if (domainConfig.getQueryEndpoint() == null) {
+                response.getModule().getInputs().getParam().add(Utils.createParameter(ValidationConstants.INPUT_CONTENT_QUERY_ENDPOINT, "string", UsageEnumeration.O, ConfigurationType.SIMPLE, domainConfig.getWebServiceDescription().get(ValidationConstants.INPUT_CONTENT_QUERY_ENDPOINT)));
+            }
+            // Credentials
+            if (domainConfig.getQueryUsername() == null) {
+                response.getModule().getInputs().getParam().add(Utils.createParameter(ValidationConstants.INPUT_CONTENT_QUERY_USERNAME, "string", UsageEnumeration.O, ConfigurationType.SIMPLE, domainConfig.getWebServiceDescription().get(ValidationConstants.INPUT_CONTENT_QUERY_USERNAME)));
+                response.getModule().getInputs().getParam().add(Utils.createParameter(ValidationConstants.INPUT_CONTENT_QUERY_PASSWORD, "string", UsageEnumeration.O, ConfigurationType.SIMPLE, domainConfig.getWebServiceDescription().get(ValidationConstants.INPUT_CONTENT_QUERY_PASSWORD)));
+            }
+        }
         return response;
     }
 
@@ -95,11 +120,20 @@ public class ValidationServiceImpl implements ValidationService {
     public ValidationResponse validate(@WebParam(name = "ValidateRequest", targetNamespace = "http://www.gitb.com/vs/v1/", partName = "parameters") ValidateRequest validateRequest) {
     	MDC.put("domain", domainConfig.getDomain());
 		File parentFolder = fileManager.createTemporaryFolderPath();
+		File contentToValidate;
 		try {
 			// Validation of the input data
 			String contentSyntax = validateContentSyntax(validateRequest);
 			ValueEmbeddingEnumeration contentEmbeddingMethod = inputHelper.validateContentEmbeddingMethod(validateRequest, ValidationConstants.INPUT_EMBEDDING_METHOD);
-			File contentToValidate = inputHelper.validateContentToValidate(validateRequest, ValidationConstants.INPUT_CONTENT, contentEmbeddingMethod, parentFolder);
+            var queryConfig = parseQueryConfiguration(validateRequest);
+			if (queryConfig == null) {
+				contentToValidate = inputHelper.validateContentToValidate(validateRequest, ValidationConstants.INPUT_CONTENT, contentEmbeddingMethod, parentFolder);
+			} else {
+                queryConfig.setPreferredContentType(contentSyntax);
+				queryConfig = inputHelper.validateSparqlConfiguration(domainConfig, queryConfig);
+                contentToValidate = fileManager.getContentFromSparqlEndpoint(queryConfig, parentFolder).toFile();
+                contentSyntax = queryConfig.getPreferredContentType();
+			}
 			String validationType = inputHelper.validateValidationType(domainConfig, validateRequest, ValidationConstants.INPUT_VALIDATION_TYPE);
 			List<FileInfo> externalShapes = inputHelper.validateExternalArtifacts(domainConfig, validateRequest, ValidationConstants.INPUT_EXTERNAL_RULES, ValidationConstants.INPUT_RULE_SET, ValidationConstants.INPUT_EMBEDDING_METHOD, validationType, null, parentFolder);
 			Boolean loadImports = inputHelper.validateLoadInputs(domainConfig, getInputLoadImports(validateRequest), validationType);
@@ -149,6 +183,32 @@ public class ValidationServiceImpl implements ValidationService {
         } else {
         	return null;
         }
+    }
+
+    private SparqlQueryConfig parseQueryConfiguration(ValidateRequest request) {
+        SparqlQueryConfig config = null;
+        String query = null;
+        String queryEndpoint = null;
+        String queryUsername = null;
+        String queryPassword = null;
+        for (AnyContent inputItem : request.getInput()) {
+             if (StringUtils.equals(inputItem.getName(), ValidationConstants.INPUT_CONTENT_QUERY)) {
+                 query = inputItem.getValue();
+             }
+             if (StringUtils.equals(inputItem.getName(), ValidationConstants.INPUT_CONTENT_QUERY_ENDPOINT)) {
+                 queryEndpoint = inputItem.getValue();
+             }
+             if (StringUtils.equals(inputItem.getName(), ValidationConstants.INPUT_CONTENT_QUERY_USERNAME)) {
+                 queryUsername = inputItem.getValue();
+             }
+             if (StringUtils.equals(inputItem.getName(), ValidationConstants.INPUT_CONTENT_QUERY_PASSWORD)) {
+                 queryPassword = inputItem.getValue();
+             }
+         }
+        if (query != null || queryEndpoint != null || queryUsername != null || queryPassword != null) {
+            config = new SparqlQueryConfig(queryEndpoint, query, queryUsername, queryPassword, null);
+        }
+        return config;
     }
 
     private boolean getInputAsBoolean(ValidateRequest validateRequest, String inputName, boolean defaultIfMissing) {

@@ -1,20 +1,37 @@
 package eu.europa.ec.itb.shacl.validation;
 
 import eu.europa.ec.itb.shacl.ApplicationConfig;
+import eu.europa.ec.itb.shacl.DomainConfig;
+import eu.europa.ec.itb.shacl.SparqlQueryConfig;
 import eu.europa.ec.itb.validation.commons.BaseFileManager;
 import eu.europa.ec.itb.validation.commons.FileInfo;
+import eu.europa.ec.itb.validation.commons.error.ValidatorException;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.HttpClient;
+import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.impl.client.HttpClients;
 import org.apache.jena.atlas.web.ContentType;
+import org.apache.jena.query.Query;
+import org.apache.jena.query.QueryException;
+import org.apache.jena.query.QueryFactory;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFLanguages;
+import org.apache.jena.sparql.engine.http.QueryEngineHTTP;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.io.Writer;
+import java.nio.file.Path;
 import java.util.List;
 
 @Component
@@ -45,14 +62,22 @@ public class FileManager extends BaseFileManager<ApplicationConfig> {
 
 	public void writeRdfModel(Writer outputWriter, Model rdfModel, String outputSyntax) {
 		Lang lang = RDFLanguages.contentTypeToLang(outputSyntax);
-		if (lang == null) {
-			rdfModel.write(outputWriter, null);
-		} else {
+		try {
+			if (lang == null) {
+				rdfModel.write(outputWriter, null);
+			} else {
+				try {
+					rdfModel.write(outputWriter, lang.getName());
+				} catch(Exception e) {
+					logger.error("Error writing RDF model", e);
+					throw new IllegalStateException("Error writing RDF model", e);
+				}
+			}
+		} finally {
 			try {
-				rdfModel.write(outputWriter, lang.getName());
-			} catch(Exception e) {
-				logger.error("Error writing RDF model", e);
-				throw new IllegalStateException("Error writing RDF model", e);
+				outputWriter.close();
+			} catch (IOException e) {
+				// Ignore.
 			}
 		}
 	}
@@ -80,6 +105,61 @@ public class FileManager extends BaseFileManager<ApplicationConfig> {
 
 	public File getHydraDocsFolder(String domainName) {
 		return new File(getHydraDocsRootFolder(), domainName);
+	}
+
+	public Path getContentFromSparqlEndpoint(SparqlQueryConfig queryConfig, File parentFolder, String fileName) {
+		Query query = getQuery(queryConfig.getQuery());
+		HttpClient httpclient = getHttpClient(queryConfig.getUsername(), queryConfig.getPassword());
+		QueryEngineHTTP qEngine = new QueryEngineHTTP(queryConfig.getEndpoint(), query);
+		Model resultModel;
+		try {
+			qEngine.setClient(httpclient);
+			qEngine.setModelContentType(queryConfig.getPreferredContentType());
+			resultModel = qEngine.execConstruct();
+		} catch (Exception e) {
+			throw new ValidatorException("An error occurred while querying the SPARQL endpoint: " + e.getMessage(), e);
+		} finally {
+			qEngine.close();
+		}
+		Path modelPath = null;
+		if (resultModel != null) {
+			modelPath = createFile(parentFolder, getFileExtension(queryConfig.getPreferredContentType()), fileName);
+			try {
+				writeRdfModel(new FileWriter(modelPath.toFile()), resultModel, queryConfig.getPreferredContentType());
+			} catch (IOException e) {
+				throw new ValidatorException("An error occurred while processing the retrieved content.", e);
+			}
+		}
+		return modelPath;
+	}
+
+	public Path getContentFromSparqlEndpoint(SparqlQueryConfig queryConfig, File parentFolder) {
+		return this.getContentFromSparqlEndpoint(queryConfig, parentFolder, null);
+	}
+
+	private HttpClient getHttpClient(String username, String password) {
+		HttpClientBuilder httpBuilder = HttpClients.custom();
+		if (username != null && password != null && !username.isBlank() && !password.isBlank()) {
+			CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+			credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(username, password));
+			httpBuilder.setDefaultCredentialsProvider(credentialsProvider);
+		}
+		return httpBuilder.build();
+	}
+
+	private Query getQuery(String sQuery) {
+		try {
+			Query query = QueryFactory.create(sQuery);
+			if (query.isConstructType()) {
+				return query;
+			} else {
+				logger.error("The input query must be a CONSTRUCT query.");
+				throw new ValidatorException("The input query must be a CONSTRUCT query.");
+			}
+		} catch(QueryException e) {
+			logger.error("Error getting SPARQL Query", e);
+			throw new ValidatorException("An error occurred while parsing the provided SPARQL Query: "+e.getMessage(), e);
+		}
 	}
 
 }

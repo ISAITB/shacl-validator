@@ -39,4 +39,62 @@ public class InputHelper extends BaseInputHelper<FileManager, DomainConfig, Appl
     	
     	return artifactInput;
     }
+    
+    public SparqlQueryConfig validateSparqlConfiguration(DomainConfig domainConfig, SparqlQueryConfig inputConfig) {
+    	if (!domainConfig.isSupportsQueries()) {
+    		throw new ValidatorException("SPARQL queries are not supported.");
+		}
+		SparqlQueryConfig config = new SparqlQueryConfig();
+		// Endpoint
+		if (StringUtils.isEmpty(domainConfig.getQueryEndpoint())) {
+			if (StringUtils.isEmpty(inputConfig.getEndpoint())) {
+				throw new ValidatorException("A SPARQL endpoint is needed to execute the query against.");
+			} else {
+				config.setEndpoint(inputConfig.getEndpoint());
+			}
+		} else {
+			if (!StringUtils.isEmpty(inputConfig.getEndpoint())) {
+				throw new ValidatorException("You cannot provide your own SPARQL endpoint for the validation.");
+			} else {
+				config.setEndpoint(domainConfig.getQueryEndpoint());
+			}
+		}
+		// Credentials
+		if (StringUtils.isNotBlank(inputConfig.getUsername()) || StringUtils.isNotBlank((inputConfig.getPassword()))) {
+			// Provided.
+			if (domainConfig.getQueryAuthentication() == ExternalArtifactSupport.NONE) {
+				throw new ValidatorException("You are not expected to provide credentials for the SPARQL endpoint.");
+			}
+			config.setUsername(inputConfig.getUsername());
+			config.setPassword(inputConfig.getPassword());
+		} else {
+			// Not provided.
+			if (domainConfig.getQueryAuthentication() == ExternalArtifactSupport.REQUIRED) {
+				throw new ValidatorException("You must provide your credentials for the SPARQL endpoint.");
+			}
+			config.setUsername(domainConfig.getQueryUsername());
+			config.setPassword(domainConfig.getQueryPassword());
+		}
+		// Query result content type
+		if (StringUtils.isNotBlank(inputConfig.getPreferredContentType())) {
+			config.setPreferredContentType(inputConfig.getPreferredContentType());
+		} else {
+			config.setPreferredContentType(domainConfig.getQueryContentType());
+		}
+		// Query
+		if (StringUtils.isBlank(domainConfig.getQuery())) {
+			if (StringUtils.isBlank(inputConfig.getQuery())) {
+				throw new ValidatorException("You must provide the query for the SPARQL endpoint.");
+			} else {
+				config.setQuery(inputConfig.getQuery());
+			}
+		} else {
+			if (StringUtils.isBlank(inputConfig.getQuery())) {
+				config.setQuery(domainConfig.getQuery());
+			} else {
+				config.setQuery(inputConfig.getQuery());
+			}
+		}
+		return config;
+    }
 }
