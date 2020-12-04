@@ -25,6 +25,7 @@ public class Application {
 
     public static void main(String[] args) throws IOException {
         File tempFolder = Files.createTempDirectory("shaclvalidator").toFile();
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> FileUtils.deleteQuietly(tempFolder)));
         // Set the resource root so that it can be used. This is done before app startup to avoid PostConstruct issues.
         String resourceRoot = tempFolder.getAbsolutePath();
         if (!resourceRoot.endsWith(File.separator)) {
@@ -39,31 +40,11 @@ public class Application {
         ApplicationConfig config = ctx.getBean(ApplicationConfig.class);
         // Set report folder for use as a temp file generation target.
         config.setTmpFolder(tempFolder.getAbsolutePath());
-        
         try {
 	        ValidationRunner runner = ctx.getBean(ValidationRunner.class);
 	        runner.bootstrap(args, new File(config.getTmpFolder(), UUID.randomUUID().toString()));
         } catch(Exception e) {}
-        
-        removeConfigForStandalone(tempFolder);
     }
-    
-    /**
-     * Delete temporary folder
-     * @throws IOException
-     */
-    private static void removeConfigForStandalone(File tempFolder) throws IOException {
-        if (tempFolder.isDirectory()) {
-            File[] files = tempFolder.listFiles();
-            if (files != null) {
-                for (File f: files){
-                    removeConfigForStandalone(f);
-                }
-            }
-        }
-    	Files.deleteIfExists(tempFolder.toPath());
-    }
-    
 
     /**
      * Store in temporary folder resource files.
@@ -72,7 +53,6 @@ public class Application {
     private static void prepareConfigForStandalone(File tempFolder) throws IOException {
         // Explode invoice resources to temp folder
         File tempJarFile = new File(tempFolder, "validator-resources.jar");
-        tempFolder.deleteOnExit();
         FileUtils.copyInputStreamToFile(Thread.currentThread().getContextClassLoader().getResourceAsStream("validator-resources.jar"), tempJarFile);
         JarFile resourcesJar = new JarFile(tempJarFile);
         Enumeration<JarEntry> entries = resourcesJar.entries();
