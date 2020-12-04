@@ -39,31 +39,11 @@ public class Application {
         ApplicationConfig config = ctx.getBean(ApplicationConfig.class);
         // Set report folder for use as a temp file generation target.
         config.setTmpFolder(tempFolder.getAbsolutePath());
-        
         try {
 	        ValidationRunner runner = ctx.getBean(ValidationRunner.class);
 	        runner.bootstrap(args, new File(config.getTmpFolder(), UUID.randomUUID().toString()));
         } catch(Exception e) {}
-        
-        removeConfigForStandalone(tempFolder);
     }
-    
-    /**
-     * Delete temporary folder
-     * @throws IOException
-     */
-    private static void removeConfigForStandalone(File tempFolder) throws IOException {
-        if (tempFolder.isDirectory()) {
-            File[] files = tempFolder.listFiles();
-            if (files != null) {
-                for (File f: files){
-                    removeConfigForStandalone(f);
-                }
-            }
-        }
-    	Files.deleteIfExists(tempFolder.toPath());
-    }
-    
 
     /**
      * Store in temporary folder resource files.
