@@ -42,7 +42,7 @@ public class Application {
         System.setProperty("validator.tmpFolder", workFolder.getAbsolutePath());
         System.setProperty("validator.resourceRoot", resourceRoot);
         // Setup folders - end
-        prepareConfigForStandalone(tempFolder);
+        prepareConfigForStandalone(resourceFolder);
         // Start the application.
         ApplicationContext ctx = SpringApplication.run(Application.class, args);
         // Post process config.
