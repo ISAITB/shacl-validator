@@ -177,10 +177,12 @@ public class UploadController {
 					reportModel = validator.validateAll();
 					aggregatedShapes =  validator.getAggregatedShapes();
 
-					TAR TARreport = Utils.getTAR(reportModel, inputFile.toPath(), aggregatedShapes, domainConfig);
+					TAR TARreport = Utils.getTAR(reportModel, domainConfig);
 
-					File pdfReport = new File(parentFolder, fileName_report+".pdf");
-					reportGenerator.writeReport(domainConfig, TARreport, pdfReport);
+					if (TARreport.getReports().getInfoOrWarningOrError().size() <= domainConfig.getMaximumReportsForDetailedOutput()) {
+						File pdfReport = new File(parentFolder, fileName_report+".pdf");
+						reportGenerator.writeReport(domainConfig, TARreport, pdfReport);
+					}
 					String fileName;
 					if(contentType.equals(contentType_file)) {
 						fileName=  file.getOriginalFilename();

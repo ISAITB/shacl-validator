@@ -24,6 +24,7 @@ import java.util.jar.JarFile;
 public class Application {
 
     public static void main(String[] args) throws IOException {
+        System.out.print("Starting validator ...");
         File tempFolder = Files.createTempDirectory("shaclvalidator").toFile();
         Runtime.getRuntime().addShutdownHook(new Thread(() -> FileUtils.deleteQuietly(tempFolder)));
         // Setup folders - start
@@ -47,6 +48,7 @@ public class Application {
         ApplicationContext ctx = SpringApplication.run(Application.class, args);
         // Post process config.
         ApplicationConfig config = ctx.getBean(ApplicationConfig.class);
+        System.out.println(" Done.");
         try {
 	        ValidationRunner runner = ctx.getBean(ValidationRunner.class);
 	        runner.bootstrap(args, new File(config.getTmpFolder(), UUID.randomUUID().toString()));

@@ -27,6 +27,10 @@ public class SHACLReportHandler {
 
     private ObjectFactory objectFactory = new ObjectFactory();
 
+    public SHACLReportHandler(Model shaclReport, DomainConfig domainConfig) {
+        this(null, null, shaclReport, domainConfig);
+    }
+
 	public SHACLReportHandler(String inputFile, Model shapes, Model shaclReport, DomainConfig domainConfig) {
 		this.shaclReport = shaclReport;
 		this.domainConfig = domainConfig;
@@ -38,20 +42,24 @@ public class SHACLReportHandler {
 
         AnyContent attachment = new AnyContent();
         attachment.setType("map");
-        
-        AnyContent inputAttachment = new AnyContent();
-        inputAttachment.setName("input");
-        inputAttachment.setType("string");
-        inputAttachment.setEmbeddingMethod(ValueEmbeddingEnumeration.STRING);
-        inputAttachment.setValue(inputFile);
-        attachment.getItem().add(inputAttachment);
-        
-        AnyContent shapeAttachment = new AnyContent();
-        shapeAttachment.setName("shapes");
-        shapeAttachment.setType("string");
-        shapeAttachment.setEmbeddingMethod(ValueEmbeddingEnumeration.STRING);
-        shapeAttachment.setValue(modelToString(shapes));
-        attachment.getItem().add(shapeAttachment);
+
+        if (inputFile != null) {
+            AnyContent inputAttachment = new AnyContent();
+            inputAttachment.setName("input");
+            inputAttachment.setType("string");
+            inputAttachment.setEmbeddingMethod(ValueEmbeddingEnumeration.STRING);
+            inputAttachment.setValue(inputFile);
+            attachment.getItem().add(inputAttachment);
+        }
+
+        if (shapes != null) {
+            AnyContent shapeAttachment = new AnyContent();
+            shapeAttachment.setName("shapes");
+            shapeAttachment.setType("string");
+            shapeAttachment.setEmbeddingMethod(ValueEmbeddingEnumeration.STRING);
+            shapeAttachment.setValue(modelToString(shapes));
+            attachment.getItem().add(shapeAttachment);
+        }
 
         this.report.setContext(attachment);
 	}

@@ -89,8 +89,12 @@ public class SHACLValidator {
      */
     public Model validateAll() {
     	LOG.info("Starting validation..");
-    	Model validationReport = validateAgainstShacl();
-        return validateAgainstPlugins(validationReport);
+    	try {
+            Model validationReport = validateAgainstShacl();
+            return validateAgainstPlugins(validationReport);
+        } finally {
+    	    LOG.info("Completed validation.");
+        }
     }
 
     private AnyContent createPluginInputItem(String name, String value) {
