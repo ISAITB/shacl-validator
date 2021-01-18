@@ -11,13 +11,19 @@ import java.nio.file.Path;
 
 public class Utils extends eu.europa.ec.itb.validation.commons.Utils {
 
+	public static TAR getTAR(Model report, DomainConfig domainConfig) {
+		SHACLReportHandler reportHandler = new SHACLReportHandler(report, domainConfig);
+		return reportHandler.createReport();
+	}
+
     public static TAR getTAR(Model report, Path inputFilePath, Model aggregatedShapes, DomainConfig domainConfig) {
     	//SHACL report: from Model to TAR
 		try {
-			String contentToValidateString = new String(Files.readAllBytes(inputFilePath));
-	    	
+			String contentToValidateString = null;
+			if (inputFilePath != null) {
+				contentToValidateString = new String(Files.readAllBytes(inputFilePath));
+			}
 	    	SHACLReportHandler reportHandler = new SHACLReportHandler(contentToValidateString, aggregatedShapes, report, domainConfig);
-	    	
 	    	return reportHandler.createReport();
 		} catch (IOException e) {
             throw new IllegalStateException("Error during the transformation of the report to TAR");

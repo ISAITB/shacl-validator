@@ -6,6 +6,8 @@
     <script th:src="@{/js/itb-upload-shacl.js}"></script>
     <script th:if="${report}" th:inline="text">
     /*<![CDATA[*/
+    	var reportItemCount = [[${report.reports.infoOrWarningOrError.size()}]];
+    	var reportItemDetailMax = [[${config.maximumReportsForDetailedOutput}]];
         getReportData("[[${reportID}]]");
     /*]]>*/
     </script>
@@ -88,8 +90,8 @@
 	                    <div class="form-group" style="padding-right:10px;">
 	                        <label for="downloadSyntaxType" style="padding-right:10px;" th:text="${config.label.saveAs}">as</label>
 	                        <select class="form-control downloadSelect" id="downloadSyntaxType" name="downloadSyntaxType">
-	                            <option value="pdfType">PDF</option>
-	                            <option value="notSelect">----------------------------</option>
+	                            <option th:if="${report.reports == null || report.reports.infoOrWarningOrError == null || report.reports.infoOrWarningOrError.size() <= config.maximumReportsForDetailedOutput}" value="pdfType">PDF</option>
+	                            <option th:if="${report.reports == null || report.reports.infoOrWarningOrError == null || report.reports.infoOrWarningOrError.size() <= config.maximumReportsForDetailedOutput}" value="notSelect">----------------------------</option>
 	                            <option th:each="type : ${contentSyntax}" th:text="${type.key}" th:attr="value=${type.label}">Type</option>
 	                        </select>
 	                    </div>

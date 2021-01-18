@@ -26,6 +26,8 @@ public class ApplicationConfig extends eu.europa.ec.itb.validation.commons.confi
     private String defaultValidationTypeDescription;
     private String defaultExternalRulesDescription;
     private String defaultLoadImportsDescription;
+    private String defaultAddInputToReportDescription;
+    private String defaultAddRulesToReportDescription;
 
     public Set<String> getAcceptedShaclExtensions() {
         return acceptedShaclExtensions;
@@ -33,6 +35,22 @@ public class ApplicationConfig extends eu.europa.ec.itb.validation.commons.confi
 
     public void setAcceptedShaclExtensions(Set<String> acceptedShaclExtensions) {
         this.acceptedShaclExtensions = acceptedShaclExtensions;
+    }
+
+    public String getDefaultAddInputToReportDescription() {
+        return defaultAddInputToReportDescription;
+    }
+
+    public void setDefaultAddInputToReportDescription(String defaultAddInputToReportDescription) {
+        this.defaultAddInputToReportDescription = defaultAddInputToReportDescription;
+    }
+
+    public String getDefaultAddRulesToReportDescription() {
+        return defaultAddRulesToReportDescription;
+    }
+
+    public void setDefaultAddRulesToReportDescription(String defaultAddRulesToReportDescription) {
+        this.defaultAddRulesToReportDescription = defaultAddRulesToReportDescription;
     }
 
     public String getDefaultReportSyntax() {
@@ -113,6 +131,8 @@ public class ApplicationConfig extends eu.europa.ec.itb.validation.commons.confi
         defaultLabels.put("externalRules", defaultExternalRulesDescription);
         defaultLabels.put("validationType", defaultValidationTypeDescription);
         defaultLabels.put("loadImports", defaultLoadImportsDescription);
+        defaultLabels.put("addInputToReport", defaultAddInputToReportDescription);
+        defaultLabels.put("addRulesToReport", defaultAddRulesToReportDescription);
     }
 
 }

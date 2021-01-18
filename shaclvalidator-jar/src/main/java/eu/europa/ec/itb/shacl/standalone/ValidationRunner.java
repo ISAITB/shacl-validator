@@ -198,7 +198,7 @@ public class ValidationRunner {
                         SHACLValidator validator = applicationContext.getBean(SHACLValidator.class, inputFile, type, inputContentType, externalShapesList, loadImports, domainConfig);
                         Model report = validator.validateAll();
                         // Output summary results.
-                        TAR tarReport = Utils.getTAR(report, inputFile.toPath(), validator.getAggregatedShapes(), domainConfig);
+                        TAR tarReport = Utils.getTAR(report, domainConfig);
                         FileReport reporter = new FileReport(input.getFilename(), tarReport, requireType, type);
                         summary.append("\n").append(reporter.toString()).append("\n");
                         // Output SHACL validation report (if not skipped).
