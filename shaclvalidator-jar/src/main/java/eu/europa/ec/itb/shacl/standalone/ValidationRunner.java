@@ -27,12 +27,12 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.StringWriter;
+import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -45,9 +45,9 @@ import java.util.UUID;
 @Scope("prototype")
 public class ValidationRunner {
 
-    private static Logger logger = LoggerFactory.getLogger(ValidationRunner.class);
-    private static Logger loggerFeedback = LoggerFactory.getLogger("FEEDBACK");
-    private static Logger loggerFeedbackFile = LoggerFactory.getLogger("VALIDATION_RESULT");
+    private static final Logger logger = LoggerFactory.getLogger(ValidationRunner.class);
+    private static final Logger loggerFeedback = LoggerFactory.getLogger("FEEDBACK");
+    private static final Logger loggerFeedbackFile = LoggerFactory.getLogger("VALIDATION_RESULT");
 
     private DomainConfig domainConfig;
 
@@ -142,7 +142,7 @@ public class ValidationRunner {
                             inputs.add(new ValidationInput(inputFile, type, contentToValidate));
                         }
                     } else if ("-externalShapes".equalsIgnoreCase(args[i])) {
-                        String file = null;
+                        String file;
                         String contentLang = null;
 
                         if (args.length > i+1) {
@@ -165,11 +165,7 @@ public class ValidationRunner {
                 }
 
                 if (requireType && type==null) {
-                    StringBuilder sb = new StringBuilder();
-                    sb.append("Unknown validation type. One of [");
-                    sb.append(String.join("|", domainConfig.getType())).append("] is mandatory.");
-
-                    throw new IllegalArgumentException(sb.toString());
+                    throw new IllegalArgumentException("Unknown validation type. One of [" + String.join("|", domainConfig.getType()) + "] is mandatory.");
                 }
                 boolean hasExternalShapes = domainConfig.getShapeInfo(type).getExternalArtifactSupport() != ExternalArtifactSupport.NONE;
                 if (!hasExternalShapes && externalShapesList.size() > 0) {
@@ -201,18 +197,23 @@ public class ValidationRunner {
                     try {
                         SHACLValidator validator = applicationContext.getBean(SHACLValidator.class, inputFile, type, inputContentType, externalShapesList, loadImports, domainConfig);
                         Model report = validator.validateAll();
-
-                        String outputData = getShaclReport(report, reportSyntax);
-                        File f = new File("");
-
-                        TAR TARreport = Utils.getTAR(report, inputFile.toPath(), validator.getAggregatedShapes(), domainConfig);
-                        FileReport reporter = new FileReport(input.getFilename(), TARreport, requireType, type);
-
+                        // Output summary results.
+                        TAR tarReport = Utils.getTAR(report, inputFile.toPath(), validator.getAggregatedShapes(), domainConfig);
+                        FileReport reporter = new FileReport(input.getFilename(), tarReport, requireType, type);
                         summary.append("\n").append(reporter.toString()).append("\n");
+                        // Output SHACL validation report (if not skipped).
                         if (!noReports) {
-                            File out = fileManager.getFileFromString(f, outputData, reportSyntax, "report."+i);
-
-                            summary.append("- Detailed report in: [").append(out.getAbsolutePath()).append("] \n");
+                            Path reportFilePath = getReportFilePath("report."+i, reportSyntax);
+                            try (OutputStream fos = Files.newOutputStream(reportFilePath)) {
+                                Lang language = RDFLanguages.contentTypeToLang(reportSyntax);
+                                if (language != null) {
+                                    report.write(fos, RDFLanguages.contentTypeToLang(reportSyntax).getName());
+                                } else {
+                                    report.write(fos);
+                                }
+                                fos.flush();
+                            }
+                            summary.append("- Detailed report in: [").append(reportFilePath.toFile().getAbsolutePath()).append("] \n");
                         }
                     } catch (ValidatorException e) {
                         loggerFeedback.info("\nAn error occurred while executing the validation: "+e.getMessage());
@@ -234,6 +235,10 @@ public class ValidationRunner {
         } finally {
             FileUtils.deleteQuietly(parentFolder);
         }
+    }
+
+    private Path getReportFilePath(String baseName, String reportSyntax) {
+        return fileManager.createFile(Paths.get("").toFile(), fileManager.getFileExtension(reportSyntax), baseName);
     }
 
     /**
@@ -267,29 +272,8 @@ public class ValidationRunner {
     }
 
     /**
-     * Get SHACL report as the provided syntax
-     * @return String
-     */
-    private String getShaclReport(Model shaclReport, String reportSyntax) {
-		StringWriter writer = new StringWriter();		
-		Lang lang = RDFLanguages.contentTypeToLang(reportSyntax);
-		
-		if(lang == null) {
-			shaclReport.write(writer, null);
-		}else {
-			try {
-				shaclReport.write(writer, lang.getName());
-			}catch(Exception e) {
-				shaclReport.write(writer, null);
-			}
-		}
-		
-		return writer.toString();
-    }
-    
-    /**
      * Validate whether the syntax provided is correct.
-     * @return
+     * @return The check result.
      */
     private boolean validReportSyntax(String syntax) {
     	if(!StringUtils.isBlank(syntax)) {
