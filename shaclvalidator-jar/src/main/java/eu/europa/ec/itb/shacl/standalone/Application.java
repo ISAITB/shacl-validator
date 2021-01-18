@@ -47,8 +47,6 @@ public class Application {
         ApplicationContext ctx = SpringApplication.run(Application.class, args);
         // Post process config.
         ApplicationConfig config = ctx.getBean(ApplicationConfig.class);
-        // Set report folder for use as a temp file generation target.
-        config.setTmpFolder(tempFolder.getAbsolutePath());
         try {
 	        ValidationRunner runner = ctx.getBean(ValidationRunner.class);
 	        runner.bootstrap(args, new File(config.getTmpFolder(), UUID.randomUUID().toString()));
