@@ -26,13 +26,22 @@ public class Application {
     public static void main(String[] args) throws IOException {
         File tempFolder = Files.createTempDirectory("shaclvalidator").toFile();
         Runtime.getRuntime().addShutdownHook(new Thread(() -> FileUtils.deleteQuietly(tempFolder)));
+        // Setup folders - start
+        File resourceFolder = new File(tempFolder, "resources");
+        File logFolder = new File(tempFolder, "logs");
+        File workFolder = new File(tempFolder, "work");
+        if (!resourceFolder.mkdirs() || !logFolder.mkdirs() || !workFolder.mkdirs()) {
+            throw new IllegalStateException("Unable to create work directories under ["+tempFolder.getAbsolutePath()+"]");
+        }
         // Set the resource root so that it can be used. This is done before app startup to avoid PostConstruct issues.
-        String resourceRoot = tempFolder.getAbsolutePath();
+        String resourceRoot = resourceFolder.getAbsolutePath();
         if (!resourceRoot.endsWith(File.separator)) {
             resourceRoot += File.separator;
         }
+        System.setProperty("LOG_PATH", logFolder.getAbsolutePath());
+        System.setProperty("validator.tmpFolder", workFolder.getAbsolutePath());
         System.setProperty("validator.resourceRoot", resourceRoot);
-        
+        // Setup folders - end
         prepareConfigForStandalone(tempFolder);
         // Start the application.
         ApplicationContext ctx = SpringApplication.run(Application.class, args);
