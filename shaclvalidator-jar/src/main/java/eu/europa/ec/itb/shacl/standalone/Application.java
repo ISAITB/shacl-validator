@@ -42,13 +42,11 @@ public class Application {
         System.setProperty("validator.tmpFolder", workFolder.getAbsolutePath());
         System.setProperty("validator.resourceRoot", resourceRoot);
         // Setup folders - end
-        prepareConfigForStandalone(tempFolder);
+        prepareConfigForStandalone(resourceFolder);
         // Start the application.
         ApplicationContext ctx = SpringApplication.run(Application.class, args);
         // Post process config.
         ApplicationConfig config = ctx.getBean(ApplicationConfig.class);
-        // Set report folder for use as a temp file generation target.
-        config.setTmpFolder(tempFolder.getAbsolutePath());
         try {
 	        ValidationRunner runner = ctx.getBean(ValidationRunner.class);
 	        runner.bootstrap(args, new File(config.getTmpFolder(), UUID.randomUUID().toString()));
