@@ -1,10 +1,7 @@
 package eu.europa.ec.itb.shacl.upload;
 
 import com.gitb.tr.TAR;
-import eu.europa.ec.itb.shacl.ApplicationConfig;
-import eu.europa.ec.itb.shacl.DomainConfig;
-import eu.europa.ec.itb.shacl.DomainConfigCache;
-import eu.europa.ec.itb.shacl.InputHelper;
+import eu.europa.ec.itb.shacl.*;
 import eu.europa.ec.itb.shacl.util.Utils;
 import eu.europa.ec.itb.shacl.validation.FileManager;
 import eu.europa.ec.itb.shacl.validation.SHACLValidator;
@@ -43,23 +40,21 @@ import java.util.stream.Collectors;
 
 import static eu.europa.ec.itb.validation.commons.web.Constants.IS_MINIMAL;
 
-
 @Controller
 public class UploadController {
 
     private static final Logger logger = LoggerFactory.getLogger(UploadController.class);
 
-    private static final String contentType_file     	= "fileType" ;
-    private static final String contentType_uri     		= "uriType" ;
-    private static final String contentType_string     	= "stringType" ;
-    
-    static final String downloadType_report		= "reportType";
-    static final String downloadType_shapes		= "shapesType";
-    static final String downloadType_content		= "contentType";
-    
-    static final String fileName_input			= "inputFile";
-    static final String fileName_report			= "reportFile";
-    static final String fileName_shapes			= "shapesFile";
+    private static final String CONTENT_TYPE__FILE = "fileType" ;
+    private static final String CONTENT_TYPE__URI = "uriType" ;
+    private static final String CONTENT_TYPE__EDITOR = "stringType" ;
+	private static final String CONTENT_TYPE__QUERY = "queryType" ;
+	static final String DOWNLOAD_TYPE__REPORT = "reportType";
+	static final String DOWNLOAD_TYPE__SHAPES = "shapesType";
+	static final String DOWNLOAD_TYPE__CONTENT = "contentType";
+	static final String FILE_NAME__INPUT = "inputFile";
+	static final String FILE_NAME__REPORT = "reportFile";
+	static final String FILE_NAME__SHAPES = "shapesFile";
     
     @Autowired
 	private FileManager fileManager = null;
@@ -78,7 +73,7 @@ public class UploadController {
     
     @Autowired
     private InputHelper inputHelper = null;
-    
+
     @GetMapping(value = "/{domain}/upload")
     public ModelAndView upload(@PathVariable("domain") String domain, Model model, HttpServletRequest request) {
 		setMinimalUIFlag(request, false);
@@ -114,6 +109,11 @@ public class UploadController {
     		@RequestParam(value = "uri-external_default", required = false) String[] externalUri,
     		@RequestParam(value = "contentSyntaxType-external_default", required = false) String[] externalFilesSyntaxType,
             @RequestParam(value = "loadImportsCheck", required = false, defaultValue = "false") Boolean loadImportsValue,
+			@RequestParam(value = "contentQuery", defaultValue = "") String contentQuery,
+			@RequestParam(value = "contentQueryEndpoint", defaultValue = "") String contentQueryEndpoint,
+			@RequestParam(value = "contentQueryAuthenticate", defaultValue = "false") Boolean contentQueryAuthenticate,
+			@RequestParam(value = "contentQueryUsername", defaultValue = "") String contentQueryUsername,
+			@RequestParam(value = "contentQueryPassword", defaultValue = "") String contentQueryPassword,
 			HttpServletRequest request) {
 		setMinimalUIFlag(request, false);
 		DomainConfig domainConfig;
@@ -126,7 +126,7 @@ public class UploadController {
 		File parentFolder = fileManager.createTemporaryFolderPath();
 
 		File inputFile;
-		List<FileInfo> extFiles = null;
+		List<FileInfo> userProvidedShapes = null;
         Map<String, Object> attributes = new HashMap<>();
         attributes.put("contentType", getContentType(domainConfig));
         attributes.put("contentSyntax", getContentSyntax(domainConfig));
@@ -139,20 +139,35 @@ public class UploadController {
 		if (StringUtils.isNotBlank(validationType)) {
 			attributes.put("validationTypeLabel", domainConfig.getTypeLabel().get(validationType));
 		}
-        org.apache.jena.rdf.model.Model reportModel;
-		org.apache.jena.rdf.model.Model aggregatedShapes;
 		boolean forceCleanup = false;
         try {
-			if(StringUtils.isEmpty(contentSyntaxType) || contentSyntaxType.equals("empty")) {
-				if(!contentType.equals(contentType_string)) {
-					contentSyntaxType = getExtensionContentType((contentType.equals(contentType_file) ? file.getOriginalFilename() : uri));
-				}else {
-					logger.error("Provided content syntax type is not valid");
-					attributes.put("message", "Provided content syntax type is not valid");
+        	if (CONTENT_TYPE__QUERY.equals(contentType)) {
+				contentSyntaxType = domainConfig.getQueryContentType();
+			} else {
+				if (contentSyntaxType.isEmpty() || contentSyntaxType.equals("empty")) {
+					if (!contentType.equals(CONTENT_TYPE__EDITOR)) {
+						contentSyntaxType = getExtensionContentType((contentType.equals(CONTENT_TYPE__FILE) ? file.getOriginalFilename() : uri));
+					} else {
+						logger.error("Provided content syntax type is not valid");
+						attributes.put("message", "Provided content syntax type is not valid");
+					}
 				}
 			}
-			inputFile = getInputFile(contentType, file.getInputStream(), uri, string, contentSyntaxType, parentFolder);
-			if (StringUtils.isBlank(validationType)) {
+        	if (!contentQuery.isEmpty() || !contentQueryEndpoint.isEmpty() || !contentQueryUsername.isEmpty() || !contentQueryPassword.isEmpty()) {
+        		// Load input using SPARQL query.
+				if (!domainConfig.isQueryAuthenticationMandatory() && !contentQueryAuthenticate) {
+					// Empty the optional credentials
+					contentQueryUsername = null;
+					contentQueryPassword = null;
+				}
+				SparqlQueryConfig queryConfig = new SparqlQueryConfig(contentQueryEndpoint, contentQuery, contentQueryUsername, contentQueryPassword, contentSyntaxType);
+				queryConfig = inputHelper.validateSparqlConfiguration(domainConfig, queryConfig);
+				inputFile = fileManager.getContentFromSparqlEndpoint(queryConfig, parentFolder, FILE_NAME__INPUT).toFile();
+			} else {
+        		// Load input using file, URI or editor.
+				inputFile = getInputFile(contentType, file.getInputStream(), uri, string, contentSyntaxType, parentFolder);
+			}
+			if (validationType.isBlank()) {
 				validationType = null;
 			}
 			if (domainConfig.hasMultipleValidationTypes() && (validationType == null || !domainConfig.getType().contains(validationType))) {
@@ -160,49 +175,44 @@ public class UploadController {
 				attributes.put("message", "Provided validation type is not valid");
 			} else {
 				if (inputFile != null) {
-
 					if (hasExternalShapes(domainConfig, validationType)) {
-						extFiles = getExternalShapes(externalContentType, externalFiles, externalUri, externalFilesSyntaxType, parentFolder);
+						userProvidedShapes = getExternalShapes(externalContentType, externalFiles, externalUri, externalFilesSyntaxType, parentFolder);
 					} else {
-						extFiles = Collections.emptyList();
+						userProvidedShapes = Collections.emptyList();
 					}
 	
 					if(domainConfig.getUserInputForLoadImportsType().get(validationType) == ExternalArtifactSupport.NONE) {
 						loadImportsValue = null;
 					}
 					loadImportsValue = inputHelper.validateLoadInputs(domainConfig, loadImportsValue, validationType);
-
-					SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile, validationType, contentSyntaxType, extFiles, loadImportsValue, domainConfig);
-
-					reportModel = validator.validateAll();
-					aggregatedShapes =  validator.getAggregatedShapes();
-
-					TAR TARreport = Utils.getTAR(reportModel, domainConfig);
-
-					if (TARreport.getReports().getInfoOrWarningOrError().size() <= domainConfig.getMaximumReportsForDetailedOutput()) {
-						File pdfReport = new File(parentFolder, fileName_report+".pdf");
-						reportGenerator.writeReport(domainConfig, TARreport, pdfReport);
+					SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile, validationType, contentSyntaxType, userProvidedShapes, loadImportsValue, domainConfig);
+					org.apache.jena.rdf.model.Model reportModel = validator.validateAll();
+					TAR tarReport = Utils.getTAR(reportModel, domainConfig);
+					if (tarReport.getReports().getInfoOrWarningOrError().size() <= domainConfig.getMaximumReportsForDetailedOutput()) {
+						File pdfReport = new File(parentFolder, FILE_NAME__REPORT +".pdf");
+						reportGenerator.writeReport(domainConfig, tarReport, pdfReport);
 					}
 					String fileName;
-					if(contentType.equals(contentType_file)) {
-						fileName=  file.getOriginalFilename();
-					} else if(contentType.equals(contentType_uri)) {
+					if (CONTENT_TYPE__FILE.equals(contentType)) {
+						fileName = file.getOriginalFilename();
+					} else if (CONTENT_TYPE__URI.equals(contentType)) {
 						fileName = uri;
 					} else {
+						// Query or editor.
 						fileName = "-";
 					}
 					String extension = fileManager.getFileExtension(domainConfig.getDefaultReportSyntax());
-					try (FileWriter out = new FileWriter(fileManager.createFile(parentFolder, extension, fileName_report).toFile())) {
+					try (FileWriter out = new FileWriter(fileManager.createFile(parentFolder, extension, FILE_NAME__REPORT).toFile())) {
 						fileManager.writeRdfModel(out, reportModel, domainConfig.getDefaultReportSyntax());
 					}
-					try (FileWriter out = new FileWriter(fileManager.createFile(parentFolder, extension, fileName_shapes).toFile())) {
-						fileManager.writeRdfModel(out, aggregatedShapes, domainConfig.getDefaultReportSyntax());
+					try (FileWriter out = new FileWriter(fileManager.createFile(parentFolder, extension, FILE_NAME__SHAPES).toFile())) {
+						fileManager.writeRdfModel(out, validator.getAggregatedShapes(), domainConfig.getDefaultReportSyntax());
 					}
 					// All ok - add attributes for the UI.
 					attributes.put("reportID", parentFolder.getName());
 					attributes.put("fileName", fileName);
-					attributes.put("report", TARreport);
-					attributes.put("date", TARreport.getDate().toString());
+					attributes.put("report", tarReport);
+					attributes.put("date", tarReport.getDate().toString());
 				}
 			}
 		} catch (ValidatorException e) {
@@ -224,7 +234,7 @@ public class UploadController {
         	if (forceCleanup) {
 				FileUtils.deleteQuietly(parentFolder);
 			} else {
-				fileManager.removeContentToValidate(null, extFiles);
+				fileManager.removeContentToValidate(null, userProvidedShapes);
 			}
 		}
         return new ModelAndView("uploadForm", attributes);
@@ -269,9 +279,14 @@ public class UploadController {
     		@RequestParam(value = "uri-external_default", required = false) String[] externalUri,
     		@RequestParam(value = "contentSyntaxType-external_default", required = false) String[] externalFilesSyntaxType,
             @RequestParam(value = "loadImportsCheck", required = false, defaultValue = "false") Boolean loadImportsValue,
-		  HttpServletRequest request) {
+			@RequestParam(value = "contentQuery", defaultValue = "") String contentQuery,
+			@RequestParam(value = "contentQueryEndpoint", defaultValue = "") String contentQueryEndpoint,
+			@RequestParam(value = "contentQueryAuthenticate", defaultValue = "false") Boolean contentQueryAuthenticate,
+			@RequestParam(value = "contentQueryUsername", defaultValue = "") String contentQueryUsername,
+			@RequestParam(value = "contentQueryPassword", defaultValue = "") String contentQueryPassword,
+			HttpServletRequest request) {
 		setMinimalUIFlag(request, true);
-		ModelAndView mv = handleUpload(domain, file, uri, string, contentType, validationType, contentSyntaxType, externalContentType, externalFiles, externalUri, externalFilesSyntaxType, loadImportsValue, request);
+		ModelAndView mv = handleUpload(domain, file, uri, string, contentType, validationType, contentSyntaxType, externalContentType, externalFiles, externalUri, externalFilesSyntaxType, loadImportsValue, contentQuery, contentQueryEndpoint, contentQueryAuthenticate, contentQueryUsername, contentQueryPassword, request);
 		
 		Map<String, Object> attributes = mv.getModel();
         attributes.put("minimalUI", true);
@@ -294,21 +309,19 @@ public class UploadController {
 
 	private File getInputFile(String contentType, InputStream inputStream, String uri, String string, String contentSyntaxType, File tmpFolder) throws IOException {
 		File inputFile = null;
-		
 		switch(contentType) {
-			case contentType_file:
-		    	inputFile = this.fileManager.getFileFromInputStream(tmpFolder, inputStream, contentSyntaxType, fileName_input);
+			case CONTENT_TYPE__FILE:
+		    	inputFile = this.fileManager.getFileFromInputStream(tmpFolder, inputStream, contentSyntaxType, FILE_NAME__INPUT);
 				break;
 			
-			case contentType_uri:
-				inputFile = this.fileManager.getFileFromURL(tmpFolder, uri, fileName_input);
+			case CONTENT_TYPE__URI:
+				inputFile = this.fileManager.getFileFromURL(tmpFolder, uri, FILE_NAME__INPUT);
 				break;
 				
-			case contentType_string:
-				inputFile = this.fileManager.getFileFromString(tmpFolder, string, contentSyntaxType, fileName_input);
+			case CONTENT_TYPE__EDITOR:
+				inputFile = this.fileManager.getFileFromString(tmpFolder, string, contentSyntaxType, FILE_NAME__INPUT);
 				break;
 		}
-
 		return inputFile;
 	}
 
@@ -335,7 +348,7 @@ public class UploadController {
 				}
 	        	
 				switch(externalContentType[i]) {
-					case contentType_file:
+					case CONTENT_TYPE__FILE:
 						if (!externalFiles[i].isEmpty()) {
 							if(StringUtils.isEmpty(contentSyntaxType) || contentSyntaxType.equals("empty")) {
 								contentSyntaxType = getExtensionContentType(externalFiles[i].getOriginalFilename());
@@ -343,7 +356,7 @@ public class UploadController {
 							inputFile = this.fileManager.getFileFromInputStream(parentFolder, externalFiles[i].getInputStream(), contentSyntaxType, null);
 						}
 						break;
-					case contentType_uri:					
+					case CONTENT_TYPE__URI:
 						if(externalUri.length>i && !externalUri[i].isEmpty()) {
 							if(StringUtils.isEmpty(contentSyntaxType) || contentSyntaxType.equals("empty")) {
 				        		contentSyntaxType = getExtensionContentType(externalUri[i]);
@@ -385,18 +398,18 @@ public class UploadController {
     private List<KeyWithLabel> getContentType(DomainConfig config){
         List<KeyWithLabel> types = new ArrayList<>();
 
-		types.add(new KeyWithLabel(contentType_file, config.getLabel().getOptionContentFile()));
-		types.add(new KeyWithLabel(contentType_uri, config.getLabel().getOptionContentURI()));
-		types.add(new KeyWithLabel(contentType_string, config.getLabel().getOptionContentDirectInput()));
+		types.add(new KeyWithLabel(CONTENT_TYPE__FILE, config.getLabel().getOptionContentFile()));
+		types.add(new KeyWithLabel(CONTENT_TYPE__URI, config.getLabel().getOptionContentURI()));
+		types.add(new KeyWithLabel(CONTENT_TYPE__EDITOR, config.getLabel().getOptionContentDirectInput()));
 		
 		return types;        
     }
 
 	private List<KeyWithLabel> getDownloadType(DomainConfig config){
         List<KeyWithLabel> types = new ArrayList<>();
-		types.add(new KeyWithLabel(downloadType_report, config.getLabel().getOptionDownloadReport()));
-		types.add(new KeyWithLabel(downloadType_shapes, config.getLabel().getOptionDownloadShapes()));
-		types.add(new KeyWithLabel(downloadType_content, config.getLabel().getOptionDownloadContent()));
+		types.add(new KeyWithLabel(DOWNLOAD_TYPE__REPORT, config.getLabel().getOptionDownloadReport()));
+		types.add(new KeyWithLabel(DOWNLOAD_TYPE__SHAPES, config.getLabel().getOptionDownloadShapes()));
+		types.add(new KeyWithLabel(DOWNLOAD_TYPE__CONTENT, config.getLabel().getOptionDownloadContent()));
 		return types;
     }
     

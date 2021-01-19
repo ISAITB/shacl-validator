@@ -56,21 +56,21 @@ public class FileController {
         // Determine base file name.
         String baseFileName;
 		switch (type) {
-			case UploadController.downloadType_content:
-				baseFileName = fileName_input;
+			case UploadController.DOWNLOAD_TYPE__CONTENT:
+				baseFileName = FILE_NAME__INPUT;
 				break;
-			case UploadController.downloadType_report:
-				baseFileName = fileName_report;
+			case UploadController.DOWNLOAD_TYPE__REPORT:
+				baseFileName = FILE_NAME__REPORT;
 				break;
-			case UploadController.downloadType_shapes:
-				baseFileName = fileName_shapes;
+			case UploadController.DOWNLOAD_TYPE__SHAPES:
+				baseFileName = FILE_NAME__SHAPES;
 				break;
 			default: throw new IllegalArgumentException("Invalid file type ["+type+"]");
 		}
 		// Determine extension.
 		String extension;
 		if (syntax.equals("pdfType")) {
-			if (!UploadController.downloadType_report.equals(type)) {
+			if (!UploadController.DOWNLOAD_TYPE__REPORT.equals(type)) {
 				throw new IllegalArgumentException("A PDF report can only be requested for the validation report");
 			}
 			extension = "pdf";
@@ -101,18 +101,18 @@ public class FileController {
 		for(File fileTmp : files) {
 			String filename = FilenameUtils.removeExtension(fileTmp.getName());
 	    	switch(type) {
-	    		case UploadController.downloadType_content:
-	    			if (filename.equals(fileName_input)) {
+	    		case UploadController.DOWNLOAD_TYPE__CONTENT:
+	    			if (filename.equals(FILE_NAME__INPUT)) {
 	    				file = fileTmp;
 	    			}
 	    		break;
-	    		case UploadController.downloadType_report:
-	    			if (filename.equals(fileName_report)) {
+	    		case UploadController.DOWNLOAD_TYPE__REPORT:
+	    			if (filename.equals(FILE_NAME__REPORT)) {
 	    				file = fileTmp;
 	    			}
 	    		break;
-	    		case UploadController.downloadType_shapes:
-	    			if (filename.equals(UploadController.fileName_shapes)) {
+	    		case UploadController.DOWNLOAD_TYPE__SHAPES:
+	    			if (filename.equals(UploadController.FILE_NAME__SHAPES)) {
 	    				file = fileTmp;
 	    			}
 	    		break;

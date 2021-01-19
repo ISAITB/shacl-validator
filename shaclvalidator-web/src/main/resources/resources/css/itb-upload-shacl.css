@@ -1,0 +1,20 @@
+.extra-query-field {
+    padding-left: 0px;
+    padding-right: 0px;
+}
+.extra-query-field-left {
+    padding-left: 0px;
+}
+.extra-query-field-right {
+    padding-right: 0px;
+}
+.query-form-group-check {
+    margin-bottom: 15px;
+    min-height: 35px;
+}
+.query-form-group {
+    margin-bottom: 15px;
+}
+#queryToValidate .CodeMirror {
+    height: 30vh;
+}

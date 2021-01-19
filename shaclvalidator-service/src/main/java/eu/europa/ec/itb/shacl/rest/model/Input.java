@@ -3,6 +3,7 @@ package eu.europa.ec.itb.shacl.rest.model;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import eu.europa.ec.itb.shacl.SparqlQueryConfig;
 import eu.europa.ec.itb.validation.commons.FileContent;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
@@ -11,7 +12,7 @@ import io.swagger.annotations.ApiModelProperty;
 @ApiModel(description = "The content and metadata specific to input content that is to be validated.")
 public class Input {
 
-    @ApiModelProperty(required = true, notes = "The RDF content to validate.")
+    @ApiModelProperty(notes = "The RDF content to validate. Either this must be provided or a SPARQL query (contentQuery).")
 	private String contentToValidate;
     @ApiModelProperty(notes = "The mime type of the provided RDF content (e.g. \"application/rdf+xml\", \"application/ld+json\", \"text/turtle\"). If not provided the type is determined from the provided content (if possible).")
 	private String contentSyntax;
@@ -25,6 +26,14 @@ public class Input {
 	private List<RuleSet> externalRules;
     @ApiModelProperty(notes = "If owl:Imports should be loaded from the RDF content. This can be skipped if defined in the configuration. If not provided, the decision is determined from the configuration for the domain in question.")
 	private Boolean loadImports;
+	@ApiModelProperty(notes = "The SPARQL endpoint URI.")
+	private String contentQueryEndpoint;
+	@ApiModelProperty(notes = "The SPARQL query to execute.")
+	private String contentQuery;
+	@ApiModelProperty(notes = "Username to access the SPARQL endpoint.")
+	private String contentQueryUsername;
+	@ApiModelProperty(notes = "Password to access the SPARQL endpoint.")
+	private String contentQueryPassword;
 
 	public String getContentToValidate() { return this.contentToValidate; }
 	
@@ -41,7 +50,7 @@ public class Input {
 	public RuleSet getExternalRules(int value) { return this.externalRules.get(value); }
 	
 	public Boolean isLoadImports(){ return this.loadImports; }
-
+	
 	public void setContentToValidate(String contentToValidate) {
 		this.contentToValidate = contentToValidate;
 	}
@@ -70,4 +79,43 @@ public class Input {
 		this.loadImports = loadImports;
 	}
 
+	public String getContentQueryEndpoint() {
+		return contentQueryEndpoint;
+	}
+
+	public void setContentQueryEndpoint(String contentQueryEndpoint) {
+		this.contentQueryEndpoint = contentQueryEndpoint;
+	}
+
+	public String getContentQuery() {
+		return contentQuery;
+	}
+
+	public void setContentQuery(String contentQuery) {
+		this.contentQuery = contentQuery;
+	}
+
+	public String getContentQueryUsername() {
+		return contentQueryUsername;
+	}
+
+	public void setContentQueryUsername(String contentQueryUsername) {
+		this.contentQueryUsername = contentQueryUsername;
+	}
+
+	public String getContentQueryPassword() {
+		return contentQueryPassword;
+	}
+
+	public void setContentQueryPassword(String contentQueryPassword) {
+		this.contentQueryPassword = contentQueryPassword;
+	}
+
+	public SparqlQueryConfig parseQueryConfig() {
+		SparqlQueryConfig config = null;
+		if (contentQuery != null || contentQueryEndpoint != null || contentQueryPassword != null || contentQueryUsername != null) {
+			config = new SparqlQueryConfig(contentQueryEndpoint, contentQuery, contentQueryUsername, contentQueryPassword, contentSyntax);
+		}
+		return config;
+	}
 }

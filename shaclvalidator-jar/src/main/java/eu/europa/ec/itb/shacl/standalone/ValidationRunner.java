@@ -5,6 +5,7 @@ import com.gitb.tr.TAR;
 import eu.europa.ec.itb.shacl.DomainConfig;
 import eu.europa.ec.itb.shacl.DomainConfigCache;
 import eu.europa.ec.itb.shacl.InputHelper;
+import eu.europa.ec.itb.shacl.SparqlQueryConfig;
 import eu.europa.ec.itb.shacl.util.Utils;
 import eu.europa.ec.itb.shacl.validation.FileManager;
 import eu.europa.ec.itb.shacl.validation.FileReport;
@@ -27,7 +28,10 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Files;
@@ -48,6 +52,17 @@ public class ValidationRunner {
     private static final Logger logger = LoggerFactory.getLogger(ValidationRunner.class);
     private static final Logger loggerFeedback = LoggerFactory.getLogger("FEEDBACK");
     private static final Logger loggerFeedbackFile = LoggerFactory.getLogger("VALIDATION_RESULT");
+
+    private static final String FLAG_NO_REPORTS = "-noreports";
+    private static final String FLAG_VALIDATION_TYPE = "-validationType";
+    private static final String FLAG_REPORT_SYNTAX = "-reportSyntax";
+    private static final String FLAG_CONTENT_TO_VALIDATE = "-contentToValidate";
+    private static final String FLAG_EXTERNAL_SHAPES = "-externalShapes";
+    private static final String FLAG_LOAD_IMPORTS = "-loadImports";
+    private static final String FLAG_CONTENT_QUERY = "-contentQuery";
+    private static final String FLAG_CONTENT_QUERY_ENDPOINT = "-contentQueryEndpoint";
+    private static final String FLAG_CONTENT_QUERY_USERNAME = "-contentQueryUsername";
+    private static final String FLAG_CONTENT_QUERY_PASSWORD = "-contentQueryPassword";
 
     private DomainConfig domainConfig;
 
@@ -94,143 +109,179 @@ public class ValidationRunner {
         boolean noReports = false;        
         boolean requireType = domainConfig.hasMultipleValidationTypes();
         Boolean loadImports = null;
-
+        SparqlQueryConfig queryConfig = null;
 
         String reportSyntax = null;
-        String inputContentType = null;
         String type = null;
         
         if (!requireType) {
             type = domainConfig.getType().get(0);        	
         }
         try {
-            try {
-                int i = 0;
-                //Reading the arguments
-                while (i < args.length) {
-                    if ("-noreports".equalsIgnoreCase(args[i])) {
-                        noReports = true;
-                    } else if ("-validationType".equalsIgnoreCase(args[i])) {
-                        if (requireType && args.length > i+1) {
-                            type = args[++i];
-                        }
-
-                        if (!domainConfig.getType().contains(type)) {
-                            throw new IllegalArgumentException("Unknown validation type ["+type+"]");
-                        }
-                    } else if ("-reportSyntax".equalsIgnoreCase(args[i])) {
-                        if (args.length > i+1) {
-                            reportSyntax = args[++i];
-                        }
-
-                        if (!validReportSyntax(reportSyntax)) {
-                            throw new IllegalArgumentException("Unknown report syntax ["+reportSyntax+"]");
-                        }
-                    } else if ("-contentToValidate".equalsIgnoreCase(args[i])) {
-                        //File or URI and content lang
-                        String contentToValidate;
-                        String contentSyntax = null;
-
-                        if (args.length > i+1) {
-                            contentToValidate = args[++i];
-
-                            if(args.length > i+1 && !args[i+1].startsWith("-")) {
-                                contentSyntax = args[++i];
-                            }
-                            inputContentType = contentSyntax;
-                            File inputFile = getContent(contentToValidate, inputContentType, parentFolder, "inputFile."+inputs.size());
-                            inputs.add(new ValidationInput(inputFile, type, contentToValidate));
-                        }
-                    } else if ("-externalShapes".equalsIgnoreCase(args[i])) {
-                        String file;
-                        String contentLang = null;
-
-                        if (args.length > i+1) {
-                            file = args[++i];
-
-                            if(args.length > i+1 && !args[i+1].startsWith("-")) {
-                                contentLang = args[++i];
-                            }
-                            FileInfo fi = getExternalShapes(file, contentLang, parentFolder);
-                            externalShapesList.add(fi);
-                        }
-                    } else if ("-loadImports".equalsIgnoreCase(args[i])) {
-                    	if (args.length > i+1) {
-                    		loadImports = Boolean.valueOf(args[++i]);
-                    	}
-                    } else {
-                        throw new IllegalArgumentException("Unexpected parameter ["+args[i]+"]");
-                    }
-                    i++;
-                }
-
-                if (requireType && type==null) {
-                    throw new IllegalArgumentException("Unknown validation type. One of [" + String.join("|", domainConfig.getType()) + "] is mandatory.");
-                }
-                boolean hasExternalShapes = domainConfig.getShapeInfo(type).getExternalArtifactSupport() != ExternalArtifactSupport.NONE;
-                if (!hasExternalShapes && externalShapesList.size() > 0) {
-                    throw new ValidatorException(String.format("Loading external shape files is not supported for validation type [%s] of domain [%s].", type, domainConfig.getDomainName()));
-                }
-
-                loadImports = inputHelper.validateLoadInputs(domainConfig, loadImports, type);
-
-            } catch (Exception e) {
-                loggerFeedback.info("\nInvalid arguments provided: "+e.getMessage()+"\n");
-                inputs.clear();
-            }
-            if (inputs.isEmpty()) {
+            if (args.length == 0) {
                 printUsage();
             } else {
-                if(reportSyntax==null) {
-                    reportSyntax = domainConfig.getDefaultReportSyntax();
-                }
-
-                // Proceed with validation.
-                StringBuilder summary = new StringBuilder();
-                summary.append("\n");
-                int i=0;
-                for (ValidationInput input: inputs) {
-                    loggerFeedback.info("\nValidating ["+input.getFilename()+"]...");
-
-                    File inputFile = input.getInputFile();
-
-                    try {
-                        SHACLValidator validator = applicationContext.getBean(SHACLValidator.class, inputFile, type, inputContentType, externalShapesList, loadImports, domainConfig);
-                        Model report = validator.validateAll();
-                        // Output summary results.
-                        TAR tarReport = Utils.getTAR(report, domainConfig);
-                        FileReport reporter = new FileReport(input.getFilename(), tarReport, requireType, type);
-                        summary.append("\n").append(reporter.toString()).append("\n");
-                        // Output SHACL validation report (if not skipped).
-                        if (!noReports) {
-                            Path reportFilePath = getReportFilePath("report."+i, reportSyntax);
-                            try (OutputStream fos = Files.newOutputStream(reportFilePath)) {
-                                Lang language = RDFLanguages.contentTypeToLang(reportSyntax);
-                                if (language != null) {
-                                    report.write(fos, RDFLanguages.contentTypeToLang(reportSyntax).getName());
-                                } else {
-                                    report.write(fos);
-                                }
-                                fos.flush();
+                try {
+                    int i = 0;
+                    //Reading the arguments
+                    while (i < args.length) {
+                        if (FLAG_NO_REPORTS.equalsIgnoreCase(args[i])) {
+                            noReports = true;
+                        } else if (FLAG_VALIDATION_TYPE.equalsIgnoreCase(args[i])) {
+                            if (requireType && args.length > i+1) {
+                                type = args[++i];
                             }
-                            summary.append("- Detailed report in: [").append(reportFilePath.toFile().getAbsolutePath()).append("] \n");
+
+                            if (!domainConfig.getType().contains(type)) {
+                                throw new IllegalArgumentException("Unknown validation type ["+type+"]");
+                            }
+                        } else if (FLAG_REPORT_SYNTAX.equalsIgnoreCase(args[i])) {
+                            if (args.length > i+1) {
+                                reportSyntax = args[++i];
+                            }
+
+                            if (!validReportSyntax(reportSyntax)) {
+                                throw new IllegalArgumentException("Unknown report syntax ["+reportSyntax+"]");
+                            }
+                        } else if (FLAG_CONTENT_TO_VALIDATE.equalsIgnoreCase(args[i])) {
+                            //File or URI and content lang
+                            String contentToValidate;
+                            String contentSyntax = null;
+
+                            if (args.length > i+1) {
+                                contentToValidate = args[++i];
+
+                                if(args.length > i+1 && !args[i+1].startsWith("-")) {
+                                    contentSyntax = args[++i];
+                                }
+                                File inputFile = getContent(contentToValidate, contentSyntax, parentFolder, "inputFile."+inputs.size());
+                                inputs.add(new ValidationInput(inputFile, type, contentToValidate, contentSyntax));
+                            }
+                        } else if (FLAG_EXTERNAL_SHAPES.equalsIgnoreCase(args[i])) {
+                            String file;
+                            String contentLang = null;
+
+                            if (args.length > i+1) {
+                                file = args[++i];
+
+                                if(args.length > i+1 && !args[i+1].startsWith("-")) {
+                                    contentLang = args[++i];
+                                }
+                                FileInfo fi = getExternalShapes(file, contentLang, parentFolder);
+                                externalShapesList.add(fi);
+                            }
+                        } else if (FLAG_LOAD_IMPORTS.equalsIgnoreCase(args[i])) {
+                            if (args.length > i+1) {
+                                loadImports = Boolean.valueOf(args[++i]);
+                            }
+                        } else if(FLAG_CONTENT_QUERY.equalsIgnoreCase(args[i])) {
+                            if (requireType && args.length > i+1) {
+                                if (queryConfig == null) {
+                                    queryConfig = new SparqlQueryConfig();
+                                }
+                                queryConfig.setQuery(args[++i]);
+                            }
+                        } else if(FLAG_CONTENT_QUERY_ENDPOINT.equalsIgnoreCase(args[i])) {
+                            if (requireType && args.length > i+1) {
+                                if (queryConfig == null) {
+                                    queryConfig = new SparqlQueryConfig();
+                                }
+                                queryConfig.setEndpoint(args[++i]);
+                            }
+                        } else if(FLAG_CONTENT_QUERY_USERNAME.equalsIgnoreCase(args[i])) {
+                            if (requireType && args.length > i+1) {
+                                if (queryConfig == null) {
+                                    queryConfig = new SparqlQueryConfig();
+                                }
+                                queryConfig.setUsername(args[++i]);
+                            }
+                        } else if(FLAG_CONTENT_QUERY_PASSWORD.equalsIgnoreCase(args[i])) {
+                            if (requireType && args.length > i+1) {
+                                if (queryConfig == null) {
+                                    queryConfig = new SparqlQueryConfig();
+                                }
+                                queryConfig.setPassword(args[++i]);
+                            }
+                        } else {
+                            throw new IllegalArgumentException("Unexpected parameter ["+args[i]+"]");
                         }
-                    } catch (ValidatorException e) {
-                        loggerFeedback.info("\nAn error occurred while executing the validation: "+e.getMessage());
-                        logger.error("An error occurred while executing the validation: "+e.getMessage(), e);
-                        break;
-
-                    } catch (Exception e) {
-                        loggerFeedback.info("\nAn error occurred while executing the validation.");
-                        logger.error("An error occurred while executing the validation: "+e.getMessage(), e);
-                        break;
-
+                        i++;
                     }
-                    i++;
-                    loggerFeedback.info(" Done.\n");
+                    if (requireType && type == null) {
+                        throw new ValidatorException("Unknown validation type. One of [" + String.join("|", domainConfig.getType()) + "] is mandatory.");
+                    }
+                    boolean hasExternalShapes = domainConfig.getShapeInfo(type).getExternalArtifactSupport() != ExternalArtifactSupport.NONE;
+                    if (!hasExternalShapes && externalShapesList.size() > 0) {
+                        throw new ValidatorException(String.format("Loading external shape files is not supported for validation type [%s] of domain [%s].", type, domainConfig.getDomainName()));
+                    }
+                    loadImports = inputHelper.validateLoadInputs(domainConfig, loadImports, type);
+                    if (queryConfig != null) {
+                        if (!inputs.isEmpty()) {
+                            throw new ValidatorException("The content to validate must either be provided via input or SPARQL query but not both.");
+                        } else {
+                            queryConfig = inputHelper.validateSparqlConfiguration(domainConfig, queryConfig);
+                            var inputFile = fileManager.getContentFromSparqlEndpoint(queryConfig, parentFolder, "queryResult").toFile();
+                            inputs.add(new ValidationInput(inputFile, type, inputFile.getName(), queryConfig.getPreferredContentType()));
+                        }
+                    }
+                } catch (Exception e) {
+                    loggerFeedback.info("\nInvalid arguments provided: "+e.getMessage()+"\n");
+                    inputs.clear();
                 }
-                loggerFeedback.info(summary.toString());
-                loggerFeedbackFile.info(summary.toString());
+                if (inputs.isEmpty()) {
+                    printUsage();
+                } else {
+                    if(reportSyntax==null) {
+                        reportSyntax = domainConfig.getDefaultReportSyntax();
+                    }
+
+                    // Proceed with validation.
+                    StringBuilder summary = new StringBuilder();
+                    summary.append("\n");
+                    int i=0;
+                    for (ValidationInput input: inputs) {
+                        loggerFeedback.info("\nValidating ["+input.getFilename()+"]...");
+
+                        File inputFile = input.getInputFile();
+
+                        try {
+                            SHACLValidator validator = applicationContext.getBean(SHACLValidator.class, inputFile, type, input.getContentSyntax(), externalShapesList, loadImports, domainConfig);
+                            Model report = validator.validateAll();
+                            // Output summary results.
+                            TAR tarReport = Utils.getTAR(report, domainConfig);
+                            FileReport reporter = new FileReport(input.getFilename(), tarReport, requireType, type);
+                            summary.append("\n").append(reporter.toString()).append("\n");
+                            // Output SHACL validation report (if not skipped).
+                            if (!noReports) {
+                                Path reportFilePath = getReportFilePath("report."+i, reportSyntax);
+                                try (OutputStream fos = Files.newOutputStream(reportFilePath)) {
+                                    Lang language = RDFLanguages.contentTypeToLang(reportSyntax);
+                                    if (language != null) {
+                                        report.write(fos, RDFLanguages.contentTypeToLang(reportSyntax).getName());
+                                    } else {
+                                        report.write(fos);
+                                    }
+                                    fos.flush();
+                                }
+                                summary.append("- Detailed report in: [").append(reportFilePath.toFile().getAbsolutePath()).append("] \n");
+                            }
+                        } catch (ValidatorException e) {
+                            loggerFeedback.info("\nAn error occurred while executing the validation: "+e.getMessage());
+                            logger.error("An error occurred while executing the validation: "+e.getMessage(), e);
+                            break;
+
+                        } catch (Exception e) {
+                            loggerFeedback.info("\nAn error occurred while executing the validation.");
+                            logger.error("An error occurred while executing the validation: "+e.getMessage(), e);
+                            break;
+
+                        }
+                        i++;
+                        loggerFeedback.info(" Done.\n");
+                    }
+                    loggerFeedback.info(summary.toString());
+                    loggerFeedbackFile.info(summary.toString());
+                }
             }
         } finally {
             FileUtils.deleteQuietly(parentFolder);
@@ -245,30 +296,42 @@ public class ValidationRunner {
      * Print how to call the validation JAR.
      */
     private void printUsage() {
-        boolean requireType = domainConfig.hasMultipleValidationTypes();
-        StringBuilder msg = new StringBuilder();
-        if (requireType) {
-            msg.append("\nExpected usage: java -jar validator.jar [-noreports] [-validationType VALIDATION_TYPE] [-reportSyntax REPORT_SYNTAX] -contentToValidate FILE_1/URI_1 CONTENT_SYNTAX_1 ... [-contentToValidate FILE_N/URI_N CONTENT_SYNTAX_N] [-externalShapes SHAPE_FILE_1/SHAPE_URI_1 CONTENT_SYNTAX_1] ... [-externalShapes SHAPE_FILE_N/SHAPE_URI_N CONTENT_SYNTAX_N] [-loadImports LOAD_IMPORTS]");
-            msg.append("\n   Where:");
-            msg.append("\n      - VALIDATION_TYPE is the type of validation to perform, one of [");
-            for (int i=0; i < domainConfig.getType().size(); i++) {
-                String type = domainConfig.getType().get(i);
-                msg.append(type);
-                if (i+1 < domainConfig.getType().size()) {
-                    msg.append("|");
-                }
-            }            
-            msg.append("].");
-        } else {
-        	msg.append("\nExpected usage: java -jar validator.jar [-noreports] [-reportSyntax REPORT_SYNTAX] -contentToValidate FILE_1/URI_1 CONTENT_SYNTAX_1 ... [-contentToValidate FILE_N/URI_N CONTENT_SYNTAX_N] [-externalShapes SHAPE_FILE_1/SHAPE_URI_1 CONTENT_SYNTAX_1] ... [-externalShapes SHAPE_FILE_N/SHAPE_URI_N CONTENT_SYNTAX_N] [-loadImports LOAD_IMPORTS]\"");
-        	msg.append("\n   Where:");
+        StringBuilder usageStr = new StringBuilder(String.format("\nExpected usage: java -jar validator.jar %s FILE_1/URI_1 CONTENT_SYNTAX_1 ... [%s FILE_N/URI_N CONTENT_SYNTAX_N] [%s] [%s REPORT_SYNTAX]", FLAG_CONTENT_TO_VALIDATE, FLAG_CONTENT_TO_VALIDATE, FLAG_NO_REPORTS, FLAG_REPORT_SYNTAX));
+        StringBuilder detailsStr = new StringBuilder("\n   Where:" +
+                "\n      - FILE_X or URI_X is the full file path or URI to the content to validate, optionally followed by CONTENT_SYNTAX_X as the content's mime type."+
+                "\n      - REPORT_SYNTAX is the mime type for the validation report(s)."
+        );
+        if (domainConfig.hasMultipleValidationTypes()) {
+            usageStr.append(String.format(" [%s VALIDATION_TYPE]", FLAG_VALIDATION_TYPE));
+            detailsStr.append(String.format("\n      - VALIDATION_TYPE is one of [%s].", String.join("|", domainConfig.getType())));
         }
-        msg.append("\n      - REPORT_SYNTAX is the mime type for the validation report(s).");
-        msg.append("\n      - FILE_X or URI_X is the full file path or URI to the content to validate, optionally followed by CONTENT_SYNTAX_X as the content's mime type.");
-        msg.append("\n      - SHAPE_FILE_X or SHAPE_URI_X is the full file path or URI to additional shapes to consider, optionally followed by CONTENT_SYNTAX_X as the shapes' mime type.");
-        msg.append("\n      - LOAD_IMPORTS is a boolean indicating whether the owl:Imports should be loaded (true) or not (false).");        
-        msg.append("\n\nThe summary of each validation will be printed and the detailed report produced in the current directory (as \"report.X.SUFFIX\").");
-        System.out.println(msg.toString());
+        if (domainConfig.supportsUserProvidedLoadImports()) {
+            usageStr.append(String.format(" [%s LOAD_IMPORTS]", FLAG_LOAD_IMPORTS));
+            detailsStr.append("\n      - LOAD_IMPORTS is a boolean indicating whether owl:Imports in the input should be loaded (true) or not (false).");
+        }
+        if (domainConfig.supportsExternalArtifacts()) {
+            usageStr.append(String.format(" [%s SHAPE_FILE_1/SHAPE_URI_1 CONTENT_SYNTAX_1] ... [%s SHAPE_FILE_N/SHAPE_URI_N CONTENT_SYNTAX_N]", FLAG_EXTERNAL_SHAPES, FLAG_EXTERNAL_SHAPES));
+            detailsStr.append("\n      - SHAPE_FILE_X or SHAPE_URI_X is the full file path or URI to additional shapes to consider, optionally followed by CONTENT_SYNTAX_X as the shapes' mime type.");
+        }
+        if (domainConfig.isSupportsQueries()) {
+            usageStr.append(String.format(" [%s QUERY]", FLAG_CONTENT_QUERY));
+            detailsStr.append("\n      - QUERY is a SPARQL query to execute to retrieve the content to validate. This is wrapped with double quotes (\").");
+            if (domainConfig.getQueryEndpoint() == null) {
+                usageStr.append(String.format(" [%s QUERY_ENDPOINT]", FLAG_CONTENT_QUERY_ENDPOINT));
+                detailsStr.append("\n      - QUERY_ENDPOINT is the SPARQL endpoint to execute the query against.");
+            }
+            if (domainConfig.getQueryUsername() == null) {
+                usageStr.append(String.format(" [%s QUERY_USERNAME]", FLAG_CONTENT_QUERY_USERNAME));
+                usageStr.append(String.format(" [%s QUERY_PASSWORD]", FLAG_CONTENT_QUERY_PASSWORD));
+                detailsStr.append("\n      - QUERY_USERNAME is the username to use for authentication against the SPARQL endpoint.");
+                detailsStr.append("\n      - QUERY_PASSWORD is the password to use for authentication against the SPARQL endpoint.");
+            }
+        }
+        String message = usageStr
+                .append(detailsStr)
+                .append("\n\nThe summary of each validation will be printed and the detailed report produced in the current directory (as \"report.X.SUFFIX\").")
+                .toString();
+        System.out.println(message);
     }
 
     /**
