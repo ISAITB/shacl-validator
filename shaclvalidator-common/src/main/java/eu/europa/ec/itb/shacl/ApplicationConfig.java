@@ -29,6 +29,44 @@ public class ApplicationConfig extends eu.europa.ec.itb.validation.commons.confi
     private String defaultAddInputToReportDescription;
     private String defaultAddRulesToReportDescription;
 
+    private String queryPreferredContentType;
+    private String defaultContentQueryDescription;
+    private String defaultContentQueryEndpointDescription;
+    private String defaultContentQueryUsernameDescription;
+    private String defaultContentQueryPasswordDescription;
+
+    public String getQueryPreferredContentType() {
+        return queryPreferredContentType;
+    }
+
+    public void setQueryPreferredContentType(String queryPreferredContentType) {
+        this.queryPreferredContentType = queryPreferredContentType;
+    }
+
+    public String getDefaultContentQueryEndpointDescription() {
+        return defaultContentQueryEndpointDescription;
+    }
+
+    public void setDefaultContentQueryEndpointDescription(String defaultContentQueryEndpointDescription) {
+        this.defaultContentQueryEndpointDescription = defaultContentQueryEndpointDescription;
+    }
+
+    public String getDefaultContentQueryUsernameDescription() {
+        return defaultContentQueryUsernameDescription;
+    }
+
+    public void setDefaultContentQueryUsernameDescription(String defaultContentQueryUsernameDescription) {
+        this.defaultContentQueryUsernameDescription = defaultContentQueryUsernameDescription;
+    }
+
+    public String getDefaultContentQueryPasswordDescription() {
+        return defaultContentQueryPasswordDescription;
+    }
+
+    public void setDefaultContentQueryPasswordDescription(String defaultContentQueryPasswordDescription) {
+        this.defaultContentQueryPasswordDescription = defaultContentQueryPasswordDescription;
+    }
+
     public Set<String> getAcceptedShaclExtensions() {
         return acceptedShaclExtensions;
     }
@@ -85,6 +123,10 @@ public class ApplicationConfig extends eu.europa.ec.itb.validation.commons.confi
         return defaultLoadImportsDescription;
     }
 
+    public String getDefaultContentQueryDescription() {
+        return defaultContentQueryDescription;
+    }
+
     public void setDefaultContentToValidateDescription(String defaultContentToValidateDescription) {
         this.defaultContentToValidateDescription = defaultContentToValidateDescription;
     }
@@ -109,6 +151,10 @@ public class ApplicationConfig extends eu.europa.ec.itb.validation.commons.confi
         this.defaultLoadImportsDescription = defaultLoadImportsDescription;
     }
 
+    public void setDefaultContentQueryDescription(String defaultContentQueryDescription) {
+        this.defaultContentQueryDescription = defaultContentQueryDescription;
+    }
+
 	public Set<String> getContentSyntax() {
 		return contentSyntax;
 	}
@@ -121,7 +167,7 @@ public class ApplicationConfig extends eu.europa.ec.itb.validation.commons.confi
         return defaultLabels;
     }
 
-    @PostConstruct
+	@PostConstruct
     public void init() {
         super.init();
         // Default labels.
@@ -133,6 +179,10 @@ public class ApplicationConfig extends eu.europa.ec.itb.validation.commons.confi
         defaultLabels.put("loadImports", defaultLoadImportsDescription);
         defaultLabels.put("addInputToReport", defaultAddInputToReportDescription);
         defaultLabels.put("addRulesToReport", defaultAddRulesToReportDescription);
+        defaultLabels.put("contentQuery", defaultContentQueryDescription);
+        defaultLabels.put("contentQueryEndpoint", defaultContentQueryEndpointDescription);
+        defaultLabels.put("contentQueryUsername", defaultContentQueryUsernameDescription);
+        defaultLabels.put("contentQueryPassword", defaultContentQueryPasswordDescription);
     }
 
 }

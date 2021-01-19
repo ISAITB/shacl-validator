@@ -1,13 +1,116 @@
-addListener('FORM_READY', loadImportInputs)
+addListener('FORM_READY', onFormReady)
 addListener('ADDED_EXTERNAL_ARTIFACT_INPUT', externalShapeAdded);
 addListener('REMOVED_EXTERNAL_ARTIFACT_INPUT', externalShapeRemoved);
 addListener('INPUT_CONTENT_TYPE_CHANGED', inputContentTypeChanged);
-addListener('VALIDATION_TYPE_CHANGED', loadImportInputs);
+addListener('VALIDATION_TYPE_CHANGED', onValidationTypeChanged);
+addContentTypeValidator('queryType', validateQueryInputs);
 
-function loadImportInputs(){
+function onFormReady() {
+    loadImportInputs();
+    if (supportQuery) {
+    	var selectContentTypeElement = document.getElementById("contentType");
+    	selectContentTypeElement.add(createOption(labelOptionContentQuery, 'queryType'));
+    	createQueryFields();
+    }
+}
+
+function createQueryFields() {
+    // Create query fields (initially hidden)
+    var fieldContent = ''
+    if (supportQueryEndpoint) {
+        fieldContent += ''+
+           '<div class="row query-form-group">'+
+               '<div class="col-sm-12 extra-query-field">'+
+                   '<input type="url" placeholder="'+labelQueryEndpointInputPlaceholder+'" class="form-control" id="queryEndpoint" name="contentQueryEndpoint" oninput="checkForSubmit()">'+
+               '</div>'+
+           '</div>';
+    }
+    if (supportQueryCredentials) {
+        fieldContent += ''+
+           '<div class="row query-form-group-check">'+
+               '<div class="container-fluid extra-query-field">'+
+                   '<div class="checkbox col-sm-3 extra-query-field-left">'+
+                       '<label>'+
+                           '<input type="checkbox" id="queryAuthenticate" name="contentQueryAuthenticate" '+(queryCredentialsMandatory?'checked disabled':'onclick="toggleQueryCredentials()"')+'> <span>'+labelQueryAuthenticateLabel+'</span>'+
+                       '</label>'+
+                   '</div>'+
+                   '<div id="queryCredentialsDiv" class="col-sm-9 extra-query-field '+(!queryCredentialsMandatory?'hidden':'')+'">'+
+                       '<div class="container-fluid extra-query-field">'+
+                           '<div class="col-sm-6">'+
+                               '<input type="text" placeholder="'+labelQueryUsernameInputPlaceholder+'" class="form-control" id="queryUsername" name="contentQueryUsername" oninput="checkForSubmit()">'+
+                           '</div>'+
+                           '<div class="col-sm-6 extra-query-field-right">'+
+                               '<input type="password" placeholder="'+labelQueryPasswordInputPlaceholder+'" class="form-control" id="queryPassword" name="contentQueryPassword" oninput="checkForSubmit()">'+
+                           '</div>'+
+                       '</div>'+
+                   '</div>'+
+               '</div>'+
+          '</div>';
+    }
+    fieldContent += ''+
+           '<div class="row">'+
+               '<textarea id="query-editor" name="contentQuery" class="form-control"></textarea>'+
+           '</div>';
+    fieldContent = '' +
+    '<div class="col-sm-12 hidden" id="queryToValidate">'+
+       '<div class="container-fluid">'+
+        fieldContent+
+       '</div>'+
+     '</div>';
+    $('#fileToValidate').parent().append($(fieldContent));
+    CodeMirror.fromTextArea(document.getElementById('query-editor'), {
+        lineNumbers: true
+    }).on('change', function(){
+        checkForSubmit();
+    });
+}
+
+function toggleQueryCredentials() {
+    var checked = $("#queryAuthenticate").is(":checked");
+    if (checked) {
+        $('#queryCredentialsDiv').removeClass('hidden');
+    } else {
+        $('#queryCredentialsDiv').addClass('hidden');
+    }
+    checkForSubmit();
+}
+
+function validateQueryInputs() {
+    var valid = false;
+    if (supportQuery) {
+        var endpointOk = false;
+        if (supportQueryEndpoint) {
+            endpointOk = $('#queryEndpoint').val()?true:false;
+        } else {
+            endpointOk = true;
+        }
+        var credentialsOk = false
+        if (supportQueryCredentials) {
+            if ($("#queryAuthenticate").is(":checked")) {
+                var hasUsername = $('#queryUsername').val()?true:false;
+                var hasPassword = $('#queryPassword').val()?true:false;
+                credentialsOk = hasUsername && hasPassword;
+            } else {
+                credentialsOk = true;
+            }
+        } else {
+            credentialsOk = true;
+        }
+		var queryValue = getCodeMirrorNative('#query-editor').getDoc().getValue();
+		if (queryValue && endpointOk && credentialsOk) {
+		    valid = true;
+		}
+    }
+    return valid;
+}
+
+function onValidationTypeChanged() {
+    loadImportInputs();
+}
+
+function loadImportInputs() {
     $("#loadImportsCheck").prop('checked', false);	
     var validationType = getCompleteValidationType();
-    
     if (validationType) {
     	if(loadImportsArtifacts[validationType] == 'REQUIRED' || loadImportsArtifacts[validationType] == 'OPTIONAL'){
     		$('#loadImportsDiv').removeClass('hidden');
@@ -21,12 +124,28 @@ function loadImportInputs(){
 
 function inputContentTypeChanged() {
 	var type = $('#contentType').val();
+	// Adapt content syntax selection
     if (type == 'stringType') {
         $('#contentSyntaxType option[value="empty"]').remove();
     } else {
         if ($('#contentSyntaxType option[value="empty"]').length == 0) {
             $('#contentSyntaxType').prepend('<option value="empty" selected="selected"></option>');
         }
+    }
+	// Show or hide query fields
+    if (type == 'queryType') {
+        $('#contentSyntaxTypeDiv').addClass('hidden');
+        $('#fileToValidate').addClass('hidden');
+        $('#uriToValidate').addClass('hidden');
+        $('#stringToValidate').addClass('hidden');
+        $('#queryToValidate').removeClass('hidden');
+		setTimeout(function() {
+            var codeMirror = getCodeMirrorNative('#query-editor')
+            codeMirror.refresh();
+		}, 0);
+    } else {
+        $('#queryToValidate').addClass('hidden');
+        $('#contentSyntaxTypeDiv').removeClass('hidden');
     }
 }
 
@@ -114,6 +233,5 @@ function createOption(text, value){
 	var option = document.createElement("option");
 	option.text = text;
 	option.value = value;
-	
 	return option;
 }

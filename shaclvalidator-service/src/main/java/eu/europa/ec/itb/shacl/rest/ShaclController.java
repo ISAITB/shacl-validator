@@ -198,16 +198,24 @@ public class ShaclController {
 		String validationResult;
 		//Start validation of the input file
 		File parentFolder = fileManager.createTemporaryFolderPath();
+		File inputFile;
+		String contentSyntax = in.getContentSyntax();
 		try {
 			// Prepare input
 			String validationType = inputHelper.validateValidationType(domainConfig, in.getValidationType());
 			List<FileInfo> externalShapes = getExternalShapes(domainConfig, validationType, in.getExternalRules(), parentFolder);
 			ValueEmbeddingEnumeration embeddingMethod = inputHelper.getEmbeddingMethod(in.getEmbeddingMethod());
-			File inputFile = inputHelper.validateContentToValidate(in.getContentToValidate(), embeddingMethod, parentFolder);
+			var queryConfig = in.parseQueryConfig();
+			if (queryConfig == null) {
+				inputFile = inputHelper.validateContentToValidate(in.getContentToValidate(), embeddingMethod, parentFolder);
+			} else {
+				queryConfig = inputHelper.validateSparqlConfiguration(domainConfig, queryConfig);
+				inputFile = fileManager.getContentFromSparqlEndpoint(queryConfig, parentFolder).toFile();
+				contentSyntax = queryConfig.getPreferredContentType();
+			}
 			Boolean loadImports = inputHelper.validateLoadInputs(domainConfig, in.isLoadImports(), validationType);
-			
 			// Execute validation
-			SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile, validationType, in.getContentSyntax(), externalShapes, loadImports, domainConfig);
+			SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile, validationType, contentSyntax, externalShapes, loadImports, domainConfig);
 			Model validationReport = validator.validateAll();
 			//Process the result according to content-type
 			validationResult = getShaclReport(validationReport, reportSyntax);

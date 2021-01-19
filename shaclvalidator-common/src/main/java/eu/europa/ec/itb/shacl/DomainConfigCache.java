@@ -42,6 +42,25 @@ public class DomainConfigCache extends WebDomainConfigCache<DomainConfig> {
         domainConfig.setWebContentSyntax(Arrays.stream(StringUtils.split(config.getString("validator.contentSyntax", ""), ',')).map(String::trim).collect(Collectors.toList()));
         domainConfig.setReportsOrdered(config.getBoolean("validator.reportsOrdered", false));
         domainConfig.setMergeModelsBeforeValidation(config.getBoolean("validator.mergeModelsBeforeValidation", true));
+        // SPARQL query configuration - start
+        domainConfig.setQuery(config.getString("validator.query"));
+        domainConfig.setQueryEndpoint(config.getString("validator.queryEndpoint"));
+        domainConfig.setQueryUsername(config.getString("validator.queryUsername"));
+        domainConfig.setQueryPassword(config.getString("validator.queryPassword"));
+        ExternalArtifactSupport queryAuthenticationInput;
+        if (domainConfig.getQueryUsername() == null && domainConfig.getQueryPassword() == null) {
+            // No predefined credentials
+            queryAuthenticationInput = ExternalArtifactSupport.byName(config.getString("validator.queryAuthenticationInput", ExternalArtifactSupport.OPTIONAL.getName()));
+        } else {
+            // Predefined credentials.
+            queryAuthenticationInput = ExternalArtifactSupport.NONE;
+        }
+        domainConfig.setQueryAuthentication(queryAuthenticationInput);
+        domainConfig.setQueryContentType(config.getString("validator.queryPreferredContentType", appConfig.getQueryPreferredContentType()));
+        boolean hasQueryConfiguration = (domainConfig.getQuery() != null || domainConfig.getQueryEndpoint() != null || domainConfig.getQueryUsername() != null || domainConfig.getQueryPassword() != null);
+        // If not explicitly set, we allow queries if there are query-related configuration properties.
+        domainConfig.setSupportsQueries(config.getBoolean("validator.supportsQueries", hasQueryConfiguration));
+        // SPARQL query configuration - end
         // Labels
         domainConfig.setDefaultLoadImportsType(parseBooleanMap("validator.loadImports", config, domainConfig.getType(), config.getBoolean("validator.loadImports", false)));
         domainConfig.setUserInputForLoadImportsType(parseEnumMap("validator.input.loadImports", ExternalArtifactSupport.byName(config.getString("validator.input.loadImports", ExternalArtifactSupport.NONE.getName())), config, domainConfig.getType(), ExternalArtifactSupport::byName));
@@ -62,6 +81,11 @@ public class DomainConfigCache extends WebDomainConfigCache<DomainConfig> {
         domainConfig.getLabel().setReportItemShape(config.getString("validator.label.reportItemShape", "Shape"));
         domainConfig.getLabel().setReportItemValue(config.getString("validator.label.reportItemValue", "Value"));
         domainConfig.getLabel().setLoadImportsLabel(config.getString("validator.label.loadImports", "Load imports defined in the input?"));
+        domainConfig.getLabel().setOptionContentQuery(config.getString("validator.label.optionContentQuery", "Query"));
+        domainConfig.getLabel().setQueryEndpointInputPlaceholder(config.getString("validator.label.queryEndpointInputPlaceholder", "SPARQL endpoint URL"));
+        domainConfig.getLabel().setQueryUsernameInputPlaceholder(config.getString("validator.label.queryUsernameInputPlaceholder", "Username"));
+        domainConfig.getLabel().setQueryPasswordInputPlaceholder(config.getString("validator.label.queryPasswordInputPlaceholder", "Password"));
+        domainConfig.getLabel().setQueryAuthenticateLabel(config.getString("validator.label.queryAuthenticateLabel", "Authenticate?"));
         addMissingDefaultValues(domainConfig.getWebServiceDescription(), appConfig.getDefaultLabels());
     }
 

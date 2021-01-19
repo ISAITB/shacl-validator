@@ -10,11 +10,13 @@ public class ValidationInput {
     private File inputFile;
     private String validationType;
     private String filename;
+    private String contentSyntax;
 
-    public ValidationInput(File inputFile, String validationType, String filename) {
+    public ValidationInput(File inputFile, String validationType, String filename, String contentSyntax) {
         this.inputFile = inputFile;
         this.validationType = validationType;
         this.filename = filename;
+        this.contentSyntax = contentSyntax;
     }
 
     public File getInputFile() {
@@ -27,5 +29,9 @@ public class ValidationInput {
     
     public String getFilename() {
     	return filename;
+    }
+    
+    public String getContentSyntax() {
+    	return this.contentSyntax;
     }
 }

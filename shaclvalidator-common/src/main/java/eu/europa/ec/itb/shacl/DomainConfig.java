@@ -1,6 +1,7 @@
 package eu.europa.ec.itb.shacl;
 
 import eu.europa.ec.itb.validation.commons.artifact.ExternalArtifactSupport;
+import eu.europa.ec.itb.validation.commons.artifact.TypedValidationArtifactInfo;
 import eu.europa.ec.itb.validation.commons.artifact.ValidationArtifactInfo;
 import eu.europa.ec.itb.validation.commons.config.LabelConfig;
 import eu.europa.ec.itb.validation.commons.config.WebDomainConfig;
@@ -19,9 +20,58 @@ public class DomainConfig extends WebDomainConfig<DomainConfig.Label> {
     Map<String, Boolean> defaultLoadImportsType;
     Map<String, ExternalArtifactSupport> userInputForLoadImportsType;
     private List<String> webContentSyntax;
+    private boolean supportsQueries;
+    private String query;
+    private String queryEndpoint;
+    private ExternalArtifactSupport queryAuthentication;
+    private String queryUsername;
+    private String queryPassword;
+    private String queryContentType;
+
+    public ExternalArtifactSupport getQueryAuthentication() {
+        return queryAuthentication;
+    }
+
+    public void setQueryAuthentication(ExternalArtifactSupport queryAuthentication) {
+        this.queryAuthentication = queryAuthentication;
+    }
+
+    public boolean supportsExternalArtifacts() {
+        for (TypedValidationArtifactInfo info: getArtifactInfo().values()) {
+            if (info.getOverallExternalArtifactSupport() != ExternalArtifactSupport.NONE) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean supportsUserProvidedLoadImports() {
+        for (ExternalArtifactSupport supportType: getUserInputForLoadImportsType().values()) {
+            if (supportType != ExternalArtifactSupport.NONE) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     public ValidationArtifactInfo getShapeInfo(String validationType) {
         return getArtifactInfo().get(validationType).get();
+    }
+
+    public boolean isSupportsQueries() {
+        return supportsQueries;
+    }
+
+    public boolean isQueryAuthenticationMandatory() {
+        return supportsQueries && queryAuthentication == ExternalArtifactSupport.REQUIRED;
+    }
+
+    public boolean supportsQueryCredentials() {
+        return supportsQueries && queryAuthentication != ExternalArtifactSupport.NONE;
+    }
+
+    public void setSupportsQueries(boolean supportsQueries) {
+        this.supportsQueries = supportsQueries;
     }
 
     @Override
@@ -77,7 +127,47 @@ public class DomainConfig extends WebDomainConfig<DomainConfig.Label> {
 		this.webContentSyntax = webContentSyntax;
 	}
 
-	public static class Label extends LabelConfig {
+	public String getQueryEndpoint() {
+		return queryEndpoint;
+	}
+
+	public void setQueryEndpoint(String queryEndpoint) {
+		this.queryEndpoint = queryEndpoint;
+	}
+
+	public String getQueryUsername() {
+		return queryUsername;
+	}
+
+	public void setQueryUsername(String queryUsername) {
+		this.queryUsername = queryUsername;
+	}
+
+	public String getQueryPassword() {
+		return queryPassword;
+	}
+
+	public void setQueryPassword(String queryPassword) {
+		this.queryPassword = queryPassword;
+	}
+
+	public String getQueryContentType() {
+		return queryContentType;
+	}
+
+	public void setQueryContentType(String queryContentType) {
+		this.queryContentType = queryContentType;
+	}
+
+    public String getQuery() {
+        return query;
+    }
+
+    public void setQuery(String query) {
+        this.query = query;
+    }
+
+    public static class Label extends LabelConfig {
 
         private String contentSyntaxLabel;
         private String externalShapesLabel;
@@ -96,6 +186,51 @@ public class DomainConfig extends WebDomainConfig<DomainConfig.Label> {
         private String includeExternalShapes;
         private String loadImportsLabel;
         private String loadImportsTooltip;
+        private String optionContentQuery;
+        private String queryEndpointInputPlaceholder;
+        private String queryUsernameInputPlaceholder;
+        private String queryPasswordInputPlaceholder;
+        private String queryAuthenticateLabel;
+
+        public String getOptionContentQuery() {
+            return optionContentQuery;
+        }
+
+        public void setOptionContentQuery(String optionContentQuery) {
+            this.optionContentQuery = optionContentQuery;
+        }
+
+        public String getQueryEndpointInputPlaceholder() {
+            return queryEndpointInputPlaceholder;
+        }
+
+        public void setQueryEndpointInputPlaceholder(String queryEndpointInputPlaceholder) {
+            this.queryEndpointInputPlaceholder = queryEndpointInputPlaceholder;
+        }
+
+        public String getQueryUsernameInputPlaceholder() {
+            return queryUsernameInputPlaceholder;
+        }
+
+        public void setQueryUsernameInputPlaceholder(String queryUsernameInputPlaceholder) {
+            this.queryUsernameInputPlaceholder = queryUsernameInputPlaceholder;
+        }
+
+        public String getQueryPasswordInputPlaceholder() {
+            return queryPasswordInputPlaceholder;
+        }
+
+        public void setQueryPasswordInputPlaceholder(String queryPasswordInputPlaceholder) {
+            this.queryPasswordInputPlaceholder = queryPasswordInputPlaceholder;
+        }
+
+        public String getQueryAuthenticateLabel() {
+            return queryAuthenticateLabel;
+        }
+
+        public void setQueryAuthenticateLabel(String queryAuthenticateLabel) {
+            this.queryAuthenticateLabel = queryAuthenticateLabel;
+        }
 
         public String getReportItemFocusNode() {
             return reportItemFocusNode;
@@ -232,6 +367,7 @@ public class DomainConfig extends WebDomainConfig<DomainConfig.Label> {
 		public void setLoadImportsTooltip(String loadImportsTooltip) {
 			this.loadImportsTooltip = loadImportsTooltip;
 		}
+
 
     }
 }

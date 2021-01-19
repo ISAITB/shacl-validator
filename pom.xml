@@ -188,6 +188,11 @@
                 <artifactId>jena-arq</artifactId>
                 <version>${version.jena}</version>
             </dependency>
+			<dependency>
+			    <groupId>org.apache.jena</groupId>
+			    <artifactId>jena-rdfconnection</artifactId>
+                <version>${version.jena}</version>
+			</dependency>          
             <dependency>
                 <groupId>commons-io</groupId>
                 <artifactId>commons-io</artifactId>
