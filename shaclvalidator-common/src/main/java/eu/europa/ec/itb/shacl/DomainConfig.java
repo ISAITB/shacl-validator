@@ -21,7 +21,6 @@ public class DomainConfig extends WebDomainConfig<DomainConfig.Label> {
     Map<String, ExternalArtifactSupport> userInputForLoadImportsType;
     private List<String> webContentSyntax;
     private boolean supportsQueries;
-    private String query;
     private String queryEndpoint;
     private ExternalArtifactSupport queryAuthentication;
     private String queryUsername;
@@ -158,14 +157,6 @@ public class DomainConfig extends WebDomainConfig<DomainConfig.Label> {
 	public void setQueryContentType(String queryContentType) {
 		this.queryContentType = queryContentType;
 	}
-
-    public String getQuery() {
-        return query;
-    }
-
-    public void setQuery(String query) {
-        this.query = query;
-    }
 
     public static class Label extends LabelConfig {
 

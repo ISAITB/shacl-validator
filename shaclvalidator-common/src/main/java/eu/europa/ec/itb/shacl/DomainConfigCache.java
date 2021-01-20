@@ -43,7 +43,6 @@ public class DomainConfigCache extends WebDomainConfigCache<DomainConfig> {
         domainConfig.setReportsOrdered(config.getBoolean("validator.reportsOrdered", false));
         domainConfig.setMergeModelsBeforeValidation(config.getBoolean("validator.mergeModelsBeforeValidation", true));
         // SPARQL query configuration - start
-        domainConfig.setQuery(config.getString("validator.query"));
         domainConfig.setQueryEndpoint(config.getString("validator.queryEndpoint"));
         domainConfig.setQueryUsername(config.getString("validator.queryUsername"));
         domainConfig.setQueryPassword(config.getString("validator.queryPassword"));
@@ -57,7 +56,7 @@ public class DomainConfigCache extends WebDomainConfigCache<DomainConfig> {
         }
         domainConfig.setQueryAuthentication(queryAuthenticationInput);
         domainConfig.setQueryContentType(config.getString("validator.queryPreferredContentType", appConfig.getQueryPreferredContentType()));
-        boolean hasQueryConfiguration = (domainConfig.getQuery() != null || domainConfig.getQueryEndpoint() != null || domainConfig.getQueryUsername() != null || domainConfig.getQueryPassword() != null);
+        boolean hasQueryConfiguration = (domainConfig.getQueryEndpoint() != null || domainConfig.getQueryUsername() != null || domainConfig.getQueryPassword() != null);
         // If not explicitly set, we allow queries if there are query-related configuration properties.
         domainConfig.setSupportsQueries(config.getBoolean("validator.supportsQueries", hasQueryConfiguration));
         // SPARQL query configuration - end

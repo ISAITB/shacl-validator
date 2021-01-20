@@ -82,18 +82,10 @@ public class InputHelper extends BaseInputHelper<FileManager, DomainConfig, Appl
 			config.setPreferredContentType(domainConfig.getQueryContentType());
 		}
 		// Query
-		if (StringUtils.isBlank(domainConfig.getQuery())) {
-			if (StringUtils.isBlank(inputConfig.getQuery())) {
-				throw new ValidatorException("You must provide the query for the SPARQL endpoint.");
-			} else {
-				config.setQuery(inputConfig.getQuery());
-			}
+		if (StringUtils.isBlank(inputConfig.getQuery())) {
+			throw new ValidatorException("You must provide the query for the SPARQL endpoint.");
 		} else {
-			if (StringUtils.isBlank(inputConfig.getQuery())) {
-				config.setQuery(domainConfig.getQuery());
-			} else {
-				config.setQuery(inputConfig.getQuery());
-			}
+			config.setQuery(inputConfig.getQuery());
 		}
 		return config;
     }
