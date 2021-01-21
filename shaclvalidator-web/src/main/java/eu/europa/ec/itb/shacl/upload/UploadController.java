@@ -315,7 +315,7 @@ public class UploadController {
 				break;
 			
 			case CONTENT_TYPE__URI:
-				inputFile = this.fileManager.getFileFromURL(tmpFolder, uri, FILE_NAME__INPUT);
+				inputFile = this.fileManager.getFileFromURL(tmpFolder, uri, fileManager.getFileExtension(contentSyntaxType), FILE_NAME__INPUT);
 				break;
 				
 			case CONTENT_TYPE__EDITOR:
