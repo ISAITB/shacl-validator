@@ -12,15 +12,15 @@ import io.swagger.annotations.ApiModelProperty;
 @ApiModel(description = "The content and metadata specific to input content that is to be validated.")
 public class Input {
 
-    @ApiModelProperty(notes = "The RDF content to validate. Either this must be provided or a SPARQL query (contentQuery).")
+    @ApiModelProperty(notes = "The RDF content to validate, provided as a normal string, a URL, or a BASE64-encoded string. Either this must be provided or a SPARQL query (contentQuery).")
 	private String contentToValidate;
     @ApiModelProperty(notes = "The mime type of the provided RDF content (e.g. \"application/rdf+xml\", \"application/ld+json\", \"text/turtle\"). If not provided the type is determined from the provided content (if possible).")
 	private String contentSyntax;
-    @ApiModelProperty(notes = "The way in which to interpret the contentToValidate. If not provided, the method will be determined from the contentToValidate value (i.e. check it is a valid URL).", allowableValues = FileContent.embedding_URL+","+FileContent.embedding_BASE64)
+    @ApiModelProperty(notes = "The way in which to interpret the contentToValidate. If not provided, the method will be determined from the contentToValidate value.", allowableValues = FileContent.embedding_STRING+","+FileContent.embedding_URL+","+FileContent.embedding_BASE64)
 	private String embeddingMethod;
     @ApiModelProperty(notes = "The type of validation to perform (e.g. the profile to apply or the version to validate against). This can be skipped if a single validation type is supported by the validator. Otherwise, if multiple are supported, the service should fail with an error.")
 	private String validationType;
-    @ApiModelProperty(notes = "The mime type for the validation report syntax. If none is provided \"application/rdf+xml\" is considered as the default, unless a different syntax is configured for the domain in question.")
+    @ApiModelProperty(notes = "The mime type for the validation report syntax (e.g. \"application/ld+json\", \"application/rdf+xml\", \"text/turtle\", \"application/n-triples\"). If none is provided \"application/rdf+xml\" is considered as the default, unless a different syntax is configured for the domain in question.")
 	private String reportSyntax;
     @ApiModelProperty(notes = "Any shapes to consider that are externally provided (i.e. provided at the time of the call).")
 	private List<RuleSet> externalRules;
