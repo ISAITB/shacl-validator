@@ -13,7 +13,7 @@ public class RuleSet {
 
     @ApiModelProperty(required = true, notes = "The RDF containing the rules to apply (shapes).")
     private String ruleSet;
-    @ApiModelProperty(notes = "The way in which to interpret the value for ruleSet. If not provided, the method will be determined from the ruleSet value (i.e. check it is a valid URL).", allowableValues = FileContent.embedding_URL+","+FileContent.embedding_BASE64)
+    @ApiModelProperty(notes = "The way in which to interpret the value for ruleSet. If not provided, the method will be determined from the ruleSet value.", allowableValues = FileContent.embedding_STRING+","+FileContent.embedding_URL+","+FileContent.embedding_BASE64)
     private String embeddingMethod;
     @ApiModelProperty(notes = "The mime type of the provided RDF content (e.g. \"application/rdf+xml\", \"application/ld+json\", \"text/turtle\"). If not provided the type is determined from the provided content (if possible).")
     private String ruleSyntax;
