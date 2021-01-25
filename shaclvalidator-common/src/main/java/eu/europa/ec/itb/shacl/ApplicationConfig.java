@@ -34,6 +34,33 @@ public class ApplicationConfig extends eu.europa.ec.itb.validation.commons.confi
     private String defaultContentQueryEndpointDescription;
     private String defaultContentQueryUsernameDescription;
     private String defaultContentQueryPasswordDescription;
+    private String defaultAddRdfReportToReportDescription;
+    private String defaultRdfReportSyntaxDescription;
+    private String defaultRdfReportQueryDescription;
+
+    public String getDefaultAddRdfReportToReportDescription() {
+        return defaultAddRdfReportToReportDescription;
+    }
+
+    public void setDefaultAddRdfReportToReportDescription(String defaultAddRdfReportToReportDescription) {
+        this.defaultAddRdfReportToReportDescription = defaultAddRdfReportToReportDescription;
+    }
+
+    public String getDefaultRdfReportSyntaxDescription() {
+        return defaultRdfReportSyntaxDescription;
+    }
+
+    public void setDefaultRdfReportSyntaxDescription(String defaultRdfReportSyntaxDescription) {
+        this.defaultRdfReportSyntaxDescription = defaultRdfReportSyntaxDescription;
+    }
+
+    public String getDefaultRdfReportQueryDescription() {
+        return defaultRdfReportQueryDescription;
+    }
+
+    public void setDefaultRdfReportQueryDescription(String defaultRdfReportQueryDescription) {
+        this.defaultRdfReportQueryDescription = defaultRdfReportQueryDescription;
+    }
 
     public String getQueryPreferredContentType() {
         return queryPreferredContentType;
@@ -183,6 +210,9 @@ public class ApplicationConfig extends eu.europa.ec.itb.validation.commons.confi
         defaultLabels.put("contentQueryEndpoint", defaultContentQueryEndpointDescription);
         defaultLabels.put("contentQueryUsername", defaultContentQueryUsernameDescription);
         defaultLabels.put("contentQueryPassword", defaultContentQueryPasswordDescription);
+        defaultLabels.put("addRdfReportToReport", defaultAddRdfReportToReportDescription);
+        defaultLabels.put("rdfReportSyntax", defaultRdfReportSyntaxDescription);
+        defaultLabels.put("rdfReportQuery", defaultRdfReportQueryDescription);
     }
 
 }
