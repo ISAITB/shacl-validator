@@ -15,6 +15,10 @@ import eu.europa.ec.itb.validation.commons.FileInfo;
 import eu.europa.ec.itb.validation.commons.error.ValidatorException;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.jena.query.Query;
+import org.apache.jena.query.QueryExecution;
+import org.apache.jena.query.QueryExecutionFactory;
+import org.apache.jena.query.QueryFactory;
 import org.apache.jena.rdf.model.Model;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -92,6 +96,9 @@ public class ValidationServiceImpl implements ValidationService {
         }
         response.getModule().getInputs().getParam().add(Utils.createParameter(ValidationConstants.INPUT_ADD_INPUT_TO_REPORT, "boolean", UsageEnumeration.O, ConfigurationType.SIMPLE, domainConfig.getWebServiceDescription().get(ValidationConstants.INPUT_ADD_INPUT_TO_REPORT)));
         response.getModule().getInputs().getParam().add(Utils.createParameter(ValidationConstants.INPUT_ADD_RULES_TO_REPORT, "boolean", UsageEnumeration.O, ConfigurationType.SIMPLE, domainConfig.getWebServiceDescription().get(ValidationConstants.INPUT_ADD_RULES_TO_REPORT)));
+        response.getModule().getInputs().getParam().add(Utils.createParameter(ValidationConstants.INPUT_ADD_RDF_REPORT_TO_REPORT, "boolean", UsageEnumeration.O, ConfigurationType.SIMPLE, domainConfig.getWebServiceDescription().get(ValidationConstants.INPUT_ADD_RDF_REPORT_TO_REPORT)));
+        response.getModule().getInputs().getParam().add(Utils.createParameter(ValidationConstants.INPUT_RDF_REPORT_SYNTAX, "string", UsageEnumeration.O, ConfigurationType.SIMPLE, domainConfig.getWebServiceDescription().get(ValidationConstants.INPUT_RDF_REPORT_SYNTAX)));
+        response.getModule().getInputs().getParam().add(Utils.createParameter(ValidationConstants.INPUT_RDF_REPORT_QUERY, "string", UsageEnumeration.O, ConfigurationType.SIMPLE, domainConfig.getWebServiceDescription().get(ValidationConstants.INPUT_RDF_REPORT_QUERY)));
         if (domainConfig.isSupportsQueries()) {
             // Query
             response.getModule().getInputs().getParam().add(Utils.createParameter(ValidationConstants.INPUT_CONTENT_QUERY, "string", UsageEnumeration.O, ConfigurationType.SIMPLE, domainConfig.getWebServiceDescription().get(ValidationConstants.INPUT_CONTENT_QUERY)));
@@ -139,10 +146,12 @@ public class ValidationServiceImpl implements ValidationService {
 			Boolean loadImports = inputHelper.validateLoadInputs(domainConfig, getInputLoadImports(validateRequest), validationType);
 			boolean addInputToReport = getInputAsBoolean(validateRequest, ValidationConstants.INPUT_ADD_INPUT_TO_REPORT, false);
             boolean addShapesToReport = getInputAsBoolean(validateRequest, ValidationConstants.INPUT_ADD_RULES_TO_REPORT, false);
+            boolean addRdfReportToReport = getInputAsBoolean(validateRequest, ValidationConstants.INPUT_ADD_RDF_REPORT_TO_REPORT, false);
 			SHACLValidator validator = ctx.getBean(SHACLValidator.class, contentToValidate, validationType, contentSyntax, externalShapes, loadImports, domainConfig);
 			Model reportModel = validator.validateAll();
 			TAR report = Utils.getTAR(
 			        reportModel,
+                    addRdfReportToReport?getRdfReportToInclude(reportModel, validateRequest):null,
                     addInputToReport?contentToValidate.toPath():null,
                     addShapesToReport?validator.getAggregatedShapes():null,
                     domainConfig
@@ -159,6 +168,18 @@ public class ValidationServiceImpl implements ValidationService {
 		} finally {
 			FileUtils.deleteQuietly(parentFolder);
 		}
+    }
+
+    private String getRdfReportToInclude(Model reportModel, ValidateRequest validateRequest) {
+        String mimeType = getInputAsString(validateRequest, ValidationConstants.INPUT_RDF_REPORT_SYNTAX, domainConfig.getDefaultReportSyntax());
+        String reportQuery = getInputAsString(validateRequest, ValidationConstants.INPUT_RDF_REPORT_QUERY, null);
+        Model reportToInclude = reportModel;
+        if (reportQuery != null && !reportQuery.isBlank()) {
+            Query query = QueryFactory.create(reportQuery);
+            QueryExecution queryExecution = QueryExecutionFactory.create(query, reportToInclude);
+            reportToInclude = queryExecution.execConstruct();
+        }
+        return Utils.serializeRdfModel(reportToInclude, mimeType);
     }
 
     /**
@@ -218,4 +239,13 @@ public class ValidationServiceImpl implements ValidationService {
         }
         return defaultIfMissing;
     }
+
+    private String getInputAsString(ValidateRequest validateRequest, String inputName, String defaultIfMissing) {
+        List<AnyContent> input = Utils.getInputFor(validateRequest, inputName);
+        if (!input.isEmpty()) {
+            return input.get(0).getValue();
+        }
+        return defaultIfMissing;
+    }
+
 }

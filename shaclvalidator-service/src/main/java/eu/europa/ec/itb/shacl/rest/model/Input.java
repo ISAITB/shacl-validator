@@ -20,6 +20,8 @@ public class Input {
 	private String embeddingMethod;
     @ApiModelProperty(notes = "The type of validation to perform (e.g. the profile to apply or the version to validate against). This can be skipped if a single validation type is supported by the validator. Otherwise, if multiple are supported, the service should fail with an error.")
 	private String validationType;
+	@ApiModelProperty(notes = "A SPARQL CONSTRUCT query that will be executed on the resulting SHACL validation report as a post-processing step. If provided, the result of this query will replace the SHACL validation report in the service's output.")
+	private String reportQuery;
     @ApiModelProperty(notes = "The mime type for the validation report syntax (e.g. \"application/ld+json\", \"application/rdf+xml\", \"text/turtle\", \"application/n-triples\"). If none is provided \"application/rdf+xml\" is considered as the default, unless a different syntax is configured for the domain in question.")
 	private String reportSyntax;
     @ApiModelProperty(notes = "Any shapes to consider that are externally provided (i.e. provided at the time of the call).")
@@ -109,6 +111,14 @@ public class Input {
 
 	public void setContentQueryPassword(String contentQueryPassword) {
 		this.contentQueryPassword = contentQueryPassword;
+	}
+
+	public String getReportQuery() {
+		return reportQuery;
+	}
+
+	public void setReportQuery(String reportQuery) {
+		this.reportQuery = reportQuery;
 	}
 
 	public SparqlQueryConfig parseQueryConfig() {

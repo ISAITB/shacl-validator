@@ -17,6 +17,10 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jena.atlas.web.ContentType;
+import org.apache.jena.query.Query;
+import org.apache.jena.query.QueryExecution;
+import org.apache.jena.query.QueryExecutionFactory;
+import org.apache.jena.query.QueryFactory;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFLanguages;
@@ -56,6 +60,7 @@ public class ValidationRunner {
     private static final String FLAG_NO_REPORTS = "-noreports";
     private static final String FLAG_VALIDATION_TYPE = "-validationType";
     private static final String FLAG_REPORT_SYNTAX = "-reportSyntax";
+    private static final String FLAG_REPORT_QUERY = "-reportQuery";
     private static final String FLAG_CONTENT_TO_VALIDATE = "-contentToValidate";
     private static final String FLAG_EXTERNAL_SHAPES = "-externalShapes";
     private static final String FLAG_LOAD_IMPORTS = "-loadImports";
@@ -112,6 +117,7 @@ public class ValidationRunner {
         SparqlQueryConfig queryConfig = null;
 
         String reportSyntax = null;
+        String reportQuery = null;
         String type = null;
         
         if (!requireType) {
@@ -139,9 +145,12 @@ public class ValidationRunner {
                             if (args.length > i+1) {
                                 reportSyntax = args[++i];
                             }
-
                             if (!validReportSyntax(reportSyntax)) {
                                 throw new IllegalArgumentException("Unknown report syntax ["+reportSyntax+"]");
+                            }
+                        } else if(FLAG_REPORT_QUERY.equalsIgnoreCase(args[i])) {
+                            if (args.length > i+1) {
+                                reportQuery = args[++i];
                             }
                         } else if (FLAG_CONTENT_TO_VALIDATE.equalsIgnoreCase(args[i])) {
                             //File or URI and content lang
@@ -253,6 +262,12 @@ public class ValidationRunner {
                             summary.append("\n").append(reporter.toString()).append("\n");
                             // Output SHACL validation report (if not skipped).
                             if (!noReports) {
+                                // Run report post-processing query (if provided).
+                                if (reportQuery != null) {
+                                    Query query = QueryFactory.create(reportQuery);
+                                    QueryExecution queryExecution = QueryExecutionFactory.create(query, report);
+                                    report = queryExecution.execConstruct();
+                                }
                                 Path reportFilePath = getReportFilePath("report."+i, reportSyntax);
                                 try (OutputStream fos = Files.newOutputStream(reportFilePath)) {
                                     Lang language = RDFLanguages.contentTypeToLang(reportSyntax);
@@ -296,10 +311,11 @@ public class ValidationRunner {
      * Print how to call the validation JAR.
      */
     private void printUsage() {
-        StringBuilder usageStr = new StringBuilder(String.format("\nExpected usage: java -jar validator.jar %s FILE_1/URI_1 CONTENT_SYNTAX_1 ... [%s FILE_N/URI_N CONTENT_SYNTAX_N] [%s] [%s REPORT_SYNTAX]", FLAG_CONTENT_TO_VALIDATE, FLAG_CONTENT_TO_VALIDATE, FLAG_NO_REPORTS, FLAG_REPORT_SYNTAX));
+        StringBuilder usageStr = new StringBuilder(String.format("\nExpected usage: java -jar validator.jar %s FILE_1/URI_1 CONTENT_SYNTAX_1 ... [%s FILE_N/URI_N CONTENT_SYNTAX_N] [%s] [%s REPORT_SYNTAX] [%s REPORT_QUERY]", FLAG_CONTENT_TO_VALIDATE, FLAG_CONTENT_TO_VALIDATE, FLAG_NO_REPORTS, FLAG_REPORT_SYNTAX, FLAG_REPORT_QUERY));
         StringBuilder detailsStr = new StringBuilder("\n   Where:" +
                 "\n      - FILE_X or URI_X is the full file path or URI to the content to validate, optionally followed by CONTENT_SYNTAX_X as the content's mime type."+
-                "\n      - REPORT_SYNTAX is the mime type for the validation report(s)."
+                "\n      - REPORT_SYNTAX is the mime type for the validation report(s)."+
+                "\n      - REPORT_QUERY is an optional SPARQL CONSTRUCT query that will be used to post-process the SHACL validation report, replacing it as the output. This is wrapped with double quotes (\")."
         );
         if (domainConfig.hasMultipleValidationTypes()) {
             usageStr.append(String.format(" [%s VALIDATION_TYPE]", FLAG_VALIDATION_TYPE));
@@ -315,7 +331,7 @@ public class ValidationRunner {
         }
         if (domainConfig.isSupportsQueries()) {
             usageStr.append(String.format(" [%s QUERY]", FLAG_CONTENT_QUERY));
-            detailsStr.append("\n      - QUERY is a SPARQL query to execute to retrieve the content to validate. This is wrapped with double quotes (\").");
+            detailsStr.append("\n      - QUERY is a SPARQL CONSTRUCT query to execute to retrieve the content to validate. This is wrapped with double quotes (\").");
             if (domainConfig.getQueryEndpoint() == null) {
                 usageStr.append(String.format(" [%s QUERY_ENDPOINT]", FLAG_CONTENT_QUERY_ENDPOINT));
                 detailsStr.append("\n      - QUERY_ENDPOINT is the SPARQL endpoint to execute the query against.");

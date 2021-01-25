@@ -9,6 +9,7 @@ import eu.europa.ec.itb.shacl.rest.model.ApiInfo;
 import eu.europa.ec.itb.shacl.rest.model.Input;
 import eu.europa.ec.itb.shacl.rest.model.Output;
 import eu.europa.ec.itb.shacl.rest.model.RuleSet;
+import eu.europa.ec.itb.shacl.util.Utils;
 import eu.europa.ec.itb.shacl.validation.FileManager;
 import eu.europa.ec.itb.shacl.validation.SHACLValidator;
 import eu.europa.ec.itb.validation.commons.FileContent;
@@ -18,6 +19,10 @@ import eu.europa.ec.itb.validation.commons.error.ValidatorException;
 import eu.europa.ec.itb.validation.commons.web.errors.NotFoundException;
 import io.swagger.annotations.*;
 import org.apache.commons.io.FileUtils;
+import org.apache.jena.query.Query;
+import org.apache.jena.query.QueryExecution;
+import org.apache.jena.query.QueryExecutionFactory;
+import org.apache.jena.query.QueryFactory;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFLanguages;
@@ -217,8 +222,15 @@ public class ShaclController {
 			// Execute validation
 			SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile, validationType, contentSyntax, externalShapes, loadImports, domainConfig);
 			Model validationReport = validator.validateAll();
-			//Process the result according to content-type
-			validationResult = getShaclReport(validationReport, reportSyntax);
+			if (in.getReportQuery() != null && !in.getReportQuery().isBlank()) {
+				// Run post-processing query on report and return based on content-type
+				Query query = QueryFactory.create(in.getReportQuery());
+				QueryExecution queryExecution = QueryExecutionFactory.create(query, validationReport);
+				validationResult = Utils.serializeRdfModel(queryExecution.execConstruct(), reportSyntax);
+			} else {
+				// Return the validation report according to content-type
+				validationResult = Utils.serializeRdfModel(validationReport, reportSyntax);
+			}
 		} catch (ValidatorException | NotFoundException e) {
 			throw e;
 		} catch (Exception e) {
@@ -293,29 +305,6 @@ public class ShaclController {
         }
         MDC.put("domain", domain);
         return config;
-    }
-    
-    /**
-     * Get report in the provided content type
-     * @param shaclReport Model with the report
-     * @param reportSyntax Content type
-     * @return String
-     */
-    private String getShaclReport(Model shaclReport, String reportSyntax) {
-		StringWriter writer = new StringWriter();		
-		Lang lang = RDFLanguages.contentTypeToLang(reportSyntax);
-		
-		if(lang == null) {
-			shaclReport.write(writer, null);
-		}else {
-			try {
-				shaclReport.write(writer, lang.getName());
-			}catch(Exception e) {
-				shaclReport.write(writer, null);
-			}
-		}
-		
-		return writer.toString();
     }
 
 	@ApiOperation(hidden = true, value="")

@@ -28,10 +28,10 @@ public class SHACLReportHandler {
     private ObjectFactory objectFactory = new ObjectFactory();
 
     public SHACLReportHandler(Model shaclReport, DomainConfig domainConfig) {
-        this(null, null, shaclReport, domainConfig);
+        this(null, null, shaclReport, null, domainConfig);
     }
 
-	public SHACLReportHandler(String inputFile, Model shapes, Model shaclReport, DomainConfig domainConfig) {
+	public SHACLReportHandler(String inputFile, Model shapes, Model shaclReport, String reportContentToInclude, DomainConfig domainConfig) {
 		this.shaclReport = shaclReport;
 		this.domainConfig = domainConfig;
 		report = new TAR();
@@ -59,6 +59,15 @@ public class SHACLReportHandler {
             shapeAttachment.setEmbeddingMethod(ValueEmbeddingEnumeration.STRING);
             shapeAttachment.setValue(modelToString(shapes));
             attachment.getItem().add(shapeAttachment);
+        }
+
+        if (reportContentToInclude != null) {
+            AnyContent reportAttachment = new AnyContent();
+            reportAttachment.setName("report");
+            reportAttachment.setType("string");
+            reportAttachment.setEmbeddingMethod(ValueEmbeddingEnumeration.STRING);
+            reportAttachment.setValue(reportContentToInclude);
+            attachment.getItem().add(reportAttachment);
         }
 
         this.report.setContext(attachment);
@@ -190,9 +199,7 @@ public class SHACLReportHandler {
 
     private String modelToString(Model shaclReport) {
 		StringWriter writer = new StringWriter();		
-		
 		shaclReport.write(writer);
-		
 		return writer.toString();
     }
 
