@@ -4,11 +4,8 @@ import com.gitb.tr.TAR;
 import eu.europa.ec.itb.shacl.DomainConfig;
 import eu.europa.ec.itb.shacl.validation.SHACLReportHandler;
 import org.apache.jena.rdf.model.Model;
-import org.apache.jena.riot.Lang;
-import org.apache.jena.riot.RDFLanguages;
 
 import java.io.IOException;
-import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -32,26 +29,5 @@ public class Utils extends eu.europa.ec.itb.validation.commons.Utils {
             throw new IllegalStateException("Error during the transformation of the report to TAR");
 		}
     }
-
-	/**
-	 * Get RDF model in the provided content type.
-	 * @param rdfModel The model.
-	 * @param reportSyntax The mime type.
-	 * @return String The result.
-	 */
-	public static String serializeRdfModel(Model rdfModel, String reportSyntax) {
-		StringWriter writer = new StringWriter();
-		Lang lang = RDFLanguages.contentTypeToLang(reportSyntax);
-		if (lang == null) {
-			rdfModel.write(writer, null);
-		} else {
-			try {
-				rdfModel.write(writer, lang.getName());
-			}catch(Exception e) {
-				rdfModel.write(writer, null);
-			}
-		}
-		return writer.toString();
-	}
 
 }

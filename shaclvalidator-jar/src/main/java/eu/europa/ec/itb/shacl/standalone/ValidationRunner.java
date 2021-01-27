@@ -270,13 +270,7 @@ public class ValidationRunner {
                                 }
                                 Path reportFilePath = getReportFilePath("report."+i, reportSyntax);
                                 try (OutputStream fos = Files.newOutputStream(reportFilePath)) {
-                                    Lang language = RDFLanguages.contentTypeToLang(reportSyntax);
-                                    if (language != null) {
-                                        report.write(fos, RDFLanguages.contentTypeToLang(reportSyntax).getName());
-                                    } else {
-                                        report.write(fos);
-                                    }
-                                    fos.flush();
+                                    fileManager.writeRdfModel(fos, report, reportSyntax);
                                 }
                                 summary.append("- Detailed report in: [").append(reportFilePath.toFile().getAbsolutePath()).append("] \n");
                             }

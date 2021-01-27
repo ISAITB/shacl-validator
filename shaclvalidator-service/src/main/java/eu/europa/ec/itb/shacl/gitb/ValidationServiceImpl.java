@@ -179,7 +179,7 @@ public class ValidationServiceImpl implements ValidationService {
             QueryExecution queryExecution = QueryExecutionFactory.create(query, reportToInclude);
             reportToInclude = queryExecution.execConstruct();
         }
-        return Utils.serializeRdfModel(reportToInclude, mimeType);
+        return fileManager.writeRdfModelToString(reportToInclude, mimeType);
     }
 
     /**
