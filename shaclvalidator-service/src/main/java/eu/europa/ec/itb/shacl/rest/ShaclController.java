@@ -226,10 +226,10 @@ public class ShaclController {
 				// Run post-processing query on report and return based on content-type
 				Query query = QueryFactory.create(in.getReportQuery());
 				QueryExecution queryExecution = QueryExecutionFactory.create(query, validationReport);
-				validationResult = Utils.serializeRdfModel(queryExecution.execConstruct(), reportSyntax);
+				validationResult = fileManager.writeRdfModelToString(queryExecution.execConstruct(), reportSyntax);
 			} else {
 				// Return the validation report according to content-type
-				validationResult = Utils.serializeRdfModel(validationReport, reportSyntax);
+				validationResult = fileManager.writeRdfModelToString(validationReport, reportSyntax);
 			}
 		} catch (ValidatorException | NotFoundException e) {
 			throw e;

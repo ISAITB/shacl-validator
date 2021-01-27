@@ -1,7 +1,6 @@
 package eu.europa.ec.itb.shacl.validation;
 
 import eu.europa.ec.itb.shacl.ApplicationConfig;
-import eu.europa.ec.itb.shacl.DomainConfig;
 import eu.europa.ec.itb.shacl.SparqlQueryConfig;
 import eu.europa.ec.itb.validation.commons.BaseFileManager;
 import eu.europa.ec.itb.validation.commons.FileInfo;
@@ -25,12 +24,10 @@ import org.apache.jena.riot.RDFLanguages;
 import org.apache.jena.sparql.engine.http.QueryEngineHTTP;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.Writer;
+import java.io.*;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -38,6 +35,9 @@ import java.util.List;
 public class FileManager extends BaseFileManager<ApplicationConfig> {
 
 	private static final Logger logger = LoggerFactory.getLogger(FileManager.class);
+
+	@Autowired
+	private ApplicationConfig appConfig;
 
 	@Override
 	public String getFileExtension(String contentType) {
@@ -60,25 +60,37 @@ public class FileManager extends BaseFileManager<ApplicationConfig> {
 		return declaredContentType;
 	}
 
+	public String writeRdfModelToString(Model rdfModel, String outputSyntax) {
+		StringWriter out = new StringWriter();
+		writeRdfModel(out, rdfModel, outputSyntax);
+		return out.toString();
+	}
+
+	public void writeRdfModel(OutputStream outputStream, Model rdfModel, String outputSyntax) {
+		writeRdfModel(new OutputStreamWriter(outputStream), rdfModel, outputSyntax);
+	}
+
 	public void writeRdfModel(Writer outputWriter, Model rdfModel, String outputSyntax) {
+		if (outputSyntax == null) {
+			outputSyntax = appConfig.getDefaultReportSyntax();
+		}
 		Lang lang = RDFLanguages.contentTypeToLang(outputSyntax);
-		try {
-			if (lang == null) {
-				rdfModel.write(outputWriter, null);
-			} else {
-				try {
-					rdfModel.write(outputWriter, lang.getName());
-				} catch(Exception e) {
-					logger.error("Error writing RDF model", e);
-					throw new IllegalStateException("Error writing RDF model", e);
-				}
-			}
-		} finally {
-			try {
-				outputWriter.close();
-			} catch (IOException e) {
-				// Ignore.
-			}
+		if (lang == null) {
+			// Set to RDF/XML (the global default) for an unrecognised of unspecified syntax.
+			lang = Lang.RDFXML;
+		}
+		var writer = rdfModel.getWriter(lang.getName());
+		if (Lang.RDFXML.equals(lang)) {
+			// Adapt the writer to handle potentially bad URIs and speed up RDF/XML processing.
+			writer.setProperty("allowBadURIs", "true");
+			writer.setProperty("relativeURIs", "");
+		}
+		try (outputWriter) {
+			writer.write(rdfModel, outputWriter, null);
+			outputWriter.flush();
+		} catch (Exception e) {
+			logger.error("Error writing RDF model", e);
+			throw new IllegalStateException("Error writing RDF model", e);
 		}
 	}
 
