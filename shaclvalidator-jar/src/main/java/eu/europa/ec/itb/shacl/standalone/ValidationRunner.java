@@ -184,28 +184,28 @@ public class ValidationRunner {
                                 loadImports = Boolean.valueOf(args[++i]);
                             }
                         } else if(FLAG_CONTENT_QUERY.equalsIgnoreCase(args[i])) {
-                            if (requireType && args.length > i+1) {
+                            if (args.length > i+1) {
                                 if (queryConfig == null) {
                                     queryConfig = new SparqlQueryConfig();
                                 }
                                 queryConfig.setQuery(args[++i]);
                             }
                         } else if(FLAG_CONTENT_QUERY_ENDPOINT.equalsIgnoreCase(args[i])) {
-                            if (requireType && args.length > i+1) {
+                            if (args.length > i+1) {
                                 if (queryConfig == null) {
                                     queryConfig = new SparqlQueryConfig();
                                 }
                                 queryConfig.setEndpoint(args[++i]);
                             }
                         } else if(FLAG_CONTENT_QUERY_USERNAME.equalsIgnoreCase(args[i])) {
-                            if (requireType && args.length > i+1) {
+                            if (args.length > i+1) {
                                 if (queryConfig == null) {
                                     queryConfig = new SparqlQueryConfig();
                                 }
                                 queryConfig.setUsername(args[++i]);
                             }
                         } else if(FLAG_CONTENT_QUERY_PASSWORD.equalsIgnoreCase(args[i])) {
-                            if (requireType && args.length > i+1) {
+                            if (args.length > i+1) {
                                 if (queryConfig == null) {
                                     queryConfig = new SparqlQueryConfig();
                                 }
