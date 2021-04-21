@@ -242,6 +242,19 @@
                     <processAllModules>true</processAllModules>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.0.0-M3</version>
+                <configuration>
+                    <rules>
+                        <requireReleaseDeps>
+                            <message>No snapshot dependencies are allowed.</message>
+                        </requireReleaseDeps>
+                    </rules>
+                    <fail>true</fail>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 </project>
