@@ -249,6 +249,7 @@
                 <configuration>
                     <rules>
                         <requireReleaseDeps>
+                            <failWhenParentIsSnapshot>false</failWhenParentIsSnapshot>
                             <message>No snapshot dependencies are allowed.</message>
                         </requireReleaseDeps>
                     </rules>
