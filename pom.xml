@@ -250,6 +250,9 @@
                     <rules>
                         <requireReleaseDeps>
                             <failWhenParentIsSnapshot>false</failWhenParentIsSnapshot>
+                            <excludes>
+                                <exclude>eu.europa.ec.itb.shacl:*</exclude>
+                            </excludes>
                             <message>No snapshot dependencies are allowed.</message>
                         </requireReleaseDeps>
                     </rules>
