@@ -9,3 +9,4 @@ target
 .classpath
 **/bin/
 **/.factorypath
+pom.xml.versionsBackup
