@@ -91,6 +91,10 @@ public class FileController {
 				// Delete the target file (if produced) to make sure we don't cache it for future requests.
 				FileUtils.deleteQuietly(targetFile);
 				throw new NotFoundException();
+			} catch (RuntimeException e) {
+				// Delete the target file (if produced) to make sure we don't cache it for future requests.
+				FileUtils.deleteQuietly(targetFile);
+				throw e;
 			}
 		}
 		response.setHeader("Content-Disposition", "attachment; filename=" + type.replace("Type", "") +"."+extension);
