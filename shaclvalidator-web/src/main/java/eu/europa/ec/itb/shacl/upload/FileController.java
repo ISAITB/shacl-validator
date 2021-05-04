@@ -88,6 +88,8 @@ public class FileController {
 				fileModel.read(in, null, existingSyntax);
 				fileManager.writeRdfModel(out, fileModel, syntax);
 			} catch (IOException e) {
+				// Delete the target file (if produced) to make sure we don't cache it for future requests.
+				FileUtils.deleteQuietly(targetFile);
 				throw new NotFoundException();
 			}
 		}

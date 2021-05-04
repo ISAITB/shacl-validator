@@ -241,7 +241,7 @@ function raiseAlert(errorMessage){
 	$(".alert.alert-danger.ajax-error").remove();
 	const alertDiv = $("<div class='alert alert-danger ajax-error'></div>");
 	alertDiv.text(errorMessage);
-	alertDiv.insertAfter(".view-section-input");
+	alertDiv.insertAfter("#bannerSection");
 }
 
 function downloadTypeChange(){
