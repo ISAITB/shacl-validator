@@ -190,17 +190,58 @@ function getReportData(reportID) {
 	resultReportID = reportID;
 }
 
-function downloadResult() {
+function downloadResult () {
 	var type = $('#downloadType').val();
 	var syntaxType = $('#downloadSyntaxType').val();
+	var resultFormId = $('#resultFormId').val(resultReportID).val();
+    var resultFormType = $('#resultFormType').val(type).val();
+    var resultFormSyntax = $('#resultFormSyntax').val(syntaxType.replace("/", "_")).val();
 	if (syntaxType != 'notSelect') {
         var selectedIndex = document.getElementById("downloadSyntaxType").selectedIndex;
         var selectedSyntax = document.getElementById("downloadSyntaxType")[selectedIndex].text;
-        $('#resultFormId').val(resultReportID);
-        $('#resultFormType').val(type);
-        $('#resultFormSyntax').val(syntaxType.replace("/", "_"));
-        $('#resultForm').submit();
+        
+        var xhr = new XMLHttpRequest();
+        var params = '?id='+encodeURIComponent(resultFormId)+'&type='+encodeURIComponent(resultFormType)+'&syntax='+encodeURIComponent(resultFormSyntax);
+
+        xhr.open("GET", "report"+params, true);
+        xhr.setRequestHeader("X-Requested-With", "XmlHttpRequest");
+        xhr.onreadystatechange = function (){
+        	if(xhr.readyState === 2){
+        		if (xhr.status == 200) {
+        			xhr.responseType = 'blob'
+        		} else {
+        			xhr.responseType = 'text'
+        		}
+        	}
+        	if(xhr.readyState === 4){
+        		if(xhr.status === 200){
+        			$(".alert.alert-danger.ajax-error").remove();
+        			var responseData;
+        			var fileName = xhr.getResponseHeader('Content-Disposition').split("filename=")[1];
+        			if(resultFormSyntax === "pdfType"){
+        				responseData = new Blob([xhr.response], {type: "application/octet-stream"});
+        			}else{	
+        				responseData = new Blob([xhr.response], {type: syntaxType});
+        			}
+        			saveAs(responseData, fileName);
+        		}else{
+        			raiseAlert(getAjaxErrorMessage());
+        		}
+        	}
+        }
+        xhr.send(null);
 	}
+}
+function getAjaxErrorMessage(){
+	var selectedDownloadType = $("#downloadType option:selected").text();
+	var selectedDownloadSyntaxType = $("#downloadSyntaxType option:selected").text();
+	return "Error downloading " + selectedDownloadType + " in " + selectedDownloadSyntaxType + " format.";
+}
+function raiseAlert(errorMessage){
+	$(".alert.alert-danger.ajax-error").remove();
+	const alertDiv = $("<div class='alert alert-danger ajax-error'></div>");
+	alertDiv.text(errorMessage);
+	alertDiv.insertAfter(".view-section-input");
 }
 
 function downloadTypeChange(){

@@ -4,6 +4,7 @@
 	<title th:replace="fragments/common :: header">Validator</title>
 	<link rel="stylesheet" th:href="@{/css/itb-upload-shacl.css}"/>
     <script th:src="@{/webjars/codemirror/5.50.0/mode/xml/xml.js}"></script>
+	<script th:src="@{/js/lib/FileSaver.min.js}"></script>
     <script th:src="@{/js/itb-upload-shacl.js}"></script>
     <script th:if="${report}" th:inline="text">
     /*<![CDATA[*/
