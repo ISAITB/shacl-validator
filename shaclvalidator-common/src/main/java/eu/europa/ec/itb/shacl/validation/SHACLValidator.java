@@ -82,6 +82,14 @@ public class SHACLValidator {
             this.validationType = domainConfig.getType().get(0);
         }
     }
+
+    public String getDomain(){
+        return this.domainConfig.getDomain();
+    }
+
+    public String getValidationType(){
+        return this.validationType;
+    }
     
     /**
      * Manager of the validation.

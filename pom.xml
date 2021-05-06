@@ -43,6 +43,7 @@
         <version.jacksonAnnotations>2.9.0</version.jacksonAnnotations>
         <version.hibernateValidator>5.0.2.Final</version.hibernateValidator>
         <version.commonsBeanutils>1.9.4</version.commonsBeanutils>
+        <version.aspectjWeaver>1.9.6</version.aspectjWeaver>
     </properties>
     <packaging>pom</packaging>
 
@@ -127,6 +128,11 @@
                 <artifactId>cxf-spring-boot-starter-jaxws</artifactId>
                 <version>${version.cxf}</version>
             </dependency>
+			<dependency>
+			    <groupId>org.springframework.boot</groupId>
+    			<artifactId>spring-boot-starter-aop</artifactId>
+    			<version>${version.springBoot}</version>
+    		</dependency>
             <!-- Other -->
             <dependency>
                 <groupId>io.springfox</groupId>
@@ -217,6 +223,11 @@
                 <groupId>commons-beanutils</groupId>
                 <artifactId>commons-beanutils</artifactId>
                 <version>${version.commonsBeanutils}</version>
+            </dependency>
+            <dependency>
+            	<groupId>org.aspectj</groupId>
+            	<artifactId>aspectjweaver</artifactId>
+            	<version>${version.aspectjWeaver}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
