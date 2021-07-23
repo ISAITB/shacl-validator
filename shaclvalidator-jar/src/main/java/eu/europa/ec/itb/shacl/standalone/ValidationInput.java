@@ -7,10 +7,10 @@ import java.io.File;
  */
 public class ValidationInput {
 
-    private File inputFile;
-    private String validationType;
-    private String filename;
-    private String contentSyntax;
+    private final File inputFile;
+    private final String validationType;
+    private final String filename;
+    private final String contentSyntax;
 
     public ValidationInput(File inputFile, String validationType, String filename, String contentSyntax) {
         this.inputFile = inputFile;
