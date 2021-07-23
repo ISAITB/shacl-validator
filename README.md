@@ -1,172 +1,117 @@
-# Introduction
+![BuildStatus](https://github.com/ISAITB/shacl-validator/actions/workflows/main.yml/badge.svg)
+[![licence](https://img.shields.io/github/license/ISAITB/shacl-validator.svg?color=blue)](https://github.com/ISAITB/shacl-validator/blob/master/LICENCE.txt)
+[![docs](https://img.shields.io/static/v1?label=docs&message=Test%20Bed%20guides&color=blue)](https://www.itb.ec.europa.eu/docs/guides/latest/validatingRDF/)
+[![docker](https://img.shields.io/docker/pulls/isaitb/shacl-validator?color=blue&logo=docker&logoColor=white)](https://hub.docker.com/r/isaitb/shacl-validator)
 
-Application used for the validation of RDF documents by means of:
+# SHACL validator
 
-* A REST API.
-* A SOAP API.
-* A web form.
-* Standalone validator.
+The **SHACL validator** is a web application to validate RDF data against [SHACL shapes](https://www.w3.org/TR/shacl/).
+The application provides a fully reusable core that requires only configuration to determine the supported specifications,
+configured validation types and other validator customisations. The web application allows validation via:
 
-The validator can be used with a single or multiple validation domains, i.e. validation cases that should be considered
-as distinct. Note that each such domain can still contain within it multiple validation types - the validation domain
-is used more to split distinct user groups, whereas the validation type is used for different types of validation within
-a specific user group.
+* A SOAP web service API for contract-based machine-machine integrations.
+* A REST web service API for machine-machine integrations.
+* A web form for validation via user interface.
 
-Configuration of each domain's validation is via a property file contained within the domain's subfolder under the 
-configured resource root. 
+The SOAP web service API conforms to the [GITB validation service API](https://www.itb.ec.europa.eu/docs/services/latest/validation/)
+which makes it usable as a building block in [GITB Test Description Language (TDL)](https://www.itb.ec.europa.eu/docs/tdl/latest/)
+conformance test cases for the verification of content (as a [verify step](https://www.itb.ec.europa.eu/docs/tdl/latest/constructs/index.html#verify)
+handler). Note additionally that the validator can also be used to build a command-line tool as an executable JAR with
+pre-packaged or provided configuration.
 
-The different application modes can be disabled/enabled as configuration properties in this domain configuration.
+This validator is maintained by the **European Commission's DIGIT** and specifically the **Interoperability Test Bed**,
+a conformance testing service for projects involved in the delivery of cross-border public services. Find out more
+[here](https://joinup.ec.europa.eu/collection/interoperability-test-bed-repository/solution/interoperability-test-bed).
 
-The application is built using Spring-Boot. The project includes a sample definition of CPSV-AP to work out of 
-the box (under the `etc` folder). This however should be replaced with the actual implementation depending on the 
-installation. 
+# Usage
+
+Usage and configuration of this validator is documented as a step-by-step tutorial in the Test Bed's
+[RDF validation guide](https://www.itb.ec.europa.eu/docs/guides/latest/validatingRDF/).
+
+The validator's key principle is that the software is built as a generic core that can be configured to validate any
+supported specifications. Configuration is organised in **domains** which represent logically separate setups supported
+by the same application instance. Each such domain defines the offered **validation types** and their **options** along
+with the validation artefacts needed to carry out validation (local, remote or user-provided). A domain's configuration
+is grouped in a folder that contains a [configuration property file](https://www.itb.ec.europa.eu/docs/guides/latest/validatingRDF/index.html#step-3-prepare-validator-configuration)
+along with any other necessary resources.
+
+When built from source, the simplest way to get started using the validator is to use the **all-in-one executable JAR**
+built from the `shaclvalidator-war` module. You can use and configure this as described in the
+[validator installation guide](https://www.itb.ec.europa.eu/docs/guides/latest/installingValidatorProduction/index.html#approach-1-using-jar-file).
+
+If you do not plan on modifying the validator's source you can reuse the Test Bed's provided packages. Specifically:
+
+* Via **Docker**, using the [isaitb/shacl-validator](https://hub.docker.com/r/isaitb/shacl-validator) image from the Docker Hub.
+* Via **JAR file**, using the [generic web application package](https://www.itb.ec.europa.eu/shacl-jar/any/validator.zip).
+* Via **command line tool**, using the [generic command line tool package](https://www.itb.ec.europa.eu/shacl-offline/any/validator.zip).
+
+It is interesting to note that the second option (executable web application JAR) matches what you would build from this
+repository. The command line package is produced from the `shaclvalidator-jar` although this requires an additional step
+of JAR post-processing to configure the validator's domain(s).
+
+Once the validator's web application is up you can use it as follows:
+
+* SOAP API: http://localhost:8080/shacl/soap/DOMAIN/validation?wsdl
+* REST API: http://localhost:8080/shacl/DOMAIN/api/validate (Swagger docs at http://localhost:8080/shacl/swagger-ui.html)
+* Web form: http://localhost:8080/shacl/DOMAIN/upload
+
+Note that the `DOMAIN` placeholder in the above URLs is the name of a domain configuration folder beneath your configured `validator.resourceRoot`.
+This can be adapted by providing `validator.domainName.DOMAIN` mapping(s) for your domain(s). These are [application-level configuration properties](https://www.itb.ec.europa.eu/docs/guides/latest/validatingRDF/index.html#application-level-configuration)
+that can be set in the default [application.properties](shaclvalidator-common/src/main/resources/application.properties)
+or via environment variables and system properties.
 
 # Building
 
-Issue `mvn clean install`
+The validator is a multi-module Maven project from which the artefact to use is the web application package, produced
+from module `shaclvalidator-war`. This is an all-in-one Spring Boot web application. To build issue `mvn clean install`.
 
-The resulting artefacts can then be retrieved from:
-- `shaclvalidator-war` when running as a web app
-- `shaclvalidator-jar` when running as a command line tool
+## Prerequisites
 
-## For development
+To build this project's libraries you require:
+* A JDK installation (11+).
+* Maven (3+)
+* Locally installed [itb-commons](https://github.com/ISAITB/itb-commons) dependencies (see below).
 
-An `application-dev.properties` configuration file is present in the `shaclvalidator-common` module. This can be adapted
-to easily run from an IDE or a completely separate configuration file can be provided from an external config location.
+Building this validator from source depends on libraries that are available on public repositories. The exception is
+currently the set of [itb-commons](https://github.com/ISAITB/itb-commons) dependencies, common libraries that are shared
+by all Test Bed validators. To be able to build you need to first clone [itb-commons](https://github.com/ISAITB/itb-commons)
+and install its artefacts in your local Maven repository.
 
-To run change first to the required module:
-- `shaclvalidator-war` to run as a web app
-- `shaclvalidator-jar` to run as a command line tool
+## Configuration for development
 
-Then, from this directory do
+When building for development you will need to provide the validator's basic configuration to allow it to bootstrap.
+The simplest approach to do this is to use environment variables that set the validator's
+[configuration properties](https://www.itb.ec.europa.eu/docs/guides/latest/validatingRDF/index.html#validator-configuration-properties).
 
-```
-mvn spring-boot:run
-```
+The minimum properties you should define this way are:
 
-# Running the applications
+* `validator.resourceRoot`: The root folder from which all domain configurations will be loaded.
+* `logging.file.path`: The validator’s log output folder.
+* `validator.tmpFolder`: The validator’s temporary work folder.
 
-Both web and standalone versions require at least Java 8 to run.
+In addition, you should include within the `validator.resourceRoot` folder additional folder(s) for your configuration domains,
+each with its configuration property file and any other needed resources. A simple example of such configuration that you
+can also download and reuse, is provided in the RDF validation guide's [configuration step](https://www.itb.ec.europa.eu/docs/guides/latest/validatingRDF/index.html#step-3-prepare-validator-configuration).
 
-## Web application
+## Using Docker
 
-The application is accessible at:
-
-* REST-API: http://localhost:8080/shacl/DOMAIN/api/validate
-* SOAP-API: http://localhost:8080/shacl/soap/DOMAIN/validation?wsdl
-* Web form: http://localhost:8080/shacl/DOMAIN/upload
-
-Note that all configuration properties in `application.properties` can be overriden by means of environment variables
-(e.g. set in a downstream Dockerfile). 
-
-## Standalone
-
-The standalone mode loads the validation resources from the jar file produced from the the resources' module that is copied as an entry to the standalone jar's contents. Because of this however, the standalone version can't be ran from within the IDE.
-
-To build the standalone validator issue
+If you choose Docker to run your validator you can use the [sample Dockerfile](etc/docker/shacl-validator/Dockerfile)
+as a starting point. To use this:
+1. Create a folder and copy within it the Dockerfile and JAR produced from the `shaclvalidator-war` module.
+2. Create a sub-folder (e.g. `resources`) as your resource root within which you place your domain configuration folder(s).
+3. Adapt the Dockerfile to also copy the `resources` folder and set its path within the image as the `validator.resourceRoot`:
 
 ```
-mvn clean install
-```
-And get `validator.jar` from the jar module's target folder. To run this issue:
-
-```
-java -jar validator.jar
-```
-
-# Configuration and use
-
-The key point to consider when using this validator is the validation domains it will consider. This is defined through
-the **mandatory configuration property** `validator.resourceRoot` which needs to point to a folder that contains for 
-each supported domain, a sub-folder with the validation artefacts (that can be arbitrarily organised) and a property
-file (e.g. `config.properties`) that defines the configuration for that specific domain. This property can be defined
-either in a separate `application.properties` file, or more simply, passed as a system property or environment variable
-(using an environment variable a particularly easy approach when creating a downstream docker image).
-
-The name of the domain sub-folder will be used as the domain name. In addition, if the `validator.resourceRoot` parent
-folder contains also directories that should not be considered, the specific domains (i.e. sub-folder named) to be 
-considered can be specified explicitly through the `validator.domain` property, a comma-separate listing of the domain
-folder named to consider.
-
-## Use via docker
-
-To use as a docker container do the following:
-1. Create a folder `my-app`.
-2. In this folder copy create a folder named e.g. `domain`.
-3. Copy in the `domain` folder the validation artefacts and domain configuration property file.
-4. Create a Dockerfile as follows:
-```
-FROM isaitb/shacl-validator:latest
-
-ENV validator.resourceRoot /validator/
-COPY domain /validator/domain/
+...
+COPY resources /validator/resources/
+ENV validator.resourceRoot /validator/resources/
+...
 ```  
-5. Build the docker image and proceed to use it.
-
-**Important:** The naming of the `domain` folder in the above example is important as it will be used for the 
-request paths for all communication channels both the REST API (e.g. http://localhost:8080/api/domain/) and also for 
-the SOAP web service endpoints (e.g. http://localhost:8080/shacl/soap/DOMAIN/validation?wsdl). 
-
-## Configuration property reference
-
-The tool supports configuration at two levels:
-* The overall application.
-* Each configured validation domain.
-
-## Application-level configuration
-
-The properties defined here can be specified in a separate Spring Boot `application.properties` file or passed in via
-system properties or environment variables. Apart from what is listed, any Spring Boot configuration property can be
-defined.
-
-| Property | Description | Type | Default value |
-| --- | --- | --- | --- |
-| `validator.resourceRoot` | The root folder under which domain sub-folders will be loaded. | String | - |
-| `validator.domain` | The names of the domain sub-folders to consider. | Comma-separated Strings | - |
-| `validator.domainName.XYZ` | The name to display for a given domain folder. | String | The folder name is used |  
-| `logging.path` | Logging path. | String | `/validator/logs` |
-| `validator.tmpFolder` | Temp folder path. | String | `/validator/tmp` |
-| `validator.acceptedShaclExtensions` | Accepted SHACL extensions.  | Comma-separated Strings | `ttl,rdf` |
-| `validator.acceptedHeaderAcceptTypes` | Accepted content types requested via the Accepts header.  | Comma-separated Strings | `application/ld+json, application/rdf+xml, text/turtle, application/n-triples` |
-| `validator.defaultReportSyntax` | The default report syntax (mime type) if none is requested. | Comma-separated Strings | `application/rdf+xml` |
-
-## Domain-level configuration
-
-The properties here define how a specific validation domain is configured. They need to be placed in a property file
-(any file name ending with `.properties`) within a domain sub-folder under the configured `validator.resourceRoot`.
-
-| Property | Description | Type | Default value |
-| --- | --- | --- | --- |
-| `validator.channels` | Comma separated list of features to have enabled. Possible values are (`form`, `rest_api`, `soap_api`). | Comma-separated Strings | `form,rest_api,soap_api` |
-| `validator.type` | A comma-separated list of supported invoice types. Values need to be reflected in properties `validator.typeLabel`, `validator.shaclFile`, `validator.externalShapes`. | Comma-separated Strings | - |
-| `validator.typeLabel.XYZ` | Label to display for a given validator type (added as a postfix of validator.typeLabel). | String | - |
-| `validator.shaclFile.XYZ` | A comma-separated list of SHACL files loaded for a given validation type (added as a postfix). These can be file or folders. | Comma-separated Strings | - |
-| `validator.shaclFile.XYZ.remote.A.url` | The SHACL files loaded for a given validation type (added as a postfix) as URL. | String | - |
-| `validator.shaclFile.XYZ.remote.A.type` | The content syntax (mime type) of the SHACL files loaded for a given validation type (added as a postfix). | String | - |
-| `validator.externalShapes.XYZ` | External shapes are allowed for a given validation type (added as a postfix) as Boolean. | Boolean | `false` |
-| `validator.includeTestDefinition` | Whether tests should be included in the resulting reports. | Boolean | `true` |
-| `validator.reportsOrdered` | Whether the reports are ordered. | Boolean | `false` |
-| `validator.defaultReportSyntax` | The default report syntax (mime type) if none is requested (otherwise the global default applies). | `application/rdf+xml` |
-| `validator.contentSyntax` | The accepted content syntaxes (mime types) in the web form. | `application/ld+json, application/rdf+xml, text/turtle, application/n-triples` |
-| `validator.webServiceId` | The ID of the web service. | String | `ValidatorService` |
-| `validator.webServiceDescription.contentToValidate` | The description of the web service for element "contentToValidate". | String | - |
-| `validator.webServiceDescription.contentSyntax` | The description of the web service for element "contentSyntax". | String | - |
-| `validator.webServiceDescription.validationType` | The description of the web service for element "validationType". | String | - |
-| `validator.webServiceDescription.externalRules` | The description of the web service for element "externalRules". | String | - |
-| `validator.supportMinimalUserInterface` | A minimal UI is available if this is enabled. | Boolean | `false` |
-| `validator.bannerHtml` | Configurable HTML banner replacing the text title. | String | - |
-| `validator.defaultPlugins.A.class` | The default class to execute the JAR file. | - |
-| `validator.defaultPlugins.A.jar` | The default JAR file containing the plugin development. | - |
-| `validator.plugins.XYZ.A.class` | The class to execute the JAR file for a given validation type (added as a postfix). | - |
-| `validator.plugins.XYZ.A.jar` | The JAR file containing the plugin development for a given validation type (added as a postfix). | - |
-| `validator.loadImports` | Whether the specific domain should load imports. | Boolean | `false` |
-| `validator.loadImports.XYZ` | Whether the domain should load imports for a given validation type (added as a postfix). | Boolean | `false` |
-| `validator.input.loadImports` | If for the domain's validation types, the user can specify whether owl:Imports should be loaded. | required, optional, none | `none` |
-| `validator.input.loadImports.XYZ` | If the user can specify whether owl:Imports should be loaded for a given validation type (added as a postfix). | required, optional, none | `none` |
 
 # Plugin development
 
-The SHACL validator supports custom plugins to extend the validation report. Plugins are implementations of the GITB validation service API for which the following
+The SHACL validator supports custom plugins to extend the validation report. Plugins are implementations of the
+[GITB validation service API](https://www.itb.ec.europa.eu/docs/services/latest/validation/) for which the following
 applies. Note that plugin JAR files need to be built as "all-in-one" JARs.
 
 ## Input to plugins
@@ -182,14 +127,35 @@ The SHACL validator calls plugins in sequence passing in the following input:
 
 ## Output from plugins
 
-The output of plugins is essentially a GITB `ValidationResponse` that wraps a `TAR` instance. The report items within this `TAR` instance are mapped to a SHACL
-validation report as follows (where `sh` below this is a shorthand for `http://www.w3.org/ns/shacl`):
+The output of plugins is essentially a GITB `ValidationResponse` that wraps a `TAR` instance. The report items within this `TAR` instance are merged
+with any reports produced by SHACL validation.
 
-| TAR report item property | sh:ValidationResult property | Required? | Description |
-| --- | --- | --- | --- |
-| `item.location` | `sh#focusNode` | Yes | Set with the IRI of the relevant resource (e.g. `http://my.sample.po/po#item3`). |
-| `item.description` | `sh#resultMessage` | No | The message to be used in the report (this is optional but should be provided). |
-| - | `sh#resultSeverity` | Yes | This is determined by the item's type given its element name (mapping `error`, `warning`, `info` to `sh#Violation`, `sh#Warning`, `sh#Info` respectively). |
-| `item.test` | `sh#resultPath` | No | This is set as an IRI to identify the specific path linked to this (e.g. `http://itb.ec.europa.eu/sample/po#quantity`). |
-| `item.assertionID` | `sh#sourceConstraintComponent` | Yes | Set as an IRI for the source contraint component using the values defined in the SHACL specification (e.g. `sh#MinExclusiveConstraintComponent`). |
-| `item.value` | `sh#value` | No | Optionally set as a literal string in case a value should be included. |
+## Plugin configuration
+
+Plugin configuration for a validator instance is part of its [domain configuration](https://www.itb.ec.europa.eu/docs/guides/latest/validatingRDF/index.html#domain-level-configuration).
+Once you have your plugins implemented you can configure them using the `validator.defaultPlugins`
+and `validator.plugins` properties where you list each plugin by providing:
+
+* The path to its JAR file.
+* The fully qualified class name of the plugin entry point.
+
+# Licence
+
+This software is shared using the [European Union Public Licence (EUPL) version 1.2](https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12).
+
+# Legal notice
+
+The authors of this library waive any and all liability linked to its usage or the interpretation of results produced
+by its downstream validators.
+
+# Contact
+
+For feedback or questions regarding this library you are invited to post issues in the current repository. In addition,
+feel free to contact the Test Bed team via email at [DIGIT-ITB@ec.europa.eu](mailto:DIGIT-ITB@ec.europa.eu).
+
+# See also
+
+The Test Bed provides similar validators for other content types. Check these out for more information:
+* The **XML validator**: see [overview](https://joinup.ec.europa.eu/collection/interoperability-test-bed-repository/solution/xml-validator), [source](https://github.com/ISAITB/xml-validator), [detailed guide](https://www.itb.ec.europa.eu/docs/guides/latest/validatingXML/) and [Docker Hub image](https://hub.docker.com/r/isaitb/xml-validator).
+* The **JSON validator**: see [overview](https://joinup.ec.europa.eu/collection/interoperability-test-bed-repository/solution/json-validator), [source](https://github.com/ISAITB/json-validator), [detailed guide](https://www.itb.ec.europa.eu/docs/guides/latest/validatingJSON/) and [Docker Hub image](https://hub.docker.com/r/isaitb/json-validator).
+* The **CSV validator**: see [overview](https://joinup.ec.europa.eu/collection/interoperability-test-bed-repository/solution/csv-validator), [source](https://github.com/ISAITB/csv-validator), [detailed guide](https://www.itb.ec.europa.eu/docs/guides/latest/validatingCSV/) and [Docker Hub image](https://hub.docker.com/r/isaitb/csv-validator).
