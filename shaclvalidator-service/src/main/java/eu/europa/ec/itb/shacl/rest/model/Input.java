@@ -8,6 +8,9 @@ import eu.europa.ec.itb.validation.commons.FileContent;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 
+/**
+ * The input to trigger a new validation via the validator's REST API.
+ */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @ApiModel(description = "The content and metadata specific to input content that is to be validated.")
 public class Input {
@@ -37,90 +40,173 @@ public class Input {
 	@ApiModelProperty(notes = "Password to access the SPARQL endpoint.")
 	private String contentQueryPassword;
 
+	/**
+	 * @return The string representing the content to validate (string as-is, URL or base64 content).
+	 */
 	public String getContentToValidate() { return this.contentToValidate; }
-	
+
+	/**
+	 * @return The embedding method to consider to determine how the provided content input is to be processed.
+	 */
 	public String getEmbeddingMethod() { return this.embeddingMethod; }
-	
+
+	/**
+	 * @return The validation type to trigger for this domain.
+	 */
 	public String getValidationType() { return this.validationType; }
-	
+
+	/**
+	 * @return The syntax (mime type) to use for the produced SHACL validation report.
+	 */
 	public String getReportSyntax() { return this.reportSyntax; }
-	
+
+	/**
+	 * @return The syntax (mime type) to consider for the provided input to validate.
+	 */
 	public String getContentSyntax() { return this.contentSyntax; }
-	
+
+	/**
+	 * @return The set of user-provided SHACL shape riles with additional business rules.
+	 */
 	public List<RuleSet> getExternalRules(){ return this.externalRules; }
-	
+
+	/**
+	 * Get a specific user-provided shape file.
+	 *
+	 * @param value The index of the provided shape file.
+	 * @return The shape file.
+	 */
 	public RuleSet getExternalRules(int value) { return this.externalRules.get(value); }
-	
+
+	/**
+	 * @return True if OWL imports are to be loaded from the content to validate.
+	 */
 	public Boolean isLoadImports(){ return this.loadImports; }
-	
+
+	/**
+	 * @param contentToValidate The string representing the content to validate (string as-is, URL or base64 content).
+	 */
 	public void setContentToValidate(String contentToValidate) {
 		this.contentToValidate = contentToValidate;
 	}
 
+	/**
+	 * @param contentSyntax The syntax (mime type) to consider for the provided input to validate.
+	 */
 	public void setContentSyntax(String contentSyntax) {
 		this.contentSyntax = contentSyntax;
 	}
 
+	/**
+	 * @param embeddingMethod  The embedding method to consider to determine how the provided content input is to be processed.
+	 */
 	public void setEmbeddingMethod(String embeddingMethod) {
 		this.embeddingMethod = embeddingMethod;
 	}
 
+	/**
+	 * @param validationType The validation type to trigger for this domain.
+	 */
 	public void setValidationType(String validationType) {
 		this.validationType = validationType;
 	}
 
+	/**
+	 * @param reportSyntax The syntax (mime type) to use for the produced SHACL validation report.
+	 */
 	public void setReportSyntax(String reportSyntax) {
 		this.reportSyntax = reportSyntax;
 	}
 
+	/**
+	 * @param externalRules The set of user-provided SHACL shape riles with additional business rules.
+	 */
 	public void setExternalRules(List<RuleSet> externalRules) {
 		this.externalRules = externalRules;
 	}
 
+	/**
+	 * @param loadImports True if OWL imports are to be loaded from the content to validate.
+	 */
 	public void setLoadImports(Boolean loadImports) {
 		this.loadImports = loadImports;
 	}
 
+	/**
+	 * @return The SPARQL endpoint URL for querying the content to validate.
+	 */
 	public String getContentQueryEndpoint() {
 		return contentQueryEndpoint;
 	}
 
+	/**
+	 * @param contentQueryEndpoint The SPARQL endpoint URL for querying the content to validate.
+	 */
 	public void setContentQueryEndpoint(String contentQueryEndpoint) {
 		this.contentQueryEndpoint = contentQueryEndpoint;
 	}
 
+	/**
+	 * @return The SPARQL query to use to retrieve the content to validate.
+	 */
 	public String getContentQuery() {
 		return contentQuery;
 	}
 
+	/**
+	 * @param contentQuery The SPARQL query to use to retrieve the content to validate.
+	 */
 	public void setContentQuery(String contentQuery) {
 		this.contentQuery = contentQuery;
 	}
 
+	/**
+	 * @return The username to use for authentication against the SPARQL endpoint.
+	 */
 	public String getContentQueryUsername() {
 		return contentQueryUsername;
 	}
 
+	/**
+	 * @param contentQueryUsername The username to use for authentication against the SPARQL endpoint.
+	 */
 	public void setContentQueryUsername(String contentQueryUsername) {
 		this.contentQueryUsername = contentQueryUsername;
 	}
 
+	/**
+	 * @return The password to use for authentication against the SPARQL endpoint.
+	 */
 	public String getContentQueryPassword() {
 		return contentQueryPassword;
 	}
 
+	/**
+	 * @param contentQueryPassword The password to use for authentication against the SPARQL endpoint.
+	 */
 	public void setContentQueryPassword(String contentQueryPassword) {
 		this.contentQueryPassword = contentQueryPassword;
 	}
 
+	/**
+	 * @return The SPARQL query to use for post-processing of the produced SHACL validation report.
+	 */
 	public String getReportQuery() {
 		return reportQuery;
 	}
 
+	/**
+	 * @param reportQuery The SPARQL query to use for post-processing of the produced SHACL validation report.
+	 */
 	public void setReportQuery(String reportQuery) {
 		this.reportQuery = reportQuery;
 	}
 
+	/**
+	 * Parse the SPARQL query configuration from the provided individual parameters.
+	 *
+	 * @return The SPARQL query configuration.
+	 */
 	public SparqlQueryConfig parseQueryConfig() {
 		SparqlQueryConfig config = null;
 		if (contentQuery != null || contentQueryEndpoint != null || contentQueryPassword != null || contentQueryUsername != null) {

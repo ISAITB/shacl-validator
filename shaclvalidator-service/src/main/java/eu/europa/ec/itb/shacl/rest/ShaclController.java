@@ -45,10 +45,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Simple REST controller to allow an easy way of validating files with the correspondence shapes.
- * 
- * Created by mfontsan on 25/03/2019
- *
+ * REST controller to allow triggering the validator via its REST API.
  */
 @Api(value="/{domain}/api", description = "Operations for the validation of RDF content based on SHACL shapes.")
 @RestController
@@ -72,6 +69,12 @@ public class ShaclController {
 	@Value("${validator.hydraRootPath}")
 	private String hydraRootPath;
 
+	/**
+	 * Get the validation types supported by the current domain.
+	 *
+	 * @param domain The domain.
+	 * @return The list of validation types.
+	 */
 	@ApiOperation(value = "Get API information (for a given domain).", response = ApiInfo.class, notes="Retrieve the supported validation " +
 			"types that can be requested when calling this API's validation operations.")
 	@ApiResponses({
@@ -88,9 +91,10 @@ public class ShaclController {
 		return ApiInfo.fromDomainConfig(domainConfig);
 	}
 
-	/** 
-	 * GET service to receive all domains and its validation types.
-	 * @return The data as List.
+	/**
+	 * Get all domains configured in this validator and their supported validation types.
+	 *
+	 * @return A list of domains coupled with their validation types.
 	 */
 	@ApiOperation(value = "Get API information (all supported domains and validation types).", response = ApiInfo[].class, notes="Retrieve the supported domains and validation types configured in this validator. "
 			+ "These are the domain and validation types that can be used as parameters with the API's other operations.")
@@ -114,11 +118,11 @@ public class ShaclController {
 	}
 	
 	/**
-	 * POST service to receive a single RDF instance to validate
+	 * Service to trigger one validation for the provided input and settings.
      * 
-     * @param domain The domain where the SHACL validator is executed. 
+     * @param domain The relevant domain for the SHACL validation.
 	 * @param in The input for the validation.
-	 * @param request HttpServletRequest
+	 * @param request The HTTP request.
      * @return The result of the SHACL validator.
 	 */
 	@ApiOperation(value = "Validate one RDF instance.", response = String.class, notes="Validate a single RDF instance. " +
@@ -148,6 +152,13 @@ public class ShaclController {
 		return new ResponseEntity<>(shaclResult, responseHeaders, HttpStatus.OK);
 	}
 
+	/**
+	 * Scan the HTTP request and return the first ACCEPT header that is accepted as a syntax for the produced
+	 * validation report.
+	 *
+	 * @param request The HTTP request.
+	 * @return The value (or null if not found).
+	 */
 	private String getFirstSupportedAcceptHeader(HttpServletRequest request) {
 		Enumeration<String> headerValues = request.getHeaders(HttpHeaders.ACCEPT);
 		while (headerValues.hasMoreElements()) {
@@ -161,17 +172,24 @@ public class ShaclController {
 		return null;
 	}
 
+	/**
+	 * Validate the provided value as a validation report syntax.
+	 *
+	 * @param reportSyntax The value to check.
+	 * @return True if valid.
+	 */
 	private boolean validReportSyntax(String reportSyntax) {
 		Lang lang = RDFLanguages.contentTypeToLang(reportSyntax.toLowerCase());
 		return lang != null;
 	}
 	
 	/**
-	 * Returns the report syntax of the content to validate
-	 * @param inputReportSyntax Report syntax from the Input data
-	 * @param acceptHeader Report syntax from the Header
-	 * @param defaultReportSyntax Default report syntax
-	 * @return Report syntax as string
+	 * Returns the report syntax of the content to validate.
+	 *
+	 * @param inputReportSyntax Report syntax from the Input data.
+	 * @param acceptHeader Report syntax from the Header.
+	 * @param defaultReportSyntax Default report syntax.
+	 * @return Report syntax as string.
 	 */
 	private String getValidationReportSyntax(String inputReportSyntax, String acceptHeader, String defaultReportSyntax) {
 		// Consider first the report syntax requested as part of the input properties.
@@ -193,7 +211,8 @@ public class ShaclController {
 	}
 	
 	/**
-	 * Execute the process to validate the content
+	 * Execute the process to validate the content.
+	 *
 	 * @param in The input for the validation (content and metadata for one or more RDF instances).
 	 * @param domainConfig The domain where the SHACL validator is executed. 
 	 * @param reportSyntax Report syntax of the report.
@@ -241,6 +260,15 @@ public class ShaclController {
 		return validationResult;
 	}
 
+	/**
+	 * Validate, store and return the user-provided SHACL shape resources.
+	 *
+	 * @param domainConfig The domain configuration.
+	 * @param validationType The requested validation type.
+	 * @param externalRules The user-provided shape files.
+	 * @param parentFolder The temp folder to use for this validation run.
+	 * @return The list of recorded SHACL shape files to be used.
+	 */
 	private List<FileInfo> getExternalShapes(DomainConfig domainConfig, String validationType, List<RuleSet> externalRules, File parentFolder) {
 		List<FileContent> shapeContents = null;
 		if (externalRules != null) {
@@ -250,11 +278,12 @@ public class ShaclController {
 	}
 
 	/**
-     * POST service to receive multiple RDF instances to validate
+     * Validate multiple RDF inputs considering their settings and producing separate SHACL validation reports.
      * 
      * @param domain The domain where the SHACL validator is executed. 
 	 * @param inputs The input for the validation (content and metadata for one or more RDF instances).
-     * @return The result of the SHACL validator.
+	 * @param request The HTTP request.
+     * @return The validation result.
 	 */
     @ApiOperation(value = "Validate multiple RDF instances.", response = Output[].class, notes="Validate multiple RDF instances. " +
 			"The content for each instance can be provided either within the request as a BASE64 encoded string or remotely as a URL. " +
@@ -295,8 +324,10 @@ public class ShaclController {
     
     /**
      * Validates that the domain exists.
-     * @param domain The domain where the SHACL validator is executed as String.
-     * @return DomainConfig
+	 *
+     * @param domain The domain identifier provided in the call..
+     * @return The matched domain configuration.
+	 * @throws NotFoundException If the domain does not exist or it does not support a REST API.
      */
     private DomainConfig validateDomain(String domain) {
 		DomainConfig config = domainConfigs.getConfigForDomainName(domain);
@@ -307,6 +338,13 @@ public class ShaclController {
         return config;
     }
 
+	/**
+	 * Get the Hydra documentation for the service.
+	 *
+	 * @param domain The domain configuration in question.
+	 * @return The documentation.
+	 * @throws IOException If an error occurs reading the documentation.
+	 */
 	@ApiOperation(hidden = true, value="")
 	@RequestMapping(value = "/{domain}/api", method = RequestMethod.GET, produces = "application/ld+json")
 	public ResponseEntity<String> hydraApi(@PathVariable String domain) throws IOException {
@@ -326,6 +364,14 @@ public class ShaclController {
 		return new ResponseEntity<>(content, responseHeaders, HttpStatus.OK);
 	}
 
+	/**
+	 * Return the Hydra contexts for the API.
+	 *
+	 * @param domain The domain configuration.
+	 * @param contextName The name of the context.
+	 * @return The documentation.
+	 * @throws IOException If an error occurs reading the documentation.
+	 */
 	@ApiOperation(hidden = true, value="")
 	@RequestMapping(value = "/{domain}/api/contexts/{contextName}", method = RequestMethod.GET, produces = "application/ld+json")
 	public String hydraContexts(@PathVariable String domain, @PathVariable String contextName) throws IOException {
@@ -333,6 +379,13 @@ public class ShaclController {
 		return FileUtils.readFileToString(new File(fileManager.getHydraDocsFolder(domainConfig.getDomainName()), "EntryPoint.jsonld"), Charset.defaultCharset());
 	}
 
+	/**
+	 * Return the Hydra vocabulary.
+	 *
+	 * @param domain The domain configuration.
+	 * @return The documentation.
+	 * @throws IOException If an error occurs reading the documentation.
+	 */
 	@ApiOperation(hidden = true, value="")
 	@RequestMapping(value = "/{domain}/api/vocab", method = RequestMethod.GET, produces = "application/ld+json")
 	public String hydraVocab(@PathVariable String domain) throws IOException {

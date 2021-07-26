@@ -40,6 +40,9 @@ import java.util.stream.Collectors;
 
 import static eu.europa.ec.itb.validation.commons.web.Constants.IS_MINIMAL;
 
+/**
+ * Controller to manage the validator's web user interface.
+ */
 @Controller
 public class UploadController {
 
@@ -74,6 +77,14 @@ public class UploadController {
     @Autowired
     private InputHelper inputHelper = null;
 
+	/**
+	 * Prepare the upload page.
+	 *
+	 * @param domain The domain name.
+	 * @param model The UI model.
+	 * @param request The received request.
+	 * @return The model and view information.
+	 */
     @GetMapping(value = "/{domain}/upload")
     public ModelAndView upload(@PathVariable("domain") String domain, Model model, HttpServletRequest request) {
 		setMinimalUIFlag(request, false);
@@ -96,6 +107,29 @@ public class UploadController {
         return new ModelAndView("uploadForm", attributes);
     }
 
+	/**
+	 * Handle the upload form's submission.
+	 *
+	 * @param domain The domain name.
+	 * @param file The input file (if provided via file upload).
+	 * @param uri The input URI (if provided via remote URI).
+	 * @param string The input content (if provided via editor).
+	 * @param contentType The type of the provided content.
+	 * @param validationType The validation type.
+	 * @param contentSyntaxType The syntax for the content.
+	 * @param externalContentType The content type for user-provided shapes (those provided as URIs).
+	 * @param externalFiles The user-provided shapes (those provided as files).
+	 * @param externalUri The user-provided shapes (those provided as URIs).
+	 * @param externalFilesSyntaxType The content type for user-provided shapes (those provided as files).
+	 * @param loadImportsValue The load OWL imports from input flag.
+	 * @param contentQuery The SPARQL query to load the input with.
+	 * @param contentQueryEndpoint The SPARQL endpoint URL to query for the content.
+	 * @param contentQueryAuthenticate Whether or not authentication is needed for the SPARQL endpoint.
+	 * @param contentQueryUsername The username to use for authentication with the SPARQL endpoint.
+	 * @param contentQueryPassword The password to use for authentication with the SPARQL endpoint.
+	 * @param request The received request.
+	 * @return The model and view information.
+	 */
 	@PostMapping(value = "/{domain}/upload")
     public ModelAndView handleUpload(@PathVariable("domain") String domain, 
     		@RequestParam("file") MultipartFile file,
@@ -239,8 +273,16 @@ public class UploadController {
 		}
         return new ModelAndView("uploadForm", attributes);
     }
-	
-    @GetMapping(value = "/{domain}/uploadm")
+
+	/**
+	 * Prepare the upload page (minimal UI version).
+	 *
+	 * @param domain The domain name.
+	 * @param model The UI model.
+	 * @param request The received request.
+	 * @return The model and view information.
+	 */
+	@GetMapping(value = "/{domain}/uploadm")
     public ModelAndView uploadm(@PathVariable("domain") String domain, Model model, HttpServletRequest request) {
 		setMinimalUIFlag(request, true);
     	DomainConfig domainConfig;
@@ -265,7 +307,30 @@ public class UploadController {
 
         return new ModelAndView("uploadForm", attributes);
     }
-    
+
+	/**
+	 * Handle the upload form's submission.
+	 *
+	 * @param domain The domain name.
+	 * @param file The input file (if provided via file upload).
+	 * @param uri The input URI (if provided via remote URI).
+	 * @param string The input content (if provided via editor).
+	 * @param contentType The type of the provided content.
+	 * @param validationType The validation type.
+	 * @param contentSyntaxType The syntax for the content.
+	 * @param externalContentType The content type for user-provided shapes (those provided as URIs).
+	 * @param externalFiles The user-provided shapes (those provided as files).
+	 * @param externalUri The user-provided shapes (those provided as URIs).
+	 * @param externalFilesSyntaxType The content type for user-provided shapes (those provided as files).
+	 * @param loadImportsValue The load OWL imports from input flag.
+	 * @param contentQuery The SPARQL query to load the input with.
+	 * @param contentQueryEndpoint The SPARQL endpoint URL to query for the content.
+	 * @param contentQueryAuthenticate Whether or not authentication is needed for the SPARQL endpoint.
+	 * @param contentQueryUsername The username to use for authentication with the SPARQL endpoint.
+	 * @param contentQueryPassword The password to use for authentication with the SPARQL endpoint.
+	 * @param request The received request.
+	 * @return The model and view information.
+	 */
 	@PostMapping(value = "/{domain}/uploadm")
     public ModelAndView handleUploadM(@PathVariable("domain") String domain, 
     		@RequestParam("file") MultipartFile file,
@@ -294,12 +359,25 @@ public class UploadController {
         return new ModelAndView("uploadForm", attributes);	
 	}
 
+	/**
+	 * Record whether the current request is through a minimal UI.
+	 *
+	 * @param request The current request.
+	 * @param isMinimal True in case of the minimal UI being used.
+	 */
 	private void setMinimalUIFlag(HttpServletRequest request, boolean isMinimal) {
 		if (request.getAttribute(IS_MINIMAL) == null) {
 			request.setAttribute(IS_MINIMAL, isMinimal);
 		}
 	}
 
+	/**
+	 * Check if the given domain and validation type support user-provided SHACL shapes.
+	 *
+	 * @param domainConfig The domain configuration.
+	 * @param validationType The validation type.
+	 * @return True if user-provided shapes are supported.
+	 */
 	private boolean hasExternalShapes(DomainConfig domainConfig, String validationType) {
     	if (validationType == null) {
 			validationType = domainConfig.getType().get(0);
@@ -307,6 +385,18 @@ public class UploadController {
     	return domainConfig.getShapeInfo(validationType).getExternalArtifactSupport() != ExternalArtifactSupport.NONE;
 	}
 
+	/**
+	 * Get the content to validate as a file stored on the validator's temp file system.
+	 *
+	 * @param contentType The way to interpret the content.
+	 * @param inputStream Input as a stream.
+	 * @param uri Input as a URI.
+	 * @param string Input as directly provided content.
+	 * @param contentSyntaxType The input's content type (mime type).
+	 * @param tmpFolder The temp folder to use for storing the input.
+	 * @return The input to use for the validation.
+	 * @throws IOException If an IO error occurs.
+	 */
 	private File getInputFile(String contentType, InputStream inputStream, String uri, String string, String contentSyntaxType, File tmpFolder) throws IOException {
 		File inputFile = null;
 		switch(contentType) {
@@ -325,6 +415,12 @@ public class UploadController {
 		return inputFile;
 	}
 
+	/**
+	 * Determine the RDF content type (mime type) from the provided file name.
+	 *
+	 * @param filename The file name to check.
+	 * @return The extracted mime type.
+	 */
 	private String getExtensionContentType(String filename) {		
 		String contentType = null;
 		Lang lang = RDFLanguages.filenameToLang(filename);
@@ -335,7 +431,18 @@ public class UploadController {
 		
 		return contentType;
 	}
-	
+
+	/**
+	 * Store and return the list of user-provided SHACL shape files to consider.
+	 *
+	 * @param externalContentType Per shape file, the way in which it should be extracted.
+	 * @param externalFiles The shapes as uploaded files.
+	 * @param externalUri The shapes as URIs.
+	 * @param externalFilesSyntaxType The syntax (mime type) of each shape file.
+	 * @param parentFolder The temp folder to use for storing the shape files.
+	 * @return The list of stored shape files to be used.
+	 * @throws IOException If an IO error occurs.
+	 */
 	private List<FileInfo> getExternalShapes(String[] externalContentType, MultipartFile[] externalFiles, String[] externalUri, String[] externalFilesSyntaxType, File parentFolder) throws IOException {
 		List<FileInfo> shaclFiles = new ArrayList<>();
 
@@ -381,9 +488,11 @@ public class UploadController {
 	}
     
     /**
-     * Validates that the domain exists.
-     * @param domain The domain where the SHACL validator is executed as String.
-     * @return DomainConfig
+     * Validates that the domain exists and supports REST calls and return it if so.
+	 *
+     * @param domain The domain to check.
+     * @return The retrieved domain configuration.
+	 * @throws NotFoundException If the domain or REST API are unsupported.
      */
     private DomainConfig validateDomain(String domain) {
 		DomainConfig config = domainConfigs.getConfigForDomainName(domain);
@@ -395,36 +504,52 @@ public class UploadController {
         return config;
     }
 
-    private List<KeyWithLabel> getContentType(DomainConfig config){
-        List<KeyWithLabel> types = new ArrayList<>();
-
-		types.add(new KeyWithLabel(CONTENT_TYPE__FILE, config.getLabel().getOptionContentFile()));
-		types.add(new KeyWithLabel(CONTENT_TYPE__URI, config.getLabel().getOptionContentURI()));
-		types.add(new KeyWithLabel(CONTENT_TYPE__EDITOR, config.getLabel().getOptionContentDirectInput()));
-		
-		return types;        
+	/**
+	 * The list of content provision options as key and label pairs to be displayed on the UI.
+	 *
+	 * @param config The domain configuration.
+	 * @return The list of options.
+	 */
+	private List<KeyWithLabel> getContentType(DomainConfig config){
+		return List.of(
+				new KeyWithLabel(CONTENT_TYPE__FILE, config.getLabel().getOptionContentFile()),
+				new KeyWithLabel(CONTENT_TYPE__URI, config.getLabel().getOptionContentURI()),
+				new KeyWithLabel(CONTENT_TYPE__EDITOR, config.getLabel().getOptionContentDirectInput())
+		);
     }
 
+	/**
+	 * The list of supported targets for the result page's download option as key and label pairs for
+	 * display on the UI.
+	 *
+	 * @param config The domain configuration.
+	 * @return The list of options.
+	 */
 	private List<KeyWithLabel> getDownloadType(DomainConfig config){
-        List<KeyWithLabel> types = new ArrayList<>();
-		types.add(new KeyWithLabel(DOWNLOAD_TYPE__REPORT, config.getLabel().getOptionDownloadReport()));
-		types.add(new KeyWithLabel(DOWNLOAD_TYPE__SHAPES, config.getLabel().getOptionDownloadShapes()));
-		types.add(new KeyWithLabel(DOWNLOAD_TYPE__CONTENT, config.getLabel().getOptionDownloadContent()));
-		return types;
-    }
-    
+		return List.of(
+				new KeyWithLabel(DOWNLOAD_TYPE__REPORT, config.getLabel().getOptionDownloadReport()),
+				new KeyWithLabel(DOWNLOAD_TYPE__SHAPES, config.getLabel().getOptionDownloadShapes()),
+				new KeyWithLabel(DOWNLOAD_TYPE__CONTENT, config.getLabel().getOptionDownloadContent())
+		);
+	}
+
+	/**
+	 * The list of syntax types for the input of user-provided shapes as key and label pairs to be used
+	 * on the UI.
+	 *
+	 * @param config The domain configuration.
+	 * @return The list of options.
+	 */
     private List<KeyWithLabel> getContentSyntax(DomainConfig config) {
     	List<String> contentSyntax = config.getWebContentSyntax();    
-    	if(contentSyntax.isEmpty()) {
+    	if (contentSyntax.isEmpty()) {
     		contentSyntax = new ArrayList<>(appConfig.getContentSyntax());
     	}
         List<KeyWithLabel> types = new ArrayList<>();
-    	
-        for(String cs : contentSyntax) {
+        for (String cs : contentSyntax) {
         	Lang lang = RDFLanguages.contentTypeToLang(cs);
 			types.add(new KeyWithLabel(lang.getLabel(), lang.getContentType().getContentType()));
         }
-    	
     	return types.stream().sorted(Comparator.comparing(KeyWithLabel::getKey)).collect(Collectors.toList());
     }
 

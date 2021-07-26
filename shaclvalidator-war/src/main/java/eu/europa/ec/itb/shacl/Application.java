@@ -15,6 +15,11 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableAspectJAutoProxy
 public class Application {
 
+    /**
+     * Main method.
+     *
+     * @param args The command line arguments.
+     */
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);
     }

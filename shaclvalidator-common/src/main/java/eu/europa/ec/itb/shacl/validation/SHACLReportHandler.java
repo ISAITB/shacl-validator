@@ -17,20 +17,37 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Comparator;
 
+/**
+ * Class to handle a SHACL validation report and produce a TAR report.
+ */
 public class SHACLReportHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(SHACLReportHandler.class);
 
-	private TAR report;
-	private Model shaclReport;
-	private DomainConfig domainConfig;
+	private final TAR report;
+	private final Model shaclReport;
+	private final DomainConfig domainConfig;
+    private final ObjectFactory objectFactory = new ObjectFactory();
 
-    private ObjectFactory objectFactory = new ObjectFactory();
-
+    /**
+     * Constructor.
+     *
+     * @param shaclReport The RDF report.
+     * @param domainConfig The domain configuration.
+     */
     public SHACLReportHandler(Model shaclReport, DomainConfig domainConfig) {
         this(null, null, shaclReport, null, domainConfig);
     }
 
+    /**
+     * Constructor.
+     *
+     * @param inputFile The validated RDF content as a string.
+     * @param shapes The shapes used for the validation.
+     * @param shaclReport The RDF report.
+     * @param reportContentToInclude The content for the validation report to add as context to the TAR report.
+     * @param domainConfig The domain configuration.
+     */
 	public SHACLReportHandler(String inputFile, Model shapes, Model shaclReport, String reportContentToInclude, DomainConfig domainConfig) {
 		this.shaclReport = shaclReport;
 		this.domainConfig = domainConfig;
@@ -73,6 +90,12 @@ public class SHACLReportHandler {
         this.report.setContext(attachment);
 	}
 
+    /**
+     * Convert the provided RDF statement to a string.
+     *
+     * @param statement The statement.
+     * @return The resulting string.
+     */
 	private String getStatementSafe(Statement statement) {
 	    String result;
 	    try {
@@ -91,6 +114,11 @@ public class SHACLReportHandler {
         return result;
     }
 
+    /**
+     * Create the TAR report.
+     *
+     * @return The TAR report.
+     */
 	public TAR createReport() {
         int infos = 0;
         int warnings = 0;
@@ -177,6 +205,13 @@ public class SHACLReportHandler {
 		return this.report;
 	}
 
+    /**
+     * Create a report item message from the provided parts.
+     *
+     * @param labels The labels to use.
+     * @param values The values to use.
+     * @return The string.
+     */
     private String createStringMessageFromParts(String[] labels, String[] values) {
 	    if (labels.length != values.length) {
             throw new IllegalArgumentException("Wrong number of arguments supplied ["+labels.length+"]["+values.length+"]");
@@ -197,14 +232,30 @@ public class SHACLReportHandler {
         }
     }
 
+    /**
+     * Convert the provided SHACL report model to a string.
+     *
+     * @param shaclReport The report.
+     * @return The string.
+     */
     private String modelToString(Model shaclReport) {
 		StringWriter writer = new StringWriter();		
 		shaclReport.write(writer);
 		return writer.toString();
     }
 
+    /**
+     * Comparator to allow sorting of report items.
+     */
     private static class ReportItemComparator implements Comparator<JAXBElement<TestAssertionReportType>> {
 
+        /**
+         * @see Comparator#compare(Object, Object)
+         *
+         * @param o1 First item.
+         * @param o2 Second item.
+         * @return Comparison check.
+         */
         @Override
         public int compare(JAXBElement<TestAssertionReportType> o1, JAXBElement<TestAssertionReportType> o2) {
             if (o1 == null && o2 == null) {

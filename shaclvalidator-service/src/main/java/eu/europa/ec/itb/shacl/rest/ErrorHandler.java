@@ -13,23 +13,55 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
+/**
+ * Handle all errors linked to validator REST API calls.
+ *
+ * The validator explicitly raises NotFoundException for cases of invalid requested domains. Once the validation
+ * is allowed to proceed all errors that are expected can be reported back to users are raised as ValidatorExceptions.
+ * All other exceptions are considered unexpected and are raised with a generic error message.
+ *
+ * @see NotFoundException
+ * @see ValidatorException
+ */
 @ControllerAdvice(assignableTypes = {ShaclController.class})
 public class ErrorHandler extends ResponseEntityExceptionHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(ErrorHandler.class);
 
+    /**
+     * Handle the "not found" errors. These typically link to a domain being requested that is not configured or
+     * using the API when not supported.
+     *
+     * @param ex The exception.
+     * @param request The current request.
+     * @return The response.
+     */
     @ExceptionHandler(value = {NotFoundException.class})
     protected ResponseEntity<Object> handleNotFound(NotFoundException ex, WebRequest request) {
         logger.warn(String.format("Caught NotFoundException for domain [%s]", ex.getRequestedDomain()), ex);
         return handleExceptionInternal(ex, new ErrorInfo("The requested resource could not be found"), new HttpHeaders(), HttpStatus.NOT_FOUND, request);
     }
 
+    /**
+     * Handle errors that are expected and can be shared with users.
+     *
+     * @param ex The exception.
+     * @param request The current request.
+     * @return The response.
+     */
     @ExceptionHandler(value = {ValidatorException.class})
     protected ResponseEntity<Object> handleValidatorException(ValidatorException ex, WebRequest request) {
         logger.error("Caught ValidatorException", ex);
         return handleExceptionInternal(ex, new ErrorInfo(ex.getMessage()), new HttpHeaders(), HttpStatus.INTERNAL_SERVER_ERROR, request);
     }
 
+    /**
+     * Handle all other exceptions.
+     *
+     * @param ex The exception.
+     * @param request The current request.
+     * @return The response.
+     */
     @ExceptionHandler(value = {Exception.class})
     protected ResponseEntity<Object> handleUnexpectedErrors(Exception ex, WebRequest request) {
         logger.error("Caught Exception", ex);

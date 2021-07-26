@@ -12,6 +12,9 @@ import javax.annotation.PostConstruct;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
+/**
+ * Component to load, record and share the domain configurations.
+ */
 @Component
 public class DomainConfigCache extends WebDomainConfigCache<DomainConfig> {
 
@@ -23,16 +26,32 @@ public class DomainConfigCache extends WebDomainConfigCache<DomainConfig> {
         super.init();
     }
 
+    /**
+     * Create a new and empty domain configuration object.
+     *
+     * @return The object.
+     */
     @Override
     protected DomainConfig newDomainConfig() {
         return new DomainConfig();
     }
 
+    /**
+     * @see eu.europa.ec.itb.validation.commons.config.DomainConfigCache#getSupportedChannels()
+     *
+     * @return Form, SOAP and REST API.
+     */
     @Override
     protected ValidatorChannel[] getSupportedChannels() {
         return new ValidatorChannel[] {ValidatorChannel.FORM, ValidatorChannel.SOAP_API, ValidatorChannel.REST_API};
     }
 
+    /**
+     * Extend the domain configuration loading with JSON-specific information.
+     *
+     * @param domainConfig The domain configuration to enrich.
+     * @param config The configuration properties to consider.
+     */
     @Override
     protected void addDomainConfiguration(DomainConfig domainConfig, Configuration config) {
         super.addDomainConfiguration(domainConfig, config);

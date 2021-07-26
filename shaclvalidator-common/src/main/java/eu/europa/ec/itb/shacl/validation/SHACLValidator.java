@@ -7,6 +7,7 @@ import com.gitb.tr.TestAssertionReportType;
 import com.gitb.vs.ValidateRequest;
 import com.gitb.vs.ValidationResponse;
 import eu.europa.ec.itb.shacl.DomainConfig;
+import eu.europa.ec.itb.shacl.util.Utils;
 import eu.europa.ec.itb.validation.commons.FileInfo;
 import eu.europa.ec.itb.validation.commons.config.DomainPluginConfigProvider;
 import eu.europa.ec.itb.validation.commons.error.ValidatorException;
@@ -36,9 +37,7 @@ import java.util.*;
 import static eu.europa.ec.itb.shacl.validation.SHACLResources.VALIDATION_REPORT;
 
 /**
- * 
- * Created by mfontsan on 26/02/2019
- *
+ * Component used to validate RDF content against SHACL shapes.
  */
 @Component
 @Scope("prototype")
@@ -69,6 +68,7 @@ public class SHACLValidator {
      * @param validationType The type of validation to perform.
      * @param contentSyntax The mime type of the provided RDF content.
      * @param externalShaclFiles Any shapes to consider that are externally provided
+     * @param loadImports True if OWL imports in the content should be loaded before validation.
      * @param domainConfig Domain
      */
     public SHACLValidator(File inputFileToValidate, String validationType, String contentSyntax, List<FileInfo> externalShaclFiles, boolean loadImports, DomainConfig domainConfig) {
@@ -83,16 +83,23 @@ public class SHACLValidator {
         }
     }
 
+    /**
+     * @return The domain's identifier.
+     */
     public String getDomain(){
         return this.domainConfig.getDomain();
     }
 
+    /**
+     * @return The requested validation type.
+     */
     public String getValidationType(){
         return this.validationType;
     }
     
     /**
-     * Manager of the validation.
+     * Validate the content against all SHACL shapes and plugins.
+     *
      * @return The Jena model with the report.
      */
     public Model validateAll() {
@@ -105,14 +112,12 @@ public class SHACLValidator {
         }
     }
 
-    private AnyContent createPluginInputItem(String name, String value) {
-        AnyContent input = new AnyContent();
-        input.setName(name);
-        input.setValue(value);
-        input.setEmbeddingMethod(ValueEmbeddingEnumeration.STRING);
-        return input;
-    }
-
+    /**
+     * Prepare the input for any configured custom validator plugins.
+     *
+     * @param pluginTmpFolder The temp folder to use for plugin processing.
+     * @return The request to pass to the plugin(s).
+     */
     private ValidateRequest preparePluginInput(File pluginTmpFolder) {
         // The content to validate is provided to plugins as a copu of the content in RDF/XML (for simpler processing).
         File pluginInputFile = new File(pluginTmpFolder, UUID.randomUUID().toString()+".rdf");
@@ -135,13 +140,19 @@ public class SHACLValidator {
             }
         }
         ValidateRequest request = new ValidateRequest();
-        request.getInput().add(createPluginInputItem("contentToValidate", pluginInputFile.getAbsolutePath()));
-        request.getInput().add(createPluginInputItem("domain", domainConfig.getDomainName()));
-        request.getInput().add(createPluginInputItem("validationType", validationType));
-        request.getInput().add(createPluginInputItem("tempFolder", pluginTmpFolder.getAbsolutePath()));
+        request.getInput().add(Utils.createInputItem("contentToValidate", pluginInputFile.getAbsolutePath()));
+        request.getInput().add(Utils.createInputItem("domain", domainConfig.getDomainName()));
+        request.getInput().add(Utils.createInputItem("validationType", validationType));
+        request.getInput().add(Utils.createInputItem("tempFolder", pluginTmpFolder.getAbsolutePath()));
         return request;
     }
 
+    /**
+     * Validate the provided input against the configured plugins.
+     *
+     * @param validationReport The validation report to add produced plugin reports to.
+     * @return The extended validation report.
+     */
     private Model validateAgainstPlugins(Model validationReport) {
         ValidationPlugin[] plugins =  pluginManager.getPlugins(pluginConfigProvider.getPluginClassifier(domainConfig, validationType));
         if (plugins != null && plugins.length > 0) {
@@ -209,6 +220,12 @@ public class SHACLValidator {
         return validationReport;
     }
 
+    /**
+     * Get the SHACL message namespace to use for the provided GITB TDL report item level.
+     *
+     * @param tdlItemType The report item level from, the TAR report.
+     * @return The SHACL namespace to use.
+     */
     private String getShaclSeverity(String tdlItemType) {
         if ("error".equals(tdlItemType)) {
             return SHACLResources.SHACL_VIOLATION;
@@ -220,8 +237,9 @@ public class SHACLValidator {
     }
 
     /**
-     * Validation of the model
-     * @return Model The Jena model with the report
+     * Validate the inout against all SHACL shapes.
+     *
+     * @return Model The Jena model with the SHACL validation report.
      */
     private Model validateAgainstShacl() {
         try {
@@ -234,6 +252,11 @@ public class SHACLValidator {
         }
     }
 
+    /**
+     * Create an empty SHACL validation report.
+     *
+     * @return The report's model.
+     */
     private Model emptyValidationReport() {
         Model reportModel = ModelFactory.createDefaultModel();
         List<Statement> statements = new ArrayList<>();
@@ -245,9 +268,10 @@ public class SHACLValidator {
     }
 
     /**
-     * Validate the RDF against one shape file
-     * @param shaclFiles The SHACL files
-     * @return Model The Jena Model with the report
+     * Validate the RDF against a set of shape files.
+     *
+     * @param shaclFiles The SHACL files.
+     * @return The Jena Model with the SHACL validation report.
      */
     private Model validateShacl(List<FileInfo> shaclFiles) {
         Model reportModel;
@@ -267,8 +291,9 @@ public class SHACLValidator {
     }
 
     /**
-     * Return the aggregated model of a list of files
-     * @return Model aggregated model
+     * Return the aggregated model of a list of SHACL shape files.
+     *
+     * @return The aggregated model.
      */
     private Model getShapesModel(List<FileInfo> shaclFiles) {
         Model aggregateModel = JenaUtil.createMemoryModel();
@@ -299,8 +324,13 @@ public class SHACLValidator {
         }
         
         return aggregateModel;
-    }    
-    
+    }
+
+    /**
+     * Add imported models to the aggregated shape graph.
+     *
+     * @param aggregateModel The aggregated model to extend.
+     */
     private void createImportedModels(Model aggregateModel) {
     	Set<String> reachedURIs = new HashSet<>();
     	
@@ -313,7 +343,14 @@ public class SHACLValidator {
         
         addIncluded(baseOntModel, reachedURIs);
     }
-    
+
+    /**
+     * Extend the shape graph with imported shaped.
+     *
+     * @param baseOntModel The base model to add to.
+     * @param reachedURIs The URIs that have already been processed.
+     * @return The processed URIs.
+     */
     private Set<String> addIncluded(OntModel baseOntModel, Set<String> reachedURIs) {
     	baseOntModel.loadImports();
         Set<String> listImportedURI = baseOntModel.listImportedOntologyURIs();
@@ -334,6 +371,11 @@ public class SHACLValidator {
         return reachedURIs;
     }
 
+    /**
+     * Get the Jena RDF language to use for the input content.
+     *
+     * @return The language.
+     */
     private Lang contextSyntaxToUse() {
         if (contentSyntaxLang == null) {
             // Determine language.
@@ -359,10 +401,11 @@ public class SHACLValidator {
     }
 
     /**
-     * 
-     * @param dataFile File with RDF data
-     * @param shapesModel The Jena model containing the shacl defintion (needed to set the proper prefixes on the input data)
-     * @return Model Jena Model containing the data from dataFile
+     * Prepare the data graph model for the provided inputs.
+     *
+     * @param dataFile File with RDF data.
+     * @param shapesModel The Jena model containing the shacl definitions (needed to set the proper prefixes on the input data).
+     * @return Jena Model containing the data from dataFile.
      */
     private Model getDataModel(File dataFile, Model shapesModel) {
         // Upload the data in the Model. First set the prefixes of the model to those of the shapes model to avoid mismatches.
@@ -399,7 +442,10 @@ public class SHACLValidator {
         }
 		return dataModel;
 	}
-    
+
+    /**
+     * @return The aggregated SHACL shape model used for the validation.
+     */
     public Model getAggregatedShapes() {
     	return this.aggregatedShapes;
     }

@@ -36,13 +36,12 @@ import java.io.File;
 import java.util.List;
 
 /**
- * Spring component that realises the validation service.
+ * Spring component that realises the validation SOAP service.
  */
 @Component
 @Scope("prototype")
 public class ValidationServiceImpl implements ValidationService {
 
-    /** Logger. **/
     private static final Logger logger = LoggerFactory.getLogger(ValidationServiceImpl.class);
     private final DomainConfig domainConfig;
 
@@ -55,19 +54,17 @@ public class ValidationServiceImpl implements ValidationService {
     @Resource
     WebServiceContext wsContext;
 
+    /**
+     * Constructor.
+     *
+     * @param domainConfig The domain configuration (each domain has its own instance).
+     */
     public ValidationServiceImpl(DomainConfig domainConfig) {
         this.domainConfig = domainConfig;
     }
     
     /**
      * The purpose of the getModuleDefinition call is to inform its caller on how the service is supposed to be called.
-     *
-     * In this case its main purpose is to define the input parameters that are expected:
-     * <ul>
-     *     <li>The required input text (string).</li>
-     *     <li>The required expected text (string).</li>
-     *     <li>The optional flag to determine if a mismatch is an error (boolean).</li>
-     * </ul>
      *
      * @param parameters No parameters are expected.
      * @return The response.
@@ -175,6 +172,13 @@ public class ValidationServiceImpl implements ValidationService {
 		}
     }
 
+    /**
+     * Get the RDF validation report content to include in the resulting TAR report's context.
+     *
+     * @param reportModel The model of the RDF validation report.
+     * @param validateRequest The input parameters.
+     * @return The content to inject in the TAR report.
+     */
     private String getRdfReportToInclude(Model reportModel, ValidateRequest validateRequest) {
         String mimeType = getInputAsString(validateRequest, ValidationConstants.INPUT_RDF_REPORT_SYNTAX, domainConfig.getDefaultReportSyntax());
         String reportQuery = getInputAsString(validateRequest, ValidationConstants.INPUT_RDF_REPORT_QUERY, null);
@@ -188,11 +192,12 @@ public class ValidationServiceImpl implements ValidationService {
     }
 
     /**
-     * Validation of the contentSyntax
+     * Get the content syntax to use from the provided arguments.
+     *
      * @param validateRequest The request's parameters.
-     * @return The type of syntax.
+     * @return The type of syntax or null if none was provided.
      */
-    private String validateContentSyntax(ValidateRequest validateRequest){
+    private String validateContentSyntax(ValidateRequest validateRequest) {
         List<AnyContent> listContentSyntax = Utils.getInputFor(validateRequest, ValidationConstants.INPUT_SYNTAX);
         if (!listContentSyntax.isEmpty()) {
         	AnyContent content = listContentSyntax.get(0);
@@ -201,6 +206,13 @@ public class ValidationServiceImpl implements ValidationService {
         	return null;
         }
     }
+
+    /**
+     * Get the input on whether to load OWL imports from the provided RDF input.
+     *
+     * @param validateRequest The input parameters.
+     * @return The flag value (null if not provided).
+     */
     private Boolean getInputLoadImports(ValidateRequest validateRequest){
         List<AnyContent> listLoadImports = Utils.getInputFor(validateRequest, ValidationConstants.INPUT_LOAD_IMPORTS);
         if (!listLoadImports.isEmpty()) {
@@ -211,6 +223,12 @@ public class ValidationServiceImpl implements ValidationService {
         }
     }
 
+    /**
+     * Extract the SPARQL query configuration to consider from the provided input parameters.
+     *
+     * @param request The input parameters.
+     * @return The query configuration to consider (null if not provided).
+     */
     private SparqlQueryConfig parseQueryConfiguration(ValidateRequest request) {
         SparqlQueryConfig config = null;
         String query = null;
@@ -237,6 +255,14 @@ public class ValidationServiceImpl implements ValidationService {
         return config;
     }
 
+    /**
+     * Get the provided (optional) input as a boolean value.
+     *
+     * @param validateRequest The input parameters.
+     * @param inputName The name of the input to look for.
+     * @param defaultIfMissing The default value to use if the input is not provided.
+     * @return The value to use.
+     */
     private boolean getInputAsBoolean(ValidateRequest validateRequest, String inputName, boolean defaultIfMissing) {
         List<AnyContent> input = Utils.getInputFor(validateRequest, inputName);
         if (!input.isEmpty()) {
@@ -245,6 +271,14 @@ public class ValidationServiceImpl implements ValidationService {
         return defaultIfMissing;
     }
 
+    /**
+     * Get the provided (optional) input as a string value.
+     *
+     * @param validateRequest The input parameters.
+     * @param inputName The name of the input to look for.
+     * @param defaultIfMissing The default value to use if the input is not provided.
+     * @return The value to use.
+     */
     private String getInputAsString(ValidateRequest validateRequest, String inputName, String defaultIfMissing) {
         List<AnyContent> input = Utils.getInputFor(validateRequest, inputName);
         if (!input.isEmpty()) {
@@ -253,6 +287,9 @@ public class ValidationServiceImpl implements ValidationService {
         return defaultIfMissing;
     }
 
+    /**
+     * @return The web service context.
+     */
     public WebServiceContext getWebServiceContext(){
         return this.wsContext;
     }
