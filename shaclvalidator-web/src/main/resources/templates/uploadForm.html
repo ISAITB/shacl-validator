@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
-	<title th:replace="fragments/common :: header">Validator</title>
-	<link rel="stylesheet" th:href="@{/css/itb-upload-shacl.css}"/>
+    <title th:replace="fragments/common :: header">Validator</title>
+    <link rel="stylesheet" th:href="@{/css/itb-upload-shacl.css}"/>
     <script th:src="@{/webjars/codemirror/5.50.0/mode/xml/xml.js}"></script>
-	<script th:src="@{/js/lib/FileSaver.min.js}"></script>
+    <script th:src="@{/js/lib/FileSaver.min.js}"></script>
     <script th:src="@{/js/itb-upload-shacl.js}"></script>
     <script th:if="${report}" th:inline="text">
     /*<![CDATA[*/
@@ -13,7 +13,7 @@
         getReportData("[[${reportID}]]");
     /*]]>*/
     </script>
-	<script th:inline="javascript">
+    <script th:inline="javascript">
 		var supportQuery = [[${config.isSupportsQueries()}]];
 		var supportQueryEndpoint = [[${config.isSupportsQueries() && config.queryEndpoint == null}]];
 		var queryCredentialsMandatory = [[${config.isQueryAuthenticationMandatory()}]];
@@ -51,75 +51,75 @@
     </script>
 </head>
 <body th:class="${not minimalUI} ? body-ui : ''">
-	<div th:classappend="${not minimalUI} ? view-section-ui : ''" class="container view-section">
-	    <div class="view-section-input" th:if="${!minimalUI || report == null}">
-			<div th:replace="fragments/input :: pageHeader(${config}, ${minimalUI})"/>
-			<form method="POST" enctype="multipart/form-data" th:action="@{${not minimalUI ? 'upload' : 'uploadm'}}" class="form-horizontal" th:fragment="form">
-				<div th:class="${minimalUI} ? panel-default : ''" th:classappend="${minimalUI} ? panel : ''">
-					<div th:replace="fragments/input :: formHeader(${config}, ${minimalUI})"/>
-					<div th:class="${minimalUI} ? panel-body : ''">
-						<div th:replace="fragments/input :: mainForm(${config})"/>
-						<div id="contentSyntaxTypeDiv" class="form-group">
-							<label for="contentSyntaxType" class="col-sm-2 control-label"><span th:text="${config.label.contentSyntaxLabel}">Content syntax of the input</span><span data-toggle="tooltip" data-container="body" data-placement="right" th:attr="title=${config.label.contentSyntaxTooltip}"> <i class="far fa-question-circle"></i></span></label>
-							<div class="col-sm-3">
-								<select class="form-control" id="contentSyntaxType" name="contentSyntaxType">
-									<option value="empty" selected="true"></option>
-									<option th:each="type : ${contentSyntax}" th:text="${type.key}" th:attr="value=${type.label}">Type</option>
-								</select>
-							</div>
-						</div>
-						<div th:replace="fragments/input :: externalArtifactCheck(${config.label.includeExternalShapes}, ${config.label.externalRulesTooltip})"/>
-						<div th:replace="fragments/input :: externalArtifactControl('default', ${config.label.externalShapesLabel})"/>
-						<div id="loadImportsDiv" class="form-group hidden">
-                        	<div class="col-sm-offset-2 col-sm-10">
-                                <div class="checkbox">
-                            		<label>
-                           				<input type="checkbox" id="loadImportsCheck" name="loadImportsCheck" /><span th:text="${config.label.loadImportsLabel}">Load imports</span>
-                            		</label>
-                    				<span data-toggle="tooltip" data-container="body" data-placement="right" th:attr="title=${config.label.loadImportsTooltip}"><i class="far fa-question-circle"></i></span>
-                            	</div>
+<div th:classappend="${not minimalUI} ? view-section-ui : ''" class="container view-section">
+    <div class="view-section-input" th:if="${!minimalUI || report == null}">
+        <div th:replace="fragments/input :: pageHeader(${config}, ${minimalUI})"/>
+        <form method="POST" enctype="multipart/form-data" th:action="@{${not minimalUI ? 'upload' : 'uploadm'}}" class="form-horizontal" th:fragment="form">
+            <div th:class="${minimalUI} ? panel-default : ''" th:classappend="${minimalUI} ? panel : ''">
+                <div th:replace="fragments/input :: formHeader(${config}, ${minimalUI})"/>
+                <div th:class="${minimalUI} ? panel-body : ''">
+                    <div th:replace="fragments/input :: mainForm(${config})"/>
+                    <div id="contentSyntaxTypeDiv" class="form-group">
+                        <label for="contentSyntaxType" class="col-sm-2 control-label"><span th:text="${config.label.contentSyntaxLabel}">Content syntax of the input</span><span data-toggle="tooltip" data-container="body" data-placement="right" th:attr="title=${config.label.contentSyntaxTooltip}"> <i class="far fa-question-circle"></i></span></label>
+                        <div class="col-sm-3">
+                            <select class="form-control" id="contentSyntaxType" name="contentSyntaxType">
+                                <option value="empty" selected="true"></option>
+                                <option th:each="type : ${contentSyntax}" th:text="${type.key}" th:attr="value=${type.label}">Type</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div th:replace="fragments/input :: externalArtifactCheck(${config.label.includeExternalShapes}, ${config.label.externalRulesTooltip})"/>
+                    <div th:replace="fragments/input :: externalArtifactControl('default', ${config.label.externalShapesLabel})"/>
+                    <div id="loadImportsDiv" class="form-group hidden">
+                        <div class="col-sm-offset-2 col-sm-10">
+                            <div class="checkbox">
+                                <label>
+                                    <input type="checkbox" id="loadImportsCheck" name="loadImportsCheck" /><span th:text="${config.label.loadImportsLabel}">Load imports</span>
+                                </label>
+                                <span data-toggle="tooltip" data-container="body" data-placement="right" th:attr="title=${config.label.loadImportsTooltip}"><i class="far fa-question-circle"></i></span>
                             </div>
                         </div>
-						<div th:replace="fragments/input :: submit(${config}, ${minimalUI})"/>
-					</div>
-				</div>
-			</form>
-	    </div>
-	    <div th:if="${report}" th:class="${not minimalUI} ? view-section-result : ''">
-			<div th:replace="fragments/output :: reportTitle(${config}, ${minimalUI})"/>
-	        <div class="panel-default panel">
-				<div th:replace="fragments/output :: reportHeader(${config}, ${minimalUI})"/>
-				<div th:replace="fragments/output :: reportSummary(${config}, false)"/>
-	            <div class="panel-footer">
-	                <div class="form-inline">
-	                    <div class="form-group" style="padding-right:10px;">
-	                        <label for="downloadType" style="padding-right:10px;" th:text="${config.label.saveDownload}">Download</label>
-	                        <select class="form-control downloadSelect" id="downloadType" name="downloadType" onchange="downloadTypeChange()">
-	                            <option th:each="type : ${downloadType}" th:text="${type.label}" th:attr="value=${type.key}">Download Type</option>
-	                        </select>
-	                    </div>
-	                    <div class="form-group" style="padding-right:10px;">
-	                        <label for="downloadSyntaxType" style="padding-right:10px;" th:text="${config.label.saveAs}">as</label>
-	                        <select class="form-control downloadSelect" id="downloadSyntaxType" name="downloadSyntaxType">
-	                            <option th:if="${report.reports == null || report.reports.infoOrWarningOrError == null || report.reports.infoOrWarningOrError.size() <= config.maximumReportsForDetailedOutput}" value="pdfType">PDF</option>
-	                            <option th:if="${report.reports == null || report.reports.infoOrWarningOrError == null || report.reports.infoOrWarningOrError.size() <= config.maximumReportsForDetailedOutput}" value="notSelect">----------------------------</option>
-	                            <option th:each="type : ${contentSyntax}" th:text="${type.key}" th:attr="value=${type.label}">Type</option>
-	                        </select>
-	                    </div>
-	                    <button class="btn btn-default" type="button" id="downloadButton" onclick="downloadResult()"><i class="fas fa-download"></i></button>
-	                    <form id="resultForm" name="resultForm" method="GET" th:action="report">
-	                        <input id="resultFormId" name="id" type="hidden"/>
-	                        <input id="resultFormType" name="type" type="hidden"/>
-	                        <input id="resultFormSyntax" name="syntax" type="hidden"/>
-	                    </form>
-	                </div>
-	            </div>
-	        </div>
-			<div th:replace="fragments/output :: reportDetails(${config}, ${minimalUI}, false)"/>
-	    </div>
-		<div th:replace="fragments/common :: footer(${config}, ${minimalUI})"/>
-	</div>
-	<div th:replace="fragments/common :: about">About</div>
-	<div th:replace="fragments/common :: buildInfo">Build info</div>
+                    </div>
+                    <div th:replace="fragments/input :: submit(${config}, ${minimalUI})"/>
+                </div>
+            </div>
+        </form>
+    </div>
+    <div th:if="${report}" th:class="${not minimalUI} ? view-section-result : ''">
+        <div th:replace="fragments/output :: reportTitle(${config}, ${minimalUI})"/>
+        <div class="panel-default panel">
+            <div th:replace="fragments/output :: reportHeader(${config}, ${minimalUI})"/>
+            <div th:replace="fragments/output :: reportSummary(${config}, false)"/>
+            <div class="panel-footer">
+                <div class="form-inline">
+                    <div class="form-group" style="padding-right:10px;">
+                        <label for="downloadType" style="padding-right:10px;" th:text="${config.label.saveDownload}">Download</label>
+                        <select class="form-control downloadSelect" id="downloadType" name="downloadType" onchange="downloadTypeChange()">
+                            <option th:each="type : ${downloadType}" th:text="${type.label}" th:attr="value=${type.key}">Download Type</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="padding-right:10px;">
+                        <label for="downloadSyntaxType" style="padding-right:10px;" th:text="${config.label.saveAs}">as</label>
+                        <select class="form-control downloadSelect" id="downloadSyntaxType" name="downloadSyntaxType">
+                            <option th:if="${report.reports == null || report.reports.infoOrWarningOrError == null || report.reports.infoOrWarningOrError.size() <= config.maximumReportsForDetailedOutput}" value="pdfType">PDF</option>
+                            <option th:if="${report.reports == null || report.reports.infoOrWarningOrError == null || report.reports.infoOrWarningOrError.size() <= config.maximumReportsForDetailedOutput}" value="notSelect">----------------------------</option>
+                            <option th:each="type : ${contentSyntax}" th:text="${type.key}" th:attr="value=${type.label}">Type</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-default" type="button" id="downloadButton" onclick="downloadResult()"><i class="fas fa-download"></i></button>
+                    <form id="resultForm" name="resultForm" method="GET" th:action="report">
+                        <input id="resultFormId" name="id" type="hidden"/>
+                        <input id="resultFormType" name="type" type="hidden"/>
+                        <input id="resultFormSyntax" name="syntax" type="hidden"/>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div th:replace="fragments/output :: reportDetails(${config}, ${minimalUI}, false)"/>
+    </div>
+    <div th:replace="fragments/common :: footer(${config}, ${minimalUI})"/>
+</div>
+<div th:replace="fragments/common :: about">About</div>
+<div th:replace="fragments/common :: buildInfo">Build info</div>
 </body>
 </html>
