@@ -25,6 +25,9 @@ import java.io.File;
 import java.nio.file.Files;
 import java.util.*;
 
+/**
+ * Configuration for the validator's REST API documentation (based on Swagger and Hydra).
+ */
 @Configuration
 @EnableSwagger2
 public class DocumentationConfig {
@@ -55,6 +58,9 @@ public class DocumentationConfig {
     @Autowired
     private FileManager fileManager;
 
+    /**
+     * @return The API documentation entry point bean.
+     */
     @Bean
     public Docket api() {
         Docket docket =  new Docket(DocumentationType.SWAGGER_2)
@@ -70,6 +76,9 @@ public class DocumentationConfig {
         return docket;
     }
 
+    /**
+     * @return The service's API metadata.
+     */
     private ApiInfo apiEndPointsInfo() {
         return new ApiInfoBuilder().title(restApiTitle)
             .description(restApiDescription)
@@ -79,6 +88,9 @@ public class DocumentationConfig {
             .build();
     }
 
+    /**
+     * Prepare the service's Hydra documentation on initialisation.
+     */
     @PostConstruct
     public void generateHydraDocumentation() {
         try {

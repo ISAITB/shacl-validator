@@ -17,12 +17,18 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
 /**
- * Created by mfontsan on 16/07/2019.
+ * Application entry point when running the validator as a command-line tool.
  */
 @SpringBootApplication
 @ComponentScan("eu.europa.ec.itb")
 public class Application {
 
+    /**
+     * Main method.
+     *
+     * @param args The command line arguments.
+     * @throws IOException If an error occurs reading inputs or writing reports.
+     */
     public static void main(String[] args) throws IOException {
         System.out.print("Starting validator ...");
         File tempFolder = Files.createTempDirectory("shaclvalidator").toFile();
@@ -52,12 +58,16 @@ public class Application {
         try {
 	        ValidationRunner runner = ctx.getBean(ValidationRunner.class);
 	        runner.bootstrap(args, new File(config.getTmpFolder(), UUID.randomUUID().toString()));
-        } catch(Exception e) {}
+        } catch(Exception e) {
+            // Ignore errors.
+        }
     }
 
     /**
-     * Store in temporary folder resource files.
-     * @throws IOException
+     * Adapt the validator's configuration so that it can be used as a command-line tool.
+     *
+     * @param tempFolder The temporary folder to use for the validator's work.
+     * @throws IOException If an IO error occurs.
      */
     private static void prepareConfigForStandalone(File tempFolder) throws IOException {
         // Explode invoice resources to temp folder

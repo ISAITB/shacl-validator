@@ -29,6 +29,9 @@ import eu.europa.ec.itb.shacl.gitb.ValidationServiceImpl;
 import eu.europa.ec.itb.shacl.validation.SHACLValidator;
 import eu.europa.ec.itb.validation.commons.config.ApplicationConfig;
 
+/**
+ * Aspect that advises the application's entry points to extract and send usage statistics (if enabled).
+ */
 @Aspect
 @Component
 @ConditionalOnProperty(name = "validator.webhook.statistics")
@@ -42,13 +45,13 @@ public class StatisticReportingAspect extends StatisticReporting {
 	private ApplicationConfig config;
 
 	/**
-	 * Pointcut for minimal WEB validation
+	 * Pointcut for minimal WEB validation.
 	 */
 	@Pointcut("execution(public * eu.europa.ec.itb.shacl.upload.UploadController.handleUploadM(..))")
 	private void minimalUploadValidation(){}
 
 	 /**
-	  * Pointcut for regular WEB validation 
+	  * Pointcut for regular WEB validation.
 	  */
 	@Pointcut("execution(public * eu.europa.ec.itb.shacl.upload.UploadController.handleUpload(..))")
 	private void uploadValidation(){}
@@ -56,6 +59,8 @@ public class StatisticReportingAspect extends StatisticReporting {
 
 	/**
 	 * Advice to obtain the arguments passed to the web upload API call.
+	 *
+	 * @param joinPoint The original call's information.
 	 */
 	@Before("minimalUploadValidation() || uploadValidation()")
 	public void getUploadContext(JoinPoint joinPoint) throws Throwable {
@@ -73,6 +78,8 @@ public class StatisticReportingAspect extends StatisticReporting {
 
 	/**
 	 * Advice to obtain the arguments passed to the SOAP API call.
+	 *
+	 * @param joinPoint The original call's information.
 	 */
 	@Before(value = "execution(public * eu.europa.ec.itb.shacl.gitb.ValidationServiceImpl.validate(..))")
 	public void getSoapCallContext(JoinPoint joinPoint) throws Throwable {
@@ -95,13 +102,15 @@ public class StatisticReportingAspect extends StatisticReporting {
 	private void singleRestValidation(){}
 
 	/**
-	 * Pointcut for the multiple REST validation.
+	 * Pointcut for batch REST validation.
 	*/
 	@Pointcut("execution(public * eu.europa.ec.itb.shacl.rest.ShaclController.validateMultiple(..))")
 	private void multipleRestValidation(){}
 
 	/**
 	 * Advice to obtain the arguments passed to the REST API call.
+	 *
+	 * @param joinPoint The original call's information.
 	 */
 	@Before("singleRestValidation() || multipleRestValidation()")
 	public void getRestCallContext(JoinPoint joinPoint) throws Throwable {
@@ -120,6 +129,8 @@ public class StatisticReportingAspect extends StatisticReporting {
 
 	/**
 	 * Advice to send the usage report.
+	 *
+	 * @param joinPoint The original call's information.
 	 */
 	@Around("execution(public * eu.europa.ec.itb.shacl.validation.SHACLValidator.validateAll(..))")
 	public Object reportValidatorDataUsage(ProceedingJoinPoint joinPoint) throws Throwable {
@@ -146,8 +157,10 @@ public class StatisticReportingAspect extends StatisticReporting {
 	}
 
 	/**
-	 * Method that receives the Jena Model report and extracts the amount of errors
-	 * and warnings.
+	 * Method that receives the Jena Model report and extracts the number of errors and warnings.
+	 *
+	 * @param report The validation report model.
+	 * @return The overall validation result.
 	 */
 	private UsageData.Result extractResult(Model report) {
 		int infos = 0;

@@ -8,7 +8,6 @@ import eu.europa.ec.itb.shacl.InputHelper;
 import eu.europa.ec.itb.shacl.SparqlQueryConfig;
 import eu.europa.ec.itb.shacl.util.Utils;
 import eu.europa.ec.itb.shacl.validation.FileManager;
-import eu.europa.ec.itb.shacl.validation.FileReport;
 import eu.europa.ec.itb.shacl.validation.SHACLValidator;
 import eu.europa.ec.itb.validation.commons.FileInfo;
 import eu.europa.ec.itb.validation.commons.artifact.ExternalArtifactSupport;
@@ -46,8 +45,7 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Created by simatosc on 12/08/2016.
- * Updated by mfontsan on 29/07/2019.
+ * Component that handles the actual triggering of validation and resulting reporting.
  */
 @Component
 @Scope("prototype")
@@ -80,6 +78,9 @@ public class ValidationRunner {
     @Autowired
     InputHelper inputHelper;
 
+    /**
+     * Initialisation method to determine if the domain configurations are well-defined.
+     */
     @PostConstruct
     public void init() {
         // Determine the domain configuration.
@@ -107,6 +108,12 @@ public class ValidationRunner {
         }
     }
 
+    /**
+     * Run the validation.
+     *
+     * @param args The command-line arguments.
+     * @param parentFolder The temporary folder to use for this validator's run.
+     */
     protected void bootstrap(String[] args, File parentFolder) {
         // Process input arguments
         List<ValidationInput> inputs = new ArrayList<>();
@@ -145,7 +152,7 @@ public class ValidationRunner {
                             if (args.length > i+1) {
                                 reportSyntax = args[++i];
                             }
-                            if (!validReportSyntax(reportSyntax)) {
+                            if (!validRDFSyntax(reportSyntax)) {
                                 throw new IllegalArgumentException("Unknown report syntax ["+reportSyntax+"]");
                             }
                         } else if(FLAG_REPORT_QUERY.equalsIgnoreCase(args[i])) {
@@ -297,6 +304,13 @@ public class ValidationRunner {
         }
     }
 
+    /**
+     * Get the path for the produced validation report.
+     *
+     * @param baseName The base name of the report path (without the syntax extension).
+     * @param reportSyntax The RDF syntax of the validation report.
+     * @return The report path.
+     */
     private Path getReportFilePath(String baseName, String reportSyntax) {
         return fileManager.createFile(Paths.get("").toFile(), fileManager.getFileExtension(reportSyntax), baseName);
     }
@@ -346,9 +360,10 @@ public class ValidationRunner {
 
     /**
      * Validate whether the syntax provided is correct.
+     *
      * @return The check result.
      */
-    private boolean validReportSyntax(String syntax) {
+    private boolean validRDFSyntax(String syntax) {
     	if(!StringUtils.isBlank(syntax)) {
     		Lang lang = RDFLanguages.contentTypeToLang(syntax.toLowerCase());
 		
@@ -359,15 +374,21 @@ public class ValidationRunner {
 	}
     
     /**
-     * Get the content and save it in the folder
-     * @return File
+     * Get the content and save it in the temp folder assigned for this validation run.
+     *
+     * @param file The argument corresponding to the input content's path (may be a file path or URL).
+     * @param contentType The RDF syntax of the content (as a mime type).
+     * @param parentFolder The temp folder to use for this validator's run.
+     * @param filename The file name to use to store the input content if this is provided as a URL.
+     * @return The file with the content to validate.
+     * @throws IllegalArgumentException In case there is a problem with the provided input arguments.
      */
     private File getContent(String file, String contentType, File parentFolder, String filename) {
         File inputFile = new File(file);
         
     	try {
         	contentType = getContentType(file, contentType);
-        	boolean validSyntax = validReportSyntax(contentType);
+        	boolean validSyntax = validRDFSyntax(contentType);
 			Lang langExtension = RDFLanguages.contentTypeToLang(contentType);
 			
             if(!inputFile.exists() || !inputFile.isFile() || !inputFile.canRead()) {           	
@@ -394,7 +415,15 @@ public class ValidationRunner {
     	
     	return inputFile;
     }
-    
+
+    /**
+     * Get the content type (mime type) for the content to validate.
+     *
+     * @param contentToValidate The path for the content to validate.
+     * @param contentType The provided content type. If not provided the content type is guessed from the provided
+     *                    content.
+     * @return The content type to consider.
+     */
     private String getContentType(String contentToValidate, String contentType) {
     	if (StringUtils.isBlank(contentType)) {
     		ContentType ct = RDFLanguages.guessContentType(contentToValidate);
@@ -406,14 +435,18 @@ public class ValidationRunner {
 	}
 
 	/**
-     * Validate the content syntax and save the external shapes
-     * @return FileInfo
+     * Validate a user-provided shape file/resource and store it for use in the validation.
+     *
+     * @param file The path to the shapes.
+     * @param contentType The content type (mime type) of the shape file/resource.
+     * @param parentFolder The temp folder to use for this validator run.
+     * @return The information on the shape file as stored for the validation.
      */
     private FileInfo getExternalShapes(String file, String contentType, File parentFolder) {
-		File f = getContent(file, contentType, parentFolder, UUID.randomUUID().toString()+"."+FilenameUtils.getExtension(file));
+		File f = getContent(file, contentType, parentFolder, UUID.randomUUID() +"."+FilenameUtils.getExtension(file));
 		contentType = getContentType(file, contentType);
 				
-		if(validReportSyntax(contentType)) {
+		if(validRDFSyntax(contentType)) {
 			return new FileInfo(f, contentType);
 		}else {
             throw new IllegalArgumentException("The RDF language could not be determined for the provided external shape ["+file+"]");			

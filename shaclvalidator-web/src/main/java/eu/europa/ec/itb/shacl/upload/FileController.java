@@ -27,6 +27,9 @@ import java.util.List;
 
 import static eu.europa.ec.itb.shacl.upload.UploadController.*;
 
+/**
+ * REST controller used for the manipulation of user inputs and produced reports.
+ */
 @RestController
 public class FileController {
 
@@ -35,6 +38,16 @@ public class FileController {
     @Autowired
     private DomainConfigCache domainConfigCache = null;
 
+	/**
+	 * Return a resource (input, shapes or report) linked to a given validation run.
+	 *
+	 * @param domain The domain in question.
+	 * @param id The identifier to retrieve the report.
+	 * @param type The type of download (input, shapes or report).
+	 * @param syntax The RDF syntax (mime type) for the returned file.
+	 * @param response The HTTP response.
+	 * @return The response.
+	 */
     @GetMapping(value = "/{domain}/report", produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
     @ResponseBody
     public FileSystemResource getReport(
@@ -101,6 +114,13 @@ public class FileController {
         return new FileSystemResource(targetFile);
     }
 
+	/**
+	 * Retrieve the file from the provided folder that corresponds to the requested type.
+	 *
+	 * @param folder The folder to look within.
+	 * @param type The type of file to look for (input, shapes or report).
+	 * @return The file.
+	 */
     private File getFileByType(File folder, String type) {
     	File file = null;
 		List<File> files = (List<File>) FileUtils.listFiles(folder, TrueFileFilter.INSTANCE, TrueFileFilter.INSTANCE);

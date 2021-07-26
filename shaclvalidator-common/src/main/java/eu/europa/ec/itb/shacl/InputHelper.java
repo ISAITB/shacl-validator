@@ -12,35 +12,60 @@ import eu.europa.ec.itb.validation.commons.error.ValidatorException;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
+/**
+ * Component to validate and parse user-provided input parameters.
+ */
 @Component
 public class InputHelper extends BaseInputHelper<FileManager, DomainConfig, ApplicationConfig> {
 
+	/**
+	 * Populate a file's content type from the provided input.
+	 *
+	 * @param fileContent The file's information.
+	 * @param inputItem The input to process.
+	 * @see BaseInputHelper#populateFileContentFromInput(FileContent, AnyContent)
+	 */
     @Override
     public void populateFileContentFromInput(FileContent fileContent, AnyContent inputItem) {
         if (StringUtils.equals(inputItem.getName(), ValidationConstants.INPUT_RULE_SYNTAX)) {
             fileContent.setContentType(inputItem.getValue());
         }
     }
-    
-    public Boolean validateLoadInputs(DomainConfig domainConfig, Boolean artifactInput, String validationType) {
+
+	/**
+	 * Validate and return the flag determining whether OWL imports should be loaded from the provided content.
+	 *
+	 * @param domainConfig The domain configuration.
+	 * @param userProvidedFlag The user-provided value.
+	 * @param validationType The requested validation type.
+	 * @return The flag to consider.
+	 * @throws ValidatorException If the provided input value is invalid.
+	 */
+	public Boolean validateLoadInputs(DomainConfig domainConfig, Boolean userProvidedFlag, String validationType) {
     	ExternalArtifactSupport inputLoadImportsType = domainConfig.getUserInputForLoadImportsType().get(validationType);
     	boolean loadImportsType = domainConfig.getDefaultLoadImportsType().get(validationType);
 
-    	if (inputLoadImportsType == ExternalArtifactSupport.REQUIRED && artifactInput==null) {
+    	if (inputLoadImportsType == ExternalArtifactSupport.REQUIRED && userProvidedFlag==null) {
             throw new ValidatorException(String.format("Validation type [%s] expects the choice of whether or not imports are to be loaded (%s).", validationType, ValidationConstants.INPUT_LOAD_IMPORTS));
     	} 
-		if (inputLoadImportsType == ExternalArtifactSupport.NONE && artifactInput!=null) {
+		if (inputLoadImportsType == ExternalArtifactSupport.NONE && userProvidedFlag!=null) {
 			throw new ValidatorException(String.format("Validation type [%s] does not expect the choice of whether or not imports are to be loaded (%s).", validationType, ValidationConstants.INPUT_LOAD_IMPORTS));			
 		}
-		if((inputLoadImportsType == ExternalArtifactSupport.OPTIONAL || inputLoadImportsType == ExternalArtifactSupport.NONE) && artifactInput==null) {
-			artifactInput = loadImportsType;
+		if ((inputLoadImportsType == ExternalArtifactSupport.OPTIONAL || inputLoadImportsType == ExternalArtifactSupport.NONE) && userProvidedFlag==null) {
+			userProvidedFlag = loadImportsType;
 		}
-		
-    	
-    	return artifactInput;
+    	return userProvidedFlag;
     }
-    
-    public SparqlQueryConfig validateSparqlConfiguration(DomainConfig domainConfig, SparqlQueryConfig inputConfig) {
+
+	/**
+	 * Validate and return the SPARQL query configuration to use in the validation call.
+	 *
+	 * @param domainConfig The domain configuration.
+	 * @param inputConfig The provided configuration.
+	 * @return The configuration to use.
+	 * @throws ValidatorException If the provided configuration is invalid.
+	 */
+	public SparqlQueryConfig validateSparqlConfiguration(DomainConfig domainConfig, SparqlQueryConfig inputConfig) {
     	if (!domainConfig.isSupportsQueries()) {
     		throw new ValidatorException("SPARQL queries are not supported.");
 		}
