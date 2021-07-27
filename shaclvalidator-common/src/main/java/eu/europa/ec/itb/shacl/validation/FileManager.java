@@ -122,12 +122,18 @@ public class FileManager extends BaseFileManager<ApplicationConfig> {
             writer.setProperty("allowBadURIs", "true");
             writer.setProperty("relativeURIs", "");
         }
-        try (outputWriter) {
+        try {
             writer.write(rdfModel, outputWriter, null);
             outputWriter.flush();
         } catch (Exception e) {
             logger.error("Error writing RDF model", e);
             throw new IllegalStateException("Error writing RDF model", e);
+        } finally {
+            try {
+                outputWriter.close();
+            } catch (IOException e) {
+                // Ignore.
+            }
         }
     }
 
