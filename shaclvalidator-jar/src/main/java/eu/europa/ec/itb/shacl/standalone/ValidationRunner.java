@@ -3,7 +3,6 @@ package eu.europa.ec.itb.shacl.standalone;
 
 import com.gitb.tr.TAR;
 import eu.europa.ec.itb.shacl.DomainConfig;
-import eu.europa.ec.itb.shacl.DomainConfigCache;
 import eu.europa.ec.itb.shacl.InputHelper;
 import eu.europa.ec.itb.shacl.SparqlQueryConfig;
 import eu.europa.ec.itb.shacl.util.Utils;
@@ -12,6 +11,8 @@ import eu.europa.ec.itb.shacl.validation.SHACLValidator;
 import eu.europa.ec.itb.validation.commons.FileInfo;
 import eu.europa.ec.itb.validation.commons.artifact.ExternalArtifactSupport;
 import eu.europa.ec.itb.validation.commons.error.ValidatorException;
+import eu.europa.ec.itb.validation.commons.jar.BaseValidationRunner;
+import eu.europa.ec.itb.validation.commons.jar.FileReport;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -23,14 +24,11 @@ import org.apache.jena.query.QueryFactory;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFLanguages;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -49,11 +47,7 @@ import java.util.UUID;
  */
 @Component
 @Scope("prototype")
-public class ValidationRunner {
-
-    private static final Logger logger = LoggerFactory.getLogger(ValidationRunner.class);
-    private static final Logger loggerFeedback = LoggerFactory.getLogger("FEEDBACK");
-    private static final Logger loggerFeedbackFile = LoggerFactory.getLogger("VALIDATION_RESULT");
+public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
 
     private static final String FLAG_NO_REPORTS = "-noreports";
     private static final String FLAG_VALIDATION_TYPE = "-validationType";
@@ -67,46 +61,12 @@ public class ValidationRunner {
     private static final String FLAG_CONTENT_QUERY_USERNAME = "-contentQueryUsername";
     private static final String FLAG_CONTENT_QUERY_PASSWORD = "-contentQueryPassword";
 
-    private DomainConfig domainConfig;
-
     @Autowired
     FileManager fileManager;
     @Autowired
     ApplicationContext applicationContext;
     @Autowired
-    DomainConfigCache domainConfigCache;
-    @Autowired
     InputHelper inputHelper;
-
-    /**
-     * Initialisation method to determine if the domain configurations are well-defined.
-     */
-    @PostConstruct
-    public void init() {
-        // Determine the domain configuration.
-        List<DomainConfig> domainConfigurations = domainConfigCache.getAllDomainConfigurations();
-        
-        if (domainConfigurations.size() == 1) {
-            this.domainConfig = domainConfigurations.get(0);
-        } else if (domainConfigurations.size() > 1) {
-            StringBuilder message = new StringBuilder();
-            message.append("A specific validation domain needs to be selected. Do this by supplying the -Dvalidator.domain argument. Possible values for this are [");
-        	for (DomainConfig dc: domainConfigurations) {
-        		message.append(dc.getDomainName());
-                message.append("|");
-        	}
-        	message.delete(message.length()-1, message.length()).append("].");
-            loggerFeedback.info(message.toString());
-            logger.error(message.toString());
-            throw new IllegalArgumentException();
-        } else {
-        	String message = "No validation domains could be found.";
-        	
-        	loggerFeedback.info(message);
-            logger.error(message);
-            throw new IllegalStateException(message);
-        }
-    }
 
     /**
      * Run the validation.
@@ -114,7 +74,8 @@ public class ValidationRunner {
      * @param args The command-line arguments.
      * @param parentFolder The temporary folder to use for this validator's run.
      */
-    protected void bootstrap(String[] args, File parentFolder) {
+    @Override
+    protected void bootstrapInternal(String[] args, File parentFolder) {
         // Process input arguments
         List<ValidationInput> inputs = new ArrayList<>();
         List<FileInfo> externalShapesList = new ArrayList<>();
@@ -241,7 +202,7 @@ public class ValidationRunner {
                         }
                     }
                 } catch (Exception e) {
-                    loggerFeedback.info("\nInvalid arguments provided: "+e.getMessage()+"\n");
+                    LOGGER_FEEDBACK.info("\nInvalid arguments provided: "+e.getMessage()+"\n");
                     inputs.clear();
                 }
                 if (inputs.isEmpty()) {
@@ -256,7 +217,7 @@ public class ValidationRunner {
                     summary.append("\n");
                     int i=0;
                     for (ValidationInput input: inputs) {
-                        loggerFeedback.info("\nValidating ["+input.getFilename()+"]...");
+                        LOGGER_FEEDBACK.info("\nValidating ["+input.getFileName()+"]...");
 
                         File inputFile = input.getInputFile();
 
@@ -265,7 +226,7 @@ public class ValidationRunner {
                             Model report = validator.validateAll();
                             // Output summary results.
                             TAR tarReport = Utils.getTAR(report, domainConfig);
-                            FileReport reporter = new FileReport(input.getFilename(), tarReport, requireType, type);
+                            FileReport reporter = new FileReport(input.getFileName(), tarReport, requireType, type);
                             summary.append("\n").append(reporter.toString()).append("\n");
                             // Output SHACL validation report (if not skipped).
                             if (!noReports) {
@@ -282,21 +243,21 @@ public class ValidationRunner {
                                 summary.append("- Detailed report in: [").append(reportFilePath.toFile().getAbsolutePath()).append("] \n");
                             }
                         } catch (ValidatorException e) {
-                            loggerFeedback.info("\nAn error occurred while executing the validation: "+e.getMessage());
-                            logger.error("An error occurred while executing the validation: "+e.getMessage(), e);
+                            LOGGER_FEEDBACK.info("\nAn error occurred while executing the validation: "+e.getMessage());
+                            LOGGER.error("An error occurred while executing the validation: "+e.getMessage(), e);
                             break;
 
                         } catch (Exception e) {
-                            loggerFeedback.info("\nAn error occurred while executing the validation.");
-                            logger.error("An error occurred while executing the validation: "+e.getMessage(), e);
+                            LOGGER_FEEDBACK.info("\nAn error occurred while executing the validation.");
+                            LOGGER.error("An error occurred while executing the validation: "+e.getMessage(), e);
                             break;
 
                         }
                         i++;
-                        loggerFeedback.info(" Done.\n");
+                        LOGGER_FEEDBACK.info(" Done.\n");
                     }
-                    loggerFeedback.info(summary.toString());
-                    loggerFeedbackFile.info(summary.toString());
+                    LOGGER_FEEDBACK.info(summary.toString());
+                    LOGGER_FEEDBACK_FILE.info(summary.toString());
                 }
             }
         } finally {
@@ -320,35 +281,34 @@ public class ValidationRunner {
      */
     private void printUsage() {
         StringBuilder usageStr = new StringBuilder(String.format("\nExpected usage: java -jar validator.jar %s FILE_1/URI_1 CONTENT_SYNTAX_1 ... [%s FILE_N/URI_N CONTENT_SYNTAX_N] [%s] [%s REPORT_SYNTAX] [%s REPORT_QUERY]", FLAG_CONTENT_TO_VALIDATE, FLAG_CONTENT_TO_VALIDATE, FLAG_NO_REPORTS, FLAG_REPORT_SYNTAX, FLAG_REPORT_QUERY));
-        StringBuilder detailsStr = new StringBuilder("\n   Where:" +
-                "\n      - FILE_X or URI_X is the full file path or URI to the content to validate, optionally followed by CONTENT_SYNTAX_X as the content's mime type."+
-                "\n      - REPORT_SYNTAX is the mime type for the validation report(s)."+
-                "\n      - REPORT_QUERY is an optional SPARQL CONSTRUCT query that will be used to post-process the SHACL validation report, replacing it as the output. This is wrapped with double quotes (\")."
-        );
+        StringBuilder detailsStr = new StringBuilder("\n").append(PAD).append("Where:");
+        detailsStr.append("\n").append(PAD).append(PAD).append("- FILE_X or URI_X is the full file path or URI to the content to validate, optionally followed by CONTENT_SYNTAX_X as the content's mime type.");
+        detailsStr.append("\n").append(PAD).append(PAD).append("- REPORT_SYNTAX is the mime type for the validation report(s).");
+        detailsStr.append("\n").append(PAD).append(PAD).append("- REPORT_QUERY is an optional SPARQL CONSTRUCT query that will be used to post-process the SHACL validation report, replacing it as the output. This is wrapped with double quotes (\").");
         if (domainConfig.hasMultipleValidationTypes()) {
             usageStr.append(String.format(" [%s VALIDATION_TYPE]", FLAG_VALIDATION_TYPE));
-            detailsStr.append(String.format("\n      - VALIDATION_TYPE is one of [%s].", String.join("|", domainConfig.getType())));
+            detailsStr.append("\n").append(PAD).append(PAD).append(String.format("- VALIDATION_TYPE is one of [%s].", String.join("|", domainConfig.getType())));
         }
         if (domainConfig.supportsUserProvidedLoadImports()) {
             usageStr.append(String.format(" [%s LOAD_IMPORTS]", FLAG_LOAD_IMPORTS));
-            detailsStr.append("\n      - LOAD_IMPORTS is a boolean indicating whether owl:Imports in the input should be loaded (true) or not (false).");
+            detailsStr.append("\n").append(PAD).append(PAD).append("- LOAD_IMPORTS is a boolean indicating whether owl:Imports in the input should be loaded (true) or not (false).");
         }
         if (domainConfig.supportsExternalArtifacts()) {
             usageStr.append(String.format(" [%s SHAPE_FILE_1/SHAPE_URI_1 CONTENT_SYNTAX_1] ... [%s SHAPE_FILE_N/SHAPE_URI_N CONTENT_SYNTAX_N]", FLAG_EXTERNAL_SHAPES, FLAG_EXTERNAL_SHAPES));
-            detailsStr.append("\n      - SHAPE_FILE_X or SHAPE_URI_X is the full file path or URI to additional shapes to consider, optionally followed by CONTENT_SYNTAX_X as the shapes' mime type.");
+            detailsStr.append("\n").append(PAD).append(PAD).append("- SHAPE_FILE_X or SHAPE_URI_X is the full file path or URI to additional shapes to consider, optionally followed by CONTENT_SYNTAX_X as the shapes' mime type.");
         }
         if (domainConfig.isSupportsQueries()) {
             usageStr.append(String.format(" [%s QUERY]", FLAG_CONTENT_QUERY));
-            detailsStr.append("\n      - QUERY is a SPARQL CONSTRUCT query to execute to retrieve the content to validate. This is wrapped with double quotes (\").");
+            detailsStr.append("\n").append(PAD).append(PAD).append("- QUERY is a SPARQL CONSTRUCT query to execute to retrieve the content to validate. This is wrapped with double quotes (\").");
             if (domainConfig.getQueryEndpoint() == null) {
                 usageStr.append(String.format(" [%s QUERY_ENDPOINT]", FLAG_CONTENT_QUERY_ENDPOINT));
-                detailsStr.append("\n      - QUERY_ENDPOINT is the SPARQL endpoint to execute the query against.");
+                detailsStr.append("\n").append(PAD).append(PAD).append("- QUERY_ENDPOINT is the SPARQL endpoint to execute the query against.");
             }
             if (domainConfig.getQueryUsername() == null) {
                 usageStr.append(String.format(" [%s QUERY_USERNAME]", FLAG_CONTENT_QUERY_USERNAME));
                 usageStr.append(String.format(" [%s QUERY_PASSWORD]", FLAG_CONTENT_QUERY_PASSWORD));
-                detailsStr.append("\n      - QUERY_USERNAME is the username to use for authentication against the SPARQL endpoint.");
-                detailsStr.append("\n      - QUERY_PASSWORD is the password to use for authentication against the SPARQL endpoint.");
+                detailsStr.append("\n").append(PAD).append(PAD).append("- QUERY_USERNAME is the username to use for authentication against the SPARQL endpoint.");
+                detailsStr.append("\n").append(PAD).append(PAD).append("- QUERY_PASSWORD is the password to use for authentication against the SPARQL endpoint.");
             }
         }
         String message = usageStr

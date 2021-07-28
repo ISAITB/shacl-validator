@@ -53,6 +53,10 @@
             <artifactId>validation-commons</artifactId>
         </dependency>
         <dependency>
+            <groupId>eu.europa.ec.itb.commons</groupId>
+            <artifactId>validation-commons-jar</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-logging</artifactId>
         </dependency>
