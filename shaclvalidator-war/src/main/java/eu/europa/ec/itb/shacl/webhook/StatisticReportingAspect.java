@@ -1,16 +1,11 @@
 package eu.europa.ec.itb.shacl.webhook;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.xml.ws.handler.MessageContext;
-
-import org.apache.jena.rdf.model.Model;
-import org.apache.jena.rdf.model.NodeIterator;
-import org.apache.jena.rdf.model.RDFNode;
-import org.apache.jena.rdf.model.Statement;
-import org.apache.jena.rdf.model.StmtIterator;
+import eu.europa.ec.itb.shacl.gitb.ValidationServiceImpl;
+import eu.europa.ec.itb.shacl.validation.SHACLValidator;
+import eu.europa.ec.itb.validation.commons.config.ApplicationConfig;
+import eu.europa.ec.itb.validation.commons.war.webhook.StatisticReporting;
+import eu.europa.ec.itb.validation.commons.war.webhook.UsageData;
+import org.apache.jena.rdf.model.*;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -23,11 +18,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
-import eu.europa.ec.itb.commons.war.webhook.StatisticReporting;
-import eu.europa.ec.itb.commons.war.webhook.UsageData;
-import eu.europa.ec.itb.shacl.gitb.ValidationServiceImpl;
-import eu.europa.ec.itb.shacl.validation.SHACLValidator;
-import eu.europa.ec.itb.validation.commons.config.ApplicationConfig;
+import javax.servlet.http.HttpServletRequest;
+import javax.xml.ws.handler.MessageContext;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Aspect that advises the application's entry points to extract and send usage statistics (if enabled).
@@ -39,7 +33,7 @@ public class StatisticReportingAspect extends StatisticReporting {
 
     private static final Logger logger = LoggerFactory.getLogger(StatisticReportingAspect.class);
 
-    private static ThreadLocal<Map<String, String>> adviceContext = new ThreadLocal<>();
+    private static final ThreadLocal<Map<String, String>> adviceContext = new ThreadLocal<>();
 
     @Autowired
     private ApplicationConfig config;
