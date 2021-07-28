@@ -112,6 +112,11 @@
                 <artifactId>validation-commons-war</artifactId>
                 <version>${version.itbCommons}</version>
             </dependency>
+            <dependency>
+                <groupId>eu.europa.ec.itb.commons</groupId>
+                <artifactId>validation-commons-jar</artifactId>
+                <version>${version.itbCommons}</version>
+            </dependency>
             <!-- ITB resources. -->
             <dependency>
                 <groupId>eu.europa.ec.itb</groupId>

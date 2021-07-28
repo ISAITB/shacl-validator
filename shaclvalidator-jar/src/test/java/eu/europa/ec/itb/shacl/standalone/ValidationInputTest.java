@@ -16,8 +16,7 @@ public class ValidationInputTest {
         var syntax = "syntax1";
         var input = new ValidationInput(file, type, name, syntax);
         assertEquals(file, input.getInputFile());
-        assertEquals(name, input.getFilename());
-        assertEquals(type, input.getValidationType());
+        assertEquals(name, input.getFileName());
         assertEquals(syntax, input.getContentSyntax());
     }
 
