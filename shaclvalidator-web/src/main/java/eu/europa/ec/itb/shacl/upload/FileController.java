@@ -4,6 +4,7 @@ import eu.europa.ec.itb.shacl.DomainConfig;
 import eu.europa.ec.itb.shacl.DomainConfigCache;
 import eu.europa.ec.itb.shacl.validation.FileManager;
 import eu.europa.ec.itb.validation.commons.ValidatorChannel;
+import eu.europa.ec.itb.validation.commons.report.ReportGeneratorBean;
 import eu.europa.ec.itb.validation.commons.web.errors.NotFoundException;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -37,6 +38,8 @@ public class FileController {
     private FileManager fileManager = null;
     @Autowired
     private DomainConfigCache domainConfigCache = null;
+    @Autowired
+    private ReportGeneratorBean reportGenerator = null;
 
     /**
      * Return a resource (input, shapes or report) linked to a given validation run.
@@ -87,6 +90,16 @@ public class FileController {
                 throw new IllegalArgumentException("A PDF report can only be requested for the validation report");
             }
             extension = "pdf";
+            File pdfReport = new File(tmpFolder, FILE_NAME__REPORT +".pdf");
+            if (!pdfReport.exists()) {
+                // Generate the requested PDF report from the TAR XML report.
+                File xmlReport = new File(tmpFolder, FILE_NAME__TAR +".xml");
+                if (xmlReport.exists()) {
+                    reportGenerator.writeReport(domainConfig, xmlReport, pdfReport);
+                } else {
+                    throw new NotFoundException();
+                }
+            }
         } else {
             extension = fileManager.getFileExtension(syntax);
         }

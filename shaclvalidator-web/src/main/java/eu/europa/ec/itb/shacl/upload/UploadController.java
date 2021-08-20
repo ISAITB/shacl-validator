@@ -9,7 +9,6 @@ import eu.europa.ec.itb.validation.commons.FileInfo;
 import eu.europa.ec.itb.validation.commons.ValidatorChannel;
 import eu.europa.ec.itb.validation.commons.artifact.ExternalArtifactSupport;
 import eu.europa.ec.itb.validation.commons.error.ValidatorException;
-import eu.europa.ec.itb.validation.commons.report.ReportGeneratorBean;
 import eu.europa.ec.itb.validation.commons.web.KeyWithLabel;
 import eu.europa.ec.itb.validation.commons.web.errors.NotFoundException;
 import org.apache.commons.io.FileUtils;
@@ -58,6 +57,7 @@ public class UploadController {
     static final String FILE_NAME__INPUT = "inputFile";
     static final String FILE_NAME__REPORT = "reportFile";
     static final String FILE_NAME__SHAPES = "shapesFile";
+    static final String FILE_NAME__TAR = "tarFile";
 
     @Autowired
     private FileManager fileManager = null;
@@ -70,9 +70,6 @@ public class UploadController {
 
     @Autowired
     private ApplicationContext ctx = null;
-
-    @Autowired
-    private ReportGeneratorBean reportGenerator = null;
 
     @Autowired
     private InputHelper inputHelper = null;
@@ -223,8 +220,7 @@ public class UploadController {
                     org.apache.jena.rdf.model.Model reportModel = validator.validateAll();
                     TAR tarReport = Utils.getTAR(reportModel, domainConfig);
                     if (tarReport.getReports().getInfoOrWarningOrError().size() <= domainConfig.getMaximumReportsForDetailedOutput()) {
-                        File pdfReport = new File(parentFolder, FILE_NAME__REPORT +".pdf");
-                        reportGenerator.writeReport(domainConfig, tarReport, pdfReport);
+                        fileManager.saveReport(tarReport, fileManager.createFile(parentFolder, ".xml", FILE_NAME__TAR).toFile(), domainConfig);
                     }
                     String fileName;
                     if (CONTENT_TYPE__FILE.equals(contentType)) {
