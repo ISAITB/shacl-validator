@@ -115,6 +115,27 @@ public class FileController {
     }
 
     /**
+     * Delete all data matching a specific ID. This is a POST request as it meant to be sent as
+     * beacon communication (which is a POST).
+     *
+     * @param domain The domain name.
+     * @param id The report files' ID.
+     */
+    @RequestMapping(value = "/{domain}/delete/{id}", method = RequestMethod.POST)
+    @ResponseBody
+    public void deleteReport(@PathVariable String domain, @PathVariable String id) {
+        var domainConfig = domainConfigCache.getConfigForDomainName(domain);
+        if (domainConfig == null || !domainConfig.getChannels().contains(ValidatorChannel.FORM)) {
+            throw new NotFoundException();
+        }
+        MDC.put("domain", domain);
+        File tmpFolder = new File(fileManager.getWebTmpFolder(), id);
+        if (tmpFolder.exists() && tmpFolder.isDirectory()) {
+            FileUtils.deleteQuietly(tmpFolder);
+        }
+    }
+
+    /**
      * Retrieve the file from the provided folder that corresponds to the requested type.
      *
      * @param folder The folder to look within.
