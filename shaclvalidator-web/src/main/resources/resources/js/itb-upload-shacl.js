@@ -276,3 +276,18 @@ function createOption(text, value){
 	option.value = value;
 	return option;
 }
+
+function registerCleanup(reportId) {
+    window.addEventListener("beforeunload", function() {
+        if (navigator.sendBeacon) {
+            // Modern browsers
+            navigator.sendBeacon("delete/"+reportId)
+        } else {
+            // IE
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", "delete/"+reportId, true);
+            xhr.setRequestHeader("X-Requested-With", "XmlHttpRequest");
+            xhr.send(null);
+        }
+    });
+}

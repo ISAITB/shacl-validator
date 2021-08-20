@@ -9,7 +9,6 @@ import eu.europa.ec.itb.shacl.rest.model.ApiInfo;
 import eu.europa.ec.itb.shacl.rest.model.Input;
 import eu.europa.ec.itb.shacl.rest.model.Output;
 import eu.europa.ec.itb.shacl.rest.model.RuleSet;
-import eu.europa.ec.itb.shacl.util.Utils;
 import eu.europa.ec.itb.shacl.validation.FileManager;
 import eu.europa.ec.itb.shacl.validation.SHACLValidator;
 import eu.europa.ec.itb.validation.commons.FileContent;
@@ -35,11 +34,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import javax.servlet.http.HttpServletRequest;
-import java.io.File;
-import java.io.IOException;
-import java.io.StringWriter;
+import java.io.*;
 import java.nio.charset.Charset;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -134,7 +132,7 @@ public class ShaclController {
             @ApiResponse(code = 404, message = "Not found (for an invalid domain value)", response = String.class)
     })
     @RequestMapping(value = "/{domain}/api/validate", method = RequestMethod.POST, consumes = {MediaType.APPLICATION_JSON_VALUE, "application/ld+json"})
-    public ResponseEntity<String> validate(
+    public ResponseEntity<StreamingResponseBody> validate(
             @ApiParam(required = true, name = "domain", value = "A fixed value corresponding to the specific validation domain.")
             @PathVariable("domain") String domain,
             @ApiParam(required = true, name = "input", value = "The input for the validation (content and metadata for one RDF instance).")
@@ -143,13 +141,9 @@ public class ShaclController {
     ) {
         DomainConfig domainConfig = validateDomain(domain);
         String reportSyntax = getValidationReportSyntax(in.getReportSyntax(), getFirstSupportedAcceptHeader(request), domainConfig.getDefaultReportSyntax());
-
-        //Start validation process of the Input
-        String shaclResult = executeValidationProcess(in, domainConfig, reportSyntax);
-
-        HttpHeaders responseHeaders = new HttpHeaders();
-        responseHeaders.setContentType(MediaType.parseMediaType(reportSyntax));
-        return new ResponseEntity<>(shaclResult, responseHeaders, HttpStatus.OK);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(reportSyntax))
+                .body(outputStream -> executeValidationProcess(in, domainConfig, reportSyntax, new OutputStreamWriter(outputStream)));
     }
 
     /**
@@ -216,11 +210,11 @@ public class ShaclController {
      * @param in The input for the validation (content and metadata for one or more RDF instances).
      * @param domainConfig The domain where the SHACL validator is executed.
      * @param reportSyntax Report syntax of the report.
+     * @param outputWriter The response stream to write to.
      * @return Report of the validation as String.
      */
-    private String executeValidationProcess(Input in, DomainConfig domainConfig, String reportSyntax) {
-        String validationResult;
-        //Start validation of the input file
+    private void executeValidationProcess(Input in, DomainConfig domainConfig, String reportSyntax, Writer outputWriter) {
+        // Start validation of the input file
         File parentFolder = fileManager.createTemporaryFolderPath();
         File inputFile;
         String contentSyntax = in.getContentSyntax();
@@ -245,10 +239,10 @@ public class ShaclController {
                 // Run post-processing query on report and return based on content-type
                 Query query = QueryFactory.create(in.getReportQuery());
                 QueryExecution queryExecution = QueryExecutionFactory.create(query, validationReport);
-                validationResult = fileManager.writeRdfModelToString(queryExecution.execConstruct(), reportSyntax);
+                fileManager.writeRdfModel(outputWriter, queryExecution.execConstruct(), reportSyntax);
             } else {
                 // Return the validation report according to content-type
-                validationResult = fileManager.writeRdfModelToString(validationReport, reportSyntax);
+                fileManager.writeRdfModel(outputWriter, validationReport, reportSyntax);
             }
         } catch (ValidatorException | NotFoundException e) {
             throw e;
@@ -257,7 +251,6 @@ public class ShaclController {
         } finally {
             FileUtils.deleteQuietly(parentFolder);
         }
-        return validationResult;
     }
 
     /**
@@ -311,8 +304,9 @@ public class ShaclController {
             String reportSyntax = getValidationReportSyntax(input.getReportSyntax(), acceptHeader, domainConfig.getDefaultReportSyntax());
 
             //Start validation process of the Input
-            String shaclResult = executeValidationProcess(input, domainConfig, reportSyntax);
-            output.setReport(Base64.getEncoder().encodeToString(shaclResult.getBytes()));
+            StringWriter writer = new StringWriter();
+            executeValidationProcess(input, domainConfig, reportSyntax, writer);
+            output.setReport(Base64.getEncoder().encodeToString(writer.toString().getBytes()));
             output.setReportSyntax(reportSyntax);
 
             outputs[i] = output;
