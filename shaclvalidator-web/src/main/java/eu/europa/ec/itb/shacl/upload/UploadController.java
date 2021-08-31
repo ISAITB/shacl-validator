@@ -56,6 +56,7 @@ public class UploadController {
     static final String DOWNLOAD_TYPE__CONTENT = "contentType";
     static final String FILE_NAME__INPUT = "inputFile";
     static final String FILE_NAME__REPORT = "reportFile";
+    static final String FILE_NAME__PDF_REPORT = "pdfReportFile";
     static final String FILE_NAME__SHAPES = "shapesFile";
     static final String FILE_NAME__TAR = "tarFile";
 

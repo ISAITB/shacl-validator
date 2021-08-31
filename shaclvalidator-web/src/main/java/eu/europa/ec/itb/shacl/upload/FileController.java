@@ -94,7 +94,7 @@ public class FileController {
                 throw new IllegalArgumentException("A PDF report can only be requested for the validation report");
             }
             extension = "pdf";
-            File pdfReport = new File(tmpFolder, FILE_NAME__REPORT +".pdf");
+            File pdfReport = new File(tmpFolder, FILE_NAME__PDF_REPORT +".pdf");
             if (!pdfReport.exists()) {
                 // Generate the requested PDF report from the TAR XML report.
                 File xmlReport = new File(tmpFolder, FILE_NAME__TAR +".xml");
@@ -185,6 +185,9 @@ public class FileController {
                         file = fileTmp;
                     }
                     break;
+            }
+            if (file != null) {
+                break;
             }
         }
         if (file == null) {
