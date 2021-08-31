@@ -12,6 +12,8 @@ import org.apache.commons.io.filefilter.TrueFileFilter;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFLanguages;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.FileSystemResource;
@@ -33,6 +35,8 @@ import static eu.europa.ec.itb.shacl.upload.UploadController.*;
  */
 @RestController
 public class FileController {
+
+    private static final Logger LOG = LoggerFactory.getLogger(FileController.class);
 
     @Autowired
     private FileManager fileManager = null;
@@ -97,6 +101,7 @@ public class FileController {
                 if (xmlReport.exists()) {
                     reportGenerator.writeReport(domainConfig, xmlReport, pdfReport);
                 } else {
+                    LOG.error(String.format("Unable to produce PDF report because of missing XML report (validation ID was [%s])", id));
                     throw new NotFoundException();
                 }
             }
@@ -108,6 +113,10 @@ public class FileController {
             // File doesn't exist. Create it based on an existing file.
             File existingFileOfRequestedType = getFileByType(tmpFolder, type);
             Lang lang = RDFLanguages.filenameToLang(existingFileOfRequestedType.getName());
+            if (lang == null || lang.getContentType() == null) {
+                LOG.error(String.format("Unable to determine RDF language from existing file [%s] of type [%s] (validation ID was [%s])", existingFileOfRequestedType.getName(), type, id));
+                throw new NotFoundException();
+            }
             String existingSyntax = lang.getContentType().getContentType();
             Model fileModel = JenaUtil.createMemoryModel();
             try (FileInputStream in = new FileInputStream(existingFileOfRequestedType); FileWriter out = new FileWriter(targetFile)) {
