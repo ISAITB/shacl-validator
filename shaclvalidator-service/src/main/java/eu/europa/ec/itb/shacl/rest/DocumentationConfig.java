@@ -18,7 +18,6 @@ import springfox.documentation.builders.RequestHandlerSelectors;
 import springfox.documentation.service.ApiInfo;
 import springfox.documentation.spi.DocumentationType;
 import springfox.documentation.spring.web.plugins.Docket;
-import springfox.documentation.swagger2.annotations.EnableSwagger2;
 
 import javax.annotation.PostConstruct;
 import java.io.File;
@@ -29,7 +28,6 @@ import java.util.*;
  * Configuration for the validator's REST API documentation (based on Swagger and Hydra).
  */
 @Configuration
-@EnableSwagger2
 public class DocumentationConfig {
 
     private static final Logger logger = LoggerFactory.getLogger(DocumentationConfig.class);
