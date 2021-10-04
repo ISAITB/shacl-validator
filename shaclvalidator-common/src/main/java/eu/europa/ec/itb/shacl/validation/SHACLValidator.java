@@ -299,14 +299,14 @@ public class SHACLValidator {
             LOG.info("Validating against ["+shaclFile.getFile().getName()+"]");
             Lang rdfLanguage = RDFLanguages.contentTypeToLang(shaclFile.getType());
             if (rdfLanguage == null) {
-                throw new ValidatorException("Unable to determine the content type of a SHACL shape file.");
+                throw new ValidatorException("validator.label.exception..unableToDetermineShaclContentType");
             }
             try (InputStream dataStream = new FileInputStream(shaclFile.getFile())) {
                 Model fileModel = JenaUtil.createMemoryModel();
                 fileModel.read(dataStream, null, rdfLanguage.getName());
                 aggregateModel.add(fileModel);
             } catch (IOException e) {
-                throw new ValidatorException("An error occurred while reading a SHACL file.", e);
+                throw new ValidatorException("validator.label.exception.errorReadingShaclFile", e);
            }
         }
         if(this.importedShapes!=null) {
@@ -391,7 +391,7 @@ public class SHACLValidator {
                 }
             }
             if (lang == null) {
-                throw new ValidatorException("The RDF language could not be determined for the provided content.");
+                throw new ValidatorException("validator.label.exception.rdfLanguageCouldNotBeDetermined");
             }
             contentSyntaxLang = lang;
         }
@@ -425,7 +425,7 @@ public class SHACLValidator {
 	            }
             }
         } catch (Exception e) {
-            throw new ValidatorException("An error occurred while reading the provided content: "+e.getMessage(), e);
+            throw new ValidatorException("validator.label.exception.errorWhileReadingProvidedContent", e, e.getMessage());
         }
         /*
          * Add the aggregated shapes' model to the input data model. This is done so that any vocabulary definitions

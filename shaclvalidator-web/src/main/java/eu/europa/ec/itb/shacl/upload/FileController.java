@@ -1,11 +1,16 @@
 package eu.europa.ec.itb.shacl.upload;
 
+import com.gitb.tr.TestResultType;
+import eu.europa.ec.itb.shacl.ApplicationConfig;
 import eu.europa.ec.itb.shacl.DomainConfig;
 import eu.europa.ec.itb.shacl.DomainConfigCache;
 import eu.europa.ec.itb.shacl.validation.FileManager;
+import eu.europa.ec.itb.validation.commons.LocalisationHelper;
 import eu.europa.ec.itb.validation.commons.ValidatorChannel;
 import eu.europa.ec.itb.validation.commons.report.ReportGeneratorBean;
+import eu.europa.ec.itb.validation.commons.report.dto.ReportLabels;
 import eu.europa.ec.itb.validation.commons.web.errors.NotFoundException;
+import eu.europa.ec.itb.validation.commons.web.locale.CustomLocaleResolver;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.filefilter.TrueFileFilter;
@@ -21,12 +26,14 @@ import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.topbraid.jenax.util.JenaUtil;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 
 import static eu.europa.ec.itb.shacl.upload.UploadController.*;
 
@@ -39,11 +46,15 @@ public class FileController {
     private static final Logger LOG = LoggerFactory.getLogger(FileController.class);
 
     @Autowired
-    private FileManager fileManager = null;
+    private FileManager fileManager;
     @Autowired
-    private DomainConfigCache domainConfigCache = null;
+    private DomainConfigCache domainConfigCache;
     @Autowired
-    private ReportGeneratorBean reportGenerator = null;
+    private ReportGeneratorBean reportGenerator;
+    @Autowired
+    private CustomLocaleResolver localeResolver;
+    @Autowired
+    protected ApplicationConfig appConfig;
 
     /**
      * Return a resource (input, shapes or report) linked to a given validation run.
@@ -62,6 +73,7 @@ public class FileController {
             @RequestParam String id,
             @RequestParam String type,
             @RequestParam String syntax,
+            HttpServletRequest request,
             HttpServletResponse response) {
 
         DomainConfig domainConfig = domainConfigCache.getConfigForDomainName(domain);
@@ -88,18 +100,23 @@ public class FileController {
             default: throw new IllegalArgumentException("Invalid file type ["+type+"]");
         }
         // Determine extension.
+        File targetFile;
         String extension;
         if (syntax.equals("pdfType")) {
+            extension = "pdf";
             if (!UploadController.DOWNLOAD_TYPE__REPORT.equals(type)) {
                 throw new IllegalArgumentException("A PDF report can only be requested for the validation report");
             }
-            extension = "pdf";
-            File pdfReport = new File(tmpFolder, FILE_NAME__PDF_REPORT +".pdf");
-            if (!pdfReport.exists()) {
+            targetFile = new File(tmpFolder, FILE_NAME__PDF_REPORT +".pdf");
+            if (!targetFile.exists()) {
                 // Generate the requested PDF report from the TAR XML report.
                 File xmlReport = new File(tmpFolder, FILE_NAME__TAR +".xml");
                 if (xmlReport.exists()) {
-                    reportGenerator.writeReport(domainConfig, xmlReport, pdfReport);
+                    reportGenerator.writeReport(
+                            xmlReport,
+                            targetFile,
+                            (report) -> getReportLabels(new LocalisationHelper(domainConfig, localeResolver.resolveLocale(request, response, domainConfig, appConfig)), report.getResult())
+                    );
                 } else {
                     LOG.error(String.format("Unable to produce PDF report because of missing XML report (validation ID was [%s])", id));
                     throw new NotFoundException();
@@ -107,8 +124,8 @@ public class FileController {
             }
         } else {
             extension = fileManager.getFileExtension(syntax);
+            targetFile = new File(tmpFolder, baseFileName+"."+extension);
         }
-        File targetFile = new File(tmpFolder, baseFileName+"."+extension);
         if (!targetFile.exists()) {
             // File doesn't exist. Create it based on an existing file.
             File existingFileOfRequestedType = getFileByType(tmpFolder, type);
@@ -194,6 +211,32 @@ public class FileController {
             throw new NotFoundException();
         }
         return file;
+    }
+
+    /**
+     * Get the labels to use in PDF reports.
+     *
+     * @param helper The localisation helper.
+     * @param resultType The report's result to consider.
+     * @return The labels.
+     */
+    private ReportLabels getReportLabels(LocalisationHelper helper, TestResultType resultType) {
+        var reportLabels = new ReportLabels();
+        reportLabels.setTitle(helper.localise("validator.reportTitle"));
+        reportLabels.setOverview(helper.localise("validator.label.resultSubSectionOverviewTitle"));
+        reportLabels.setDetails(helper.localise("validator.label.resultSubSectionDetailsTitle"));
+        reportLabels.setDate(helper.localise("validator.label.resultDateLabel"));
+        reportLabels.setResult(helper.localise("validator.label.resultResultLabel"));
+        reportLabels.setFileName(helper.localise("validator.label.resultFileNameLabel"));
+        reportLabels.setErrors(helper.localise("validator.label.resultErrorsLabel"));
+        reportLabels.setWarnings(helper.localise("validator.label.resultWarningsLabel"));
+        reportLabels.setMessages(helper.localise("validator.label.resultMessagesLabel"));
+        reportLabels.setTest(helper.localise("validator.label.resultTestLabel"));
+        reportLabels.setLocation(helper.localise("validator.label.resultLocationLabel"));
+        reportLabels.setPage(helper.localise("validator.label.pageLabel"));
+        reportLabels.setOf(helper.localise("validator.label.ofLabel"));
+        reportLabels.setResultType(helper.localise("validator.label.result."+resultType.value().toLowerCase(Locale.ROOT)));
+        return reportLabels;
     }
 
 }

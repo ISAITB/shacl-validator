@@ -1,6 +1,7 @@
 package eu.europa.ec.itb.shacl.rest;
 
 import eu.europa.ec.itb.shacl.rest.errors.ErrorInfo;
+import eu.europa.ec.itb.validation.commons.LocalisationHelper;
 import eu.europa.ec.itb.validation.commons.error.ValidatorException;
 import eu.europa.ec.itb.validation.commons.web.errors.NotFoundException;
 import org.slf4j.Logger;
@@ -12,6 +13,8 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+
+import java.util.Locale;
 
 /**
  * Handle all errors linked to validator REST API calls.
@@ -51,8 +54,8 @@ public class ErrorHandler extends ResponseEntityExceptionHandler {
      */
     @ExceptionHandler(value = {ValidatorException.class})
     protected ResponseEntity<Object> handleValidatorException(ValidatorException ex, WebRequest request) {
-        logger.error("Caught ValidatorException", ex);
-        return handleExceptionInternal(ex, new ErrorInfo(ex.getMessage()), new HttpHeaders(), HttpStatus.INTERNAL_SERVER_ERROR, request);
+        logger.error(String.format("Caught ValidatorException: %s", ex.getMessageForLog()), ex);
+        return handleExceptionInternal(ex, new ErrorInfo(ex.getMessageForDisplay(new LocalisationHelper(Locale.ENGLISH))), new HttpHeaders(), HttpStatus.INTERNAL_SERVER_ERROR, request);
     }
 
     /**

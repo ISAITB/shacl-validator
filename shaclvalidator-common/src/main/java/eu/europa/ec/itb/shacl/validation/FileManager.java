@@ -191,7 +191,7 @@ public class FileManager extends BaseFileManager<ApplicationConfig> {
             qEngine.setModelContentType(queryConfig.getPreferredContentType());
             resultModel = qEngine.execConstruct();
         } catch (Exception e) {
-            throw new ValidatorException("An error occurred while querying the SPARQL endpoint: " + e.getMessage(), e);
+            throw new ValidatorException("validator.label.exception.sparqlQueryError", e, e.getMessage());
         } finally {
             qEngine.close();
         }
@@ -201,7 +201,7 @@ public class FileManager extends BaseFileManager<ApplicationConfig> {
             try {
                 writeRdfModel(new FileWriter(modelPath.toFile()), resultModel, queryConfig.getPreferredContentType());
             } catch (IOException e) {
-                throw new ValidatorException("An error occurred while processing the retrieved content.", e);
+                throw new ValidatorException("validator.label.exception.sparqlQueryErrorInContentProcessing", e);
             }
         }
         return modelPath;
@@ -249,11 +249,11 @@ public class FileManager extends BaseFileManager<ApplicationConfig> {
                 return query;
             } else {
                 logger.error("The input query must be a CONSTRUCT query.");
-                throw new ValidatorException("The input query must be a CONSTRUCT query.");
+                throw new ValidatorException("validator.label.exception.sparqlQueryMustBeConstruct");
             }
         } catch(QueryException e) {
             logger.error("Error getting SPARQL Query", e);
-            throw new ValidatorException("An error occurred while parsing the provided SPARQL Query: "+e.getMessage(), e);
+            throw new ValidatorException("validator.label.exception.sparqlQueryParsingError", e, e.getMessage());
         }
     }
 

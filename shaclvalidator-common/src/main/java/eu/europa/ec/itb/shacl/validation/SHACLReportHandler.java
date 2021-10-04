@@ -11,7 +11,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.xml.bind.JAXBElement;
-import javax.xml.datatype.DatatypeConfigurationException;
 import java.io.StringWriter;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -28,15 +27,17 @@ public class SHACLReportHandler {
 	private final Model shaclReport;
 	private final DomainConfig domainConfig;
     private final ObjectFactory objectFactory = new ObjectFactory();
+    private final ReportLabels labels;
 
     /**
      * Constructor.
      *
      * @param shaclReport The RDF report.
      * @param domainConfig The domain configuration.
+     * @param labels The labels to use for fixed texts.
      */
-    public SHACLReportHandler(Model shaclReport, DomainConfig domainConfig) {
-        this(null, null, shaclReport, null, domainConfig);
+    public SHACLReportHandler(Model shaclReport, DomainConfig domainConfig, ReportLabels labels) {
+        this(null, null, shaclReport, null, domainConfig, labels);
     }
 
     /**
@@ -47,10 +48,12 @@ public class SHACLReportHandler {
      * @param shaclReport The RDF report.
      * @param reportContentToInclude The content for the validation report to add as context to the TAR report.
      * @param domainConfig The domain configuration.
+     * @param labels The labels to use for fixed texts.
      */
-	public SHACLReportHandler(String inputFile, Model shapes, Model shaclReport, String reportContentToInclude, DomainConfig domainConfig) {
+	public SHACLReportHandler(String inputFile, Model shapes, Model shaclReport, String reportContentToInclude, DomainConfig domainConfig, ReportLabels labels) {
 		this.shaclReport = shaclReport;
 		this.domainConfig = domainConfig;
+        this.labels = labels;
 		report = new TAR();
         report.setResult(TestResultType.SUCCESS);
         report.setDate(Utils.getXMLGregorianCalendarDateTime());
@@ -162,8 +165,8 @@ public class SHACLReportHandler {
                             value = getStatementSafe(statement);
                         }
             		}
-            		error.setLocation(createStringMessageFromParts(new String[] {domainConfig.getLabel().getReportItemFocusNode(), domainConfig.getLabel().getReportItemResultPath()}, new String[] {focusNode, resultPath}));
-                    error.setTest(createStringMessageFromParts(new String[] {domainConfig.getLabel().getReportItemShape(), domainConfig.getLabel().getReportItemValue()}, new String[] {shape, value}));
+            		error.setLocation(createStringMessageFromParts(new String[] {labels.getFocusNode(), labels.getResultPath()}, new String[] {focusNode, resultPath}));
+                    error.setTest(createStringMessageFromParts(new String[] {labels.getShape(), labels.getValue()}, new String[] {shape, value}));
                     JAXBElement element;
                     if (severity.equals("http://www.w3.org/ns/shacl#Info")) {
                         element = this.objectFactory.createTestAssertionGroupReportsTypeInfo(error);
@@ -242,6 +245,73 @@ public class SHACLReportHandler {
 		StringWriter writer = new StringWriter();		
 		shaclReport.write(writer);
 		return writer.toString();
+    }
+
+    /**
+     * Class used to define fixed texts used within the report.
+     */
+    public static class ReportLabels {
+
+        private String focusNode;
+        private String resultPath;
+        private String shape;
+        private String value;
+
+        /**
+         * @return The focus node label.
+         */
+        public String getFocusNode() {
+            return focusNode;
+        }
+
+        /**
+         * @param focusNode The focus node label.
+         */
+        public void setFocusNode(String focusNode) {
+            this.focusNode = focusNode;
+        }
+
+        /**
+         * @return The result path label.
+         */
+        public String getResultPath() {
+            return resultPath;
+        }
+
+        /**
+         * @param resultPath The result path label.
+         */
+        public void setResultPath(String resultPath) {
+            this.resultPath = resultPath;
+        }
+
+        /**
+         * @return The shape label.
+         */
+        public String getShape() {
+            return shape;
+        }
+
+        /**
+         * @param shape The shape label.
+         */
+        public void setShape(String shape) {
+            this.shape = shape;
+        }
+
+        /**
+         * @return The value label.
+         */
+        public String getValue() {
+            return value;
+        }
+
+        /**
+         * @param value The value label.
+         */
+        public void setValue(String value) {
+            this.value = value;
+        }
     }
 
     /**

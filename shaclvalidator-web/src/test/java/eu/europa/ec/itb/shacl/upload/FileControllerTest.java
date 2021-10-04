@@ -9,9 +9,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Set;
 
@@ -55,10 +55,11 @@ public class FileControllerTest extends BaseTest {
         doReturn(Set.of(ValidatorChannel.FORM)).when(domainConfig).getChannels();
         doReturn(tmpFolder.toFile()).when(fileManager).getWebTmpFolder();
         doReturn("xml").when(fileManager).getFileExtension(anyString());
+        var httpRequest = mock(HttpServletRequest.class);
         var httpResponse = mock(HttpServletResponse.class);
         var testFile = createFileWithContents(Path.of(tmpFolder.toString(), "id1", UploadController.FILE_NAME__INPUT+".xml"), "CONTENT");
         var controller = createFileController();
-        var result = controller.getReport("domain1", "id1", UploadController.DOWNLOAD_TYPE__CONTENT, "application/rdf+xml", httpResponse);
+        var result = controller.getReport("domain1", "id1", UploadController.DOWNLOAD_TYPE__CONTENT, "application/rdf+xml", httpRequest, httpResponse);
         assertNotNull(result);
         assertNotNull(result.getFile());
         assertEquals(testFile, result.getFile().toPath());
