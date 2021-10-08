@@ -70,7 +70,7 @@ public class FileManager extends BaseFileManager<ApplicationConfig> {
         if (StringUtils.isBlank(declaredContentType)) {
             ContentType detectedContentType = RDFLanguages.guessContentType(file.getName());
             if (detectedContentType != null) {
-                declaredContentType = detectedContentType.getContentType();
+                declaredContentType = detectedContentType.getContentTypeStr();
             }
         }
         return declaredContentType;

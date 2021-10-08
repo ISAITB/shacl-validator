@@ -423,7 +423,7 @@ public class UploadController {
         Lang lang = RDFLanguages.filenameToLang(filename);
 
         if(lang != null) {
-            contentType = lang.getContentType().getContentType();
+            contentType = lang.getContentType().getContentTypeStr();
         }
 
         return contentType;
@@ -545,7 +545,7 @@ public class UploadController {
         List<KeyWithLabel> types = new ArrayList<>();
         for (String cs : contentSyntax) {
             Lang lang = RDFLanguages.contentTypeToLang(cs);
-            types.add(new KeyWithLabel(lang.getLabel(), lang.getContentType().getContentType()));
+            types.add(new KeyWithLabel(lang.getLabel(), lang.getContentType().getContentTypeStr()));
         }
         return types.stream().sorted(Comparator.comparing(KeyWithLabel::getKey)).collect(Collectors.toList());
     }

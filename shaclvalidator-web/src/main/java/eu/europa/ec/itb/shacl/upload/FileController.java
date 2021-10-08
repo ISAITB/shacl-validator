@@ -117,7 +117,7 @@ public class FileController {
                 LOG.error(String.format("Unable to determine RDF language from existing file [%s] of type [%s] (validation ID was [%s])", existingFileOfRequestedType.getName(), type, id));
                 throw new NotFoundException();
             }
-            String existingSyntax = lang.getContentType().getContentType();
+            String existingSyntax = lang.getContentType().getContentTypeStr();
             Model fileModel = JenaUtil.createMemoryModel();
             try (FileInputStream in = new FileInputStream(existingFileOfRequestedType); FileWriter out = new FileWriter(targetFile)) {
                 fileModel.read(in, null, existingSyntax);

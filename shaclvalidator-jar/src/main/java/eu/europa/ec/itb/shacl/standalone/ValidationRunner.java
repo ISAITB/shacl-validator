@@ -388,7 +388,7 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
     	if (StringUtils.isBlank(contentType)) {
     		ContentType ct = RDFLanguages.guessContentType(contentToValidate);
     		if(ct!=null) {
-    			contentType = ct.getContentType();
+    			contentType = ct.getContentTypeStr();
     		}
     	}
 		return contentType;
