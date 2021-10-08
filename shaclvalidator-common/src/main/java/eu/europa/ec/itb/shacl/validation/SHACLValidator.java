@@ -1,7 +1,5 @@
 package eu.europa.ec.itb.shacl.validation;
 
-import com.gitb.core.AnyContent;
-import com.gitb.core.ValueEmbeddingEnumeration;
 import com.gitb.tr.BAR;
 import com.gitb.tr.TestAssertionReportType;
 import com.gitb.vs.ValidateRequest;
@@ -120,7 +118,7 @@ public class SHACLValidator {
      */
     private ValidateRequest preparePluginInput(File pluginTmpFolder) {
         // The content to validate is provided to plugins as a copu of the content in RDF/XML (for simpler processing).
-        File pluginInputFile = new File(pluginTmpFolder, UUID.randomUUID().toString()+".rdf");
+        File pluginInputFile = new File(pluginTmpFolder, UUID.randomUUID() +".rdf");
         Lang contentSyntax = contextSyntaxToUse();
         if (Lang.RDFXML.equals(contentSyntax)) {
             // Use file as-is.
@@ -133,8 +131,8 @@ public class SHACLValidator {
             // Make a converted copy.
             Model fileModel = JenaUtil.createMemoryModel();
             try (FileInputStream in = new FileInputStream(inputFileToValidate); FileWriter out = new FileWriter(pluginInputFile)) {
-                fileModel.read(in, null, contentSyntax.getContentType().getContentType());
-                fileManager.writeRdfModel(out, fileModel, Lang.RDFXML.getContentType().getContentType());
+                fileModel.read(in, null, contentSyntax.getContentType().getContentTypeStr());
+                fileManager.writeRdfModel(out, fileModel, Lang.RDFXML.getContentType().getContentTypeStr());
             } catch (IOException e) {
                 throw new IllegalStateException("Unable to convert input file for plugin", e);
             }
