@@ -1,11 +1,13 @@
 package eu.europa.ec.itb.shacl.rest.model;
 
 import eu.europa.ec.itb.shacl.DomainConfig;
+import eu.europa.ec.itb.validation.commons.LocalisationHelper;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Object providing the information on the validator's supported domains and validation types.
@@ -55,10 +57,11 @@ public class ApiInfo {
     public static ApiInfo fromDomainConfig(DomainConfig config) {
         ApiInfo info = new ApiInfo();
         info.setDomain(config.getDomainName());
+        var localisationHelper = new LocalisationHelper(config, Locale.ENGLISH);
         for (String type: config.getType()) {
             ValidationType typeInfo = new ValidationType();
             typeInfo.setType(type);
-            typeInfo.setDescription(config.getTypeLabel().getOrDefault(type, type));
+            typeInfo.setDescription(config.getCompleteTypeOptionLabel(type, localisationHelper));
             info.getValidationTypes().add(typeInfo);
         }
         return info;

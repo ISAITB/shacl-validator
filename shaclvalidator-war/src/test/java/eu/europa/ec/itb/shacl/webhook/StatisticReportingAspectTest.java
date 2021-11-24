@@ -9,6 +9,7 @@ import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -22,7 +23,7 @@ public class StatisticReportingAspectTest {
         // Use subclasses as AspectJ proxies cannot be made over Mockito mocks and spies.
         var target = new UploadController() {
             @Override
-            public ModelAndView handleUpload(String domain, MultipartFile file, String uri, String string, String contentType, String validationType, String contentSyntaxType, String[] externalContentType, MultipartFile[] externalFiles, String[] externalUri, String[] externalFilesSyntaxType, Boolean loadImportsValue, String contentQuery, String contentQueryEndpoint, Boolean contentQueryAuthenticate, String contentQueryUsername, String contentQueryPassword, HttpServletRequest request) {
+            public ModelAndView handleUpload(String domain, MultipartFile file, String uri, String string, String contentType, String validationType, String contentSyntaxType, String[] externalContentType, MultipartFile[] externalFiles, String[] externalUri, String[] externalFilesSyntaxType, Boolean loadImportsValue, String contentQuery, String contentQueryEndpoint, Boolean contentQueryAuthenticate, String contentQueryUsername, String contentQueryPassword, HttpServletRequest request, HttpServletResponse response) {
                 assertEquals("domain1", domain);
                 assertTrue(aspectCalled[0]); // We expect the aspect to have been called before the method.
                 // We only want to check if this was called.
@@ -40,7 +41,7 @@ public class StatisticReportingAspectTest {
         var aspectFactory = new AspectJProxyFactory(target);
         aspectFactory.addAspect(aspect);
         UploadController controller = aspectFactory.getProxy();
-        controller.handleUpload("domain1", null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+        controller.handleUpload("domain1", null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
         assertTrue(aspectCalled[0]);
         assertTrue(targetCalled[0]);
     }
@@ -52,7 +53,7 @@ public class StatisticReportingAspectTest {
         // Use subclasses as AspectJ proxies cannot be made over Mockito mocks and spies.
         var target = new UploadController() {
             @Override
-            public ModelAndView handleUploadM(String domain, MultipartFile file, String uri, String string, String contentType, String validationType, String contentSyntaxType, String[] externalContentType, MultipartFile[] externalFiles, String[] externalUri, String[] externalFilesSyntaxType, Boolean loadImportsValue, String contentQuery, String contentQueryEndpoint, Boolean contentQueryAuthenticate, String contentQueryUsername, String contentQueryPassword, HttpServletRequest request) {
+            public ModelAndView handleUploadM(String domain, MultipartFile file, String uri, String string, String contentType, String validationType, String contentSyntaxType, String[] externalContentType, MultipartFile[] externalFiles, String[] externalUri, String[] externalFilesSyntaxType, Boolean loadImportsValue, String contentQuery, String contentQueryEndpoint, Boolean contentQueryAuthenticate, String contentQueryUsername, String contentQueryPassword, HttpServletRequest request, HttpServletResponse response) {
                 assertEquals("domain1", domain);
                 assertTrue(aspectCalled[0]); // We expect the aspect to have been called before the method.
                 // We only want to check if this was called.
@@ -70,7 +71,7 @@ public class StatisticReportingAspectTest {
         var aspectFactory = new AspectJProxyFactory(target);
         aspectFactory.addAspect(aspect);
         UploadController controller = aspectFactory.getProxy();
-        controller.handleUploadM("domain1", null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+        controller.handleUploadM("domain1", null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
         assertTrue(aspectCalled[0]);
         assertTrue(targetCalled[0]);
     }

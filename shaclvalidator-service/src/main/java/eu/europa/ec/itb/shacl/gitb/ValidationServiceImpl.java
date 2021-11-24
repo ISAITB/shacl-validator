@@ -12,6 +12,7 @@ import eu.europa.ec.itb.shacl.validation.FileManager;
 import eu.europa.ec.itb.shacl.validation.SHACLValidator;
 import eu.europa.ec.itb.shacl.validation.ValidationConstants;
 import eu.europa.ec.itb.validation.commons.FileInfo;
+import eu.europa.ec.itb.validation.commons.LocalisationHelper;
 import eu.europa.ec.itb.validation.commons.error.ValidatorException;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -34,6 +35,7 @@ import javax.xml.ws.WebServiceContext;
 
 import java.io.File;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Spring component that realises the validation SOAP service.
@@ -156,17 +158,19 @@ public class ValidationServiceImpl implements ValidationService {
                     addRdfReportToReport?getRdfReportToInclude(reportModel, validateRequest):null,
                     addInputToReport?contentToValidate.toPath():null,
                     addShapesToReport?validator.getAggregatedShapes():null,
-                    domainConfig
+                    domainConfig,
+                    Utils.getDefaultReportLabels(domainConfig)
             );
 			ValidationResponse result = new ValidationResponse();
 			result.setReport(report);
 			return result;
 		} catch (ValidatorException e) {
-    		logger.error(e.getMessage(), e);
-    		throw e;
+    		logger.error(e.getMessageForLog(), e);
+    		throw new ValidatorException(e.getMessageForDisplay(new LocalisationHelper(Locale.ENGLISH)), true);
 		} catch (Exception e) {
 			logger.error("Unexpected error", e);
-			throw new ValidatorException(e);
+            var message = new LocalisationHelper(Locale.ENGLISH).localise(ValidatorException.MESSAGE_DEFAULT);
+			throw new ValidatorException(message, e, true, (Object[]) null);
 		} finally {
 			FileUtils.deleteQuietly(parentFolder);
 		}

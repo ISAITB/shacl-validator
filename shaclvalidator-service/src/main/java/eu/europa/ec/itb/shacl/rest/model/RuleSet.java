@@ -68,7 +68,7 @@ public class RuleSet {
      */
     public FileContent toFileContent() {
         if (ruleSyntax == null && FileContent.isValidEmbeddingMethod(embeddingMethod) && FileContent.embeddingMethodFromString(embeddingMethod) == ValueEmbeddingEnumeration.BASE_64) {
-            throw new ValidatorException("External shape files that are provided in BASE64 need to also define their syntax.");
+            throw new ValidatorException("validator.label.exception.externalBase64ShapesNeedAlsoSyntax");
         }
         FileContent content = new FileContent();
         content.setContent(ruleSet);

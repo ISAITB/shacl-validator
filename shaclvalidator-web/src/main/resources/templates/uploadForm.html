@@ -19,11 +19,11 @@
 		var supportQueryEndpoint = [[${config.isSupportsQueries() && config.queryEndpoint == null}]];
 		var queryCredentialsMandatory = [[${config.isQueryAuthenticationMandatory()}]];
 		var supportQueryCredentials = [[${config.supportsQueryCredentials()}]];
-		var labelOptionContentQuery = [[${config.label.optionContentQuery}]];
-		var labelQueryEndpointInputPlaceholder = [[${config.label.queryEndpointInputPlaceholder}]];
-		var labelQueryUsernameInputPlaceholder = [[${config.label.queryUsernameInputPlaceholder}]];
-		var labelQueryPasswordInputPlaceholder = [[${config.label.queryPasswordInputPlaceholder}]];
-		var labelQueryAuthenticateLabel = [[${config.label.queryAuthenticateLabel}]];
+		var labelOptionContentQuery = [[${localiser.localise('validator.label.optionContentQuery')}]];
+		var labelQueryEndpointInputPlaceholder = [[${localiser.localise('validator.label.queryEndpointInputPlaceholder')}]];
+		var labelQueryUsernameInputPlaceholder = [[${localiser.localise('validator.label.queryUsernameInputPlaceholder')}]];
+		var labelQueryPasswordInputPlaceholder = [[${localiser.localise('validator.label.queryPasswordInputPlaceholder')}]];
+		var labelQueryAuthenticateLabel = [[${localiser.localise('validator.label.queryAuthenticateLabel')}]];
 		var externalArtifacts = {};
 		var loadImportsArtifacts = {};
 		[# th:each="artifactInfoEntry : ${externalArtifactInfo}"]
@@ -37,11 +37,11 @@
 			loadImportsArtifacts[[# th:text="${artifactInfoEntry.key}" /]] = [# th:text="${artifactInfoEntry.value}" /];
 		[/]
 		configure({
-			externalArtifactFileLabel: [[${config.label.optionContentFile}]],
-			externalArtifactURILabel: [[${config.label.optionContentURI}]],
+			externalArtifactFileLabel: [[${localiser.localise('validator.label.optionContentFile')}]],
+			externalArtifactURILabel: [[${localiser.localise('validator.label.optionContentURI')}]],
 			externalArtifactSettings: {
 				default: {
-					filePlaceholder: [[${config.label.fileInputPlaceholder}]]
+					filePlaceholder: [[${localiser.localise('validator.label.fileInputPlaceholder')}]]
 				}
 			},
 			codeTypeObj: "xml",
@@ -61,7 +61,7 @@
                 <div th:class="${minimalUI} ? panel-body : ''">
                     <div th:replace="fragments/input :: mainForm(${config})"/>
                     <div id="contentSyntaxTypeDiv" class="form-group">
-                        <label for="contentSyntaxType" class="col-sm-2 control-label"><span th:text="${config.label.contentSyntaxLabel}">Content syntax of the input</span><span data-toggle="tooltip" data-container="body" data-placement="right" th:attr="title=${config.label.contentSyntaxTooltip}"> <i class="far fa-question-circle"></i></span></label>
+                        <label for="contentSyntaxType" class="col-sm-2 control-label"><span th:text="${localiser.localise('validator.label.contentSyntaxLabel')}">Content syntax of the input</span><span data-toggle="tooltip" data-container="body" data-placement="right" th:attr="title=${localiser.localise('validator.label.contentSyntaxTooltip')}"> <i class="far fa-question-circle"></i></span></label>
                         <div class="col-sm-3">
                             <select class="form-control" id="contentSyntaxType" name="contentSyntaxType">
                                 <option value="empty" selected="true"></option>
@@ -69,15 +69,15 @@
                             </select>
                         </div>
                     </div>
-                    <div th:replace="fragments/input :: externalArtifactCheck(${config.label.includeExternalShapes}, ${config.label.externalRulesTooltip})"/>
-                    <div th:replace="fragments/input :: externalArtifactControl('default', ${config.label.externalShapesLabel})"/>
+                    <div th:replace="fragments/input :: externalArtifactCheck(${localiser.localise('validator.label.includeExternalShapes')}, ${localiser.localise('validator.label.externalRulesTooltip')})"/>
+                    <div th:replace="fragments/input :: externalArtifactControl('default', ${localiser.localise('validator.label.externalShapesLabel')})"/>
                     <div id="loadImportsDiv" class="form-group hidden">
                         <div class="col-sm-offset-2 col-sm-10">
                             <div class="checkbox">
                                 <label>
-                                    <input type="checkbox" id="loadImportsCheck" name="loadImportsCheck" /><span th:text="${config.label.loadImportsLabel}">Load imports</span>
+                                    <input type="checkbox" id="loadImportsCheck" name="loadImportsCheck" /><span th:text="${localiser.localise('validator.label.loadImportsLabel')}">Load imports</span>
                                 </label>
-                                <span data-toggle="tooltip" data-container="body" data-placement="right" th:attr="title=${config.label.loadImportsTooltip}"><i class="far fa-question-circle"></i></span>
+                                <span data-toggle="tooltip" data-container="body" data-placement="right" th:attr="title=${localiser.localise('validator.label.loadImportsTooltip')}"><i class="far fa-question-circle"></i></span>
                             </div>
                         </div>
                     </div>
@@ -94,13 +94,13 @@
             <div class="panel-footer">
                 <div class="form-inline">
                     <div class="form-group" style="padding-right:10px;">
-                        <label for="downloadType" style="padding-right:10px;" th:text="${config.label.saveDownload}">Download</label>
+                        <label for="downloadType" style="padding-right:10px;" th:text="${localiser.localise('validator.label.saveDownload')}">Download</label>
                         <select class="form-control downloadSelect" id="downloadType" name="downloadType" onchange="downloadTypeChange()">
                             <option th:each="type : ${downloadType}" th:text="${type.label}" th:attr="value=${type.key}">Download Type</option>
                         </select>
                     </div>
                     <div class="form-group" style="padding-right:10px;">
-                        <label for="downloadSyntaxType" style="padding-right:10px;" th:text="${config.label.saveAs}">as</label>
+                        <label for="downloadSyntaxType" style="padding-right:10px;" th:text="${localiser.localise('validator.label.saveAs')}">as</label>
                         <select class="form-control downloadSelect" id="downloadSyntaxType" name="downloadSyntaxType">
                             <option th:if="${report.reports == null || report.reports.infoOrWarningOrError == null || report.reports.infoOrWarningOrError.size() <= config.maximumReportsForDetailedOutput}" value="pdfType">PDF</option>
                             <option th:if="${report.reports == null || report.reports.infoOrWarningOrError == null || report.reports.infoOrWarningOrError.size() <= config.maximumReportsForDetailedOutput}" value="notSelect">----------------------------</option>
@@ -118,6 +118,7 @@
         </div>
         <div th:replace="fragments/output :: reportDetails(${config}, ${minimalUI}, false)"/>
     </div>
+    <div th:replace="fragments/common :: localeSelector(${config}, ${localiser.getLocale()})"/>
     <div th:replace="fragments/common :: footer(${config}, ${minimalUI})"/>
 </div>
 <div th:replace="fragments/common :: about">About</div>
