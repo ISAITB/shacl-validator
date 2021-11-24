@@ -6,11 +6,13 @@ import eu.europa.ec.itb.shacl.util.Utils;
 import eu.europa.ec.itb.shacl.validation.FileManager;
 import eu.europa.ec.itb.shacl.validation.SHACLValidator;
 import eu.europa.ec.itb.validation.commons.FileInfo;
+import eu.europa.ec.itb.validation.commons.LocalisationHelper;
 import eu.europa.ec.itb.validation.commons.ValidatorChannel;
 import eu.europa.ec.itb.validation.commons.artifact.ExternalArtifactSupport;
 import eu.europa.ec.itb.validation.commons.error.ValidatorException;
 import eu.europa.ec.itb.validation.commons.web.KeyWithLabel;
 import eu.europa.ec.itb.validation.commons.web.errors.NotFoundException;
+import eu.europa.ec.itb.validation.commons.web.locale.CustomLocaleResolver;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jena.riot.Lang;
@@ -30,6 +32,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.ModelAndView;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -75,32 +78,39 @@ public class UploadController {
     @Autowired
     private InputHelper inputHelper = null;
 
+    @Autowired
+    private CustomLocaleResolver localeResolver;
+
     /**
      * Prepare the upload page.
      *
      * @param domain The domain name.
      * @param model The UI model.
      * @param request The received request.
+     * @param response The produced response.
      * @return The model and view information.
      */
     @GetMapping(value = "/{domain}/upload")
-    public ModelAndView upload(@PathVariable("domain") String domain, Model model, HttpServletRequest request) {
+    public ModelAndView upload(@PathVariable("domain") String domain, Model model, HttpServletRequest request, HttpServletResponse response) {
         setMinimalUIFlag(request, false);
         DomainConfig domainConfig;
         try {
-            domainConfig = validateDomain(domain);
+            domainConfig = validateDomain(request, domain);
         } catch (Exception e) {
             throw new NotFoundException();
         }
 
         Map<String, Object> attributes = new HashMap<>();
-        attributes.put("contentType", getContentType(domainConfig));
         attributes.put("contentSyntax", getContentSyntax(domainConfig));
         attributes.put("externalArtifactInfo", domainConfig.getExternalArtifactInfoMap());
         attributes.put("loadImportsInfo", domainConfig.getUserInputForLoadImportsType());
         attributes.put("minimalUI", false);
         attributes.put("config", domainConfig);
         attributes.put("appConfig", appConfig);
+        var localisationHelper = new LocalisationHelper(domainConfig, localeResolver.resolveLocale(request, response, domainConfig, appConfig));
+        attributes.put("localiser", localisationHelper);
+        attributes.put("contentType", getContentType(localisationHelper));
+        attributes.put("htmlBannerExists", localisationHelper.propertyExists("validator.bannerHtml"));
 
         return new ModelAndView("uploadForm", attributes);
     }
@@ -126,6 +136,7 @@ public class UploadController {
      * @param contentQueryUsername The username to use for authentication with the SPARQL endpoint.
      * @param contentQueryPassword The password to use for authentication with the SPARQL endpoint.
      * @param request The received request.
+     * @param response The produced response.
      * @return The model and view information.
      */
     @PostMapping(value = "/{domain}/upload")
@@ -146,30 +157,34 @@ public class UploadController {
                                      @RequestParam(value = "contentQueryAuthenticate", defaultValue = "false") Boolean contentQueryAuthenticate,
                                      @RequestParam(value = "contentQueryUsername", defaultValue = "") String contentQueryUsername,
                                      @RequestParam(value = "contentQueryPassword", defaultValue = "") String contentQueryPassword,
-                                     HttpServletRequest request) {
+                                     HttpServletRequest request,
+                                     HttpServletResponse response) {
         setMinimalUIFlag(request, false);
         DomainConfig domainConfig;
         try {
-            domainConfig = validateDomain(domain);
+            domainConfig = validateDomain(request, domain);
         } catch (Exception e) {
             throw new NotFoundException();
         }
         // Temporary folder for the request.
         File parentFolder = fileManager.createTemporaryFolderPath();
-
+        var localisationHelper = new LocalisationHelper(domainConfig, localeResolver.resolveLocale(request, response, domainConfig, appConfig));
         File inputFile;
         List<FileInfo> userProvidedShapes = null;
         Map<String, Object> attributes = new HashMap<>();
-        attributes.put("contentType", getContentType(domainConfig));
         attributes.put("contentSyntax", getContentSyntax(domainConfig));
         attributes.put("externalArtifactInfo", domainConfig.getExternalArtifactInfoMap());
         attributes.put("loadImportsInfo", domainConfig.getUserInputForLoadImportsType());
         attributes.put("minimalUI", false);
-        attributes.put("downloadType", getDownloadType(domainConfig));
         attributes.put("config", domainConfig);
         attributes.put("appConfig", appConfig);
+        attributes.put("localiser", localisationHelper);
+        attributes.put("contentType", getContentType(localisationHelper));
+        attributes.put("downloadType", getDownloadType(localisationHelper));
+        attributes.put("htmlBannerExists", localisationHelper.propertyExists("validator.bannerHtml"));
+
         if (StringUtils.isNotBlank(validationType)) {
-            attributes.put("validationTypeLabel", domainConfig.getTypeLabel().get(validationType));
+            attributes.put("validationTypeLabel", domainConfig.getCompleteTypeOptionLabel(validationType, localisationHelper));
         }
         boolean forceCleanup = false;
         try {
@@ -219,7 +234,7 @@ public class UploadController {
                     loadImportsValue = inputHelper.validateLoadInputs(domainConfig, loadImportsValue, validationType);
                     SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile, validationType, contentSyntaxType, userProvidedShapes, loadImportsValue, domainConfig);
                     org.apache.jena.rdf.model.Model reportModel = validator.validateAll();
-                    TAR tarReport = Utils.getTAR(reportModel, domainConfig);
+                    TAR tarReport = Utils.getTAR(reportModel, domainConfig, Utils.getReportLabels(localisationHelper));
                     if (tarReport.getReports().getInfoOrWarningOrError().size() <= domainConfig.getMaximumReportsForDetailedOutput()) {
                         fileManager.saveReport(tarReport, fileManager.createFile(parentFolder, ".xml", FILE_NAME__TAR).toFile(), domainConfig);
                     }
@@ -247,15 +262,15 @@ public class UploadController {
                 }
             }
         } catch (ValidatorException e) {
-            logger.error(e.getMessage(), e);
-            attributes.put("message", e.getMessage());
+            logger.error(e.getMessageForLog(), e);
+            attributes.put("message", e.getMessageForDisplay(localisationHelper));
             forceCleanup = true;
         } catch (Exception e) {
             logger.error("An error occurred during the validation [" + e.getMessage() + "]", e);
             if (e.getMessage() != null) {
-                attributes.put("message", "An error occurred during the validation [" + e.getMessage() + "]");
+                attributes.put("message", localisationHelper.localise("validator.label.exception.unexpectedErrorDuringValidationWithParams", e.getMessage()));
             } else {
-                attributes.put("message", "An error occurred during the validation");
+                attributes.put("message", localisationHelper.localise("validator.label.exception.unexpectedErrorDuringValidation"));
             }
             forceCleanup = true;
         } finally {
@@ -277,14 +292,15 @@ public class UploadController {
      * @param domain The domain name.
      * @param model The UI model.
      * @param request The received request.
+     * @param response The produced response.
      * @return The model and view information.
      */
     @GetMapping(value = "/{domain}/uploadm")
-    public ModelAndView uploadm(@PathVariable("domain") String domain, Model model, HttpServletRequest request) {
+    public ModelAndView uploadm(@PathVariable("domain") String domain, Model model, HttpServletRequest request, HttpServletResponse response) {
         setMinimalUIFlag(request, true);
         DomainConfig domainConfig;
         try {
-            domainConfig = validateDomain(domain);
+            domainConfig = validateDomain(request, domain);
         } catch (Exception e) {
             throw new NotFoundException();
         }
@@ -294,13 +310,16 @@ public class UploadController {
         }
 
         Map<String, Object> attributes = new HashMap<>();
-        attributes.put("contentType", getContentType(domainConfig));
         attributes.put("contentSyntax", getContentSyntax(domainConfig));
         attributes.put("externalArtifactInfo", domainConfig.getExternalArtifactInfoMap());
         attributes.put("loadImportsInfo", domainConfig.getUserInputForLoadImportsType());
         attributes.put("minimalUI", true);
         attributes.put("config", domainConfig);
         attributes.put("appConfig", appConfig);
+        var localisationHelper = new LocalisationHelper(domainConfig, localeResolver.resolveLocale(request, response, domainConfig, appConfig));
+        attributes.put("localiser", localisationHelper);
+        attributes.put("contentType", getContentType(localisationHelper));
+        attributes.put("htmlBannerExists", localisationHelper.propertyExists("validator.bannerHtml"));
 
         return new ModelAndView("uploadForm", attributes);
     }
@@ -326,6 +345,7 @@ public class UploadController {
      * @param contentQueryUsername The username to use for authentication with the SPARQL endpoint.
      * @param contentQueryPassword The password to use for authentication with the SPARQL endpoint.
      * @param request The received request.
+     * @param response The produced response.
      * @return The model and view information.
      */
     @PostMapping(value = "/{domain}/uploadm")
@@ -346,9 +366,10 @@ public class UploadController {
                                       @RequestParam(value = "contentQueryAuthenticate", defaultValue = "false") Boolean contentQueryAuthenticate,
                                       @RequestParam(value = "contentQueryUsername", defaultValue = "") String contentQueryUsername,
                                       @RequestParam(value = "contentQueryPassword", defaultValue = "") String contentQueryPassword,
-                                      HttpServletRequest request) {
+                                      HttpServletRequest request,
+                                      HttpServletResponse response) {
         setMinimalUIFlag(request, true);
-        ModelAndView mv = handleUpload(domain, file, uri, string, contentType, validationType, contentSyntaxType, externalContentType, externalFiles, externalUri, externalFilesSyntaxType, loadImportsValue, contentQuery, contentQueryEndpoint, contentQueryAuthenticate, contentQueryUsername, contentQueryPassword, request);
+        ModelAndView mv = handleUpload(domain, file, uri, string, contentType, validationType, contentSyntaxType, externalContentType, externalFiles, externalUri, externalFilesSyntaxType, loadImportsValue, contentQuery, contentQueryEndpoint, contentQueryAuthenticate, contentQueryUsername, contentQueryPassword, request, response);
 
         Map<String, Object> attributes = mv.getModel();
         attributes.put("minimalUI", true);
@@ -487,16 +508,19 @@ public class UploadController {
     /**
      * Validates that the domain exists and supports REST calls and return it if so.
      *
+     *
+     * @param request The HTTP request.
      * @param domain The domain to check.
      * @return The retrieved domain configuration.
      * @throws NotFoundException If the domain or REST API are unsupported.
      */
-    private DomainConfig validateDomain(String domain) {
+    private DomainConfig validateDomain(HttpServletRequest request, String domain) {
         DomainConfig config = domainConfigs.getConfigForDomainName(domain);
         if (config == null || !config.isDefined() || !config.getChannels().contains(ValidatorChannel.REST_API)) {
             logger.error("The following domain does not exist: " + domain);
             throw new NotFoundException();
         }
+        request.setAttribute(DomainConfig.DOMAIN_CONFIG_REQUEST_ATTRIBUTE, config);
         MDC.put("domain", domain);
         return config;
     }
@@ -504,14 +528,14 @@ public class UploadController {
     /**
      * The list of content provision options as key and label pairs to be displayed on the UI.
      *
-     * @param config The domain configuration.
+     * @param localiser The localisation helper.
      * @return The list of options.
      */
-    private List<KeyWithLabel> getContentType(DomainConfig config){
+    private List<KeyWithLabel> getContentType(LocalisationHelper localiser){
         return List.of(
-                new KeyWithLabel(CONTENT_TYPE__FILE, config.getLabel().getOptionContentFile()),
-                new KeyWithLabel(CONTENT_TYPE__URI, config.getLabel().getOptionContentURI()),
-                new KeyWithLabel(CONTENT_TYPE__EDITOR, config.getLabel().getOptionContentDirectInput())
+                new KeyWithLabel(CONTENT_TYPE__FILE, localiser.localise("validator.label.optionContentFile")),
+                new KeyWithLabel(CONTENT_TYPE__URI, localiser.localise("validator.label.optionContentURI")),
+                new KeyWithLabel(CONTENT_TYPE__EDITOR, localiser.localise("validator.label.optionContentDirectInput"))
         );
     }
 
@@ -519,14 +543,14 @@ public class UploadController {
      * The list of supported targets for the result page's download option as key and label pairs for
      * display on the UI.
      *
-     * @param config The domain configuration.
+     * @param localiser The localisation helper.
      * @return The list of options.
      */
-    private List<KeyWithLabel> getDownloadType(DomainConfig config){
+    private List<KeyWithLabel> getDownloadType(LocalisationHelper localiser){
         return List.of(
-                new KeyWithLabel(DOWNLOAD_TYPE__REPORT, config.getLabel().getOptionDownloadReport()),
-                new KeyWithLabel(DOWNLOAD_TYPE__SHAPES, config.getLabel().getOptionDownloadShapes()),
-                new KeyWithLabel(DOWNLOAD_TYPE__CONTENT, config.getLabel().getOptionDownloadContent())
+                new KeyWithLabel(DOWNLOAD_TYPE__REPORT, localiser.localise("validator.label.optionDownloadReport")),
+                new KeyWithLabel(DOWNLOAD_TYPE__SHAPES, localiser.localise("validator.label.optionDownloadShapes")),
+                new KeyWithLabel(DOWNLOAD_TYPE__CONTENT, localiser.localise("validator.label.optionDownloadContent"))
         );
     }
 

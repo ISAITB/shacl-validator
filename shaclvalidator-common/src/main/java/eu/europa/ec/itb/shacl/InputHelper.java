@@ -46,10 +46,10 @@ public class InputHelper extends BaseInputHelper<FileManager, DomainConfig, Appl
         boolean loadImportsType = domainConfig.getDefaultLoadImportsType().get(validationType);
 
         if (inputLoadImportsType == ExternalArtifactSupport.REQUIRED && userProvidedFlag==null) {
-            throw new ValidatorException(String.format("Validation type [%s] expects the choice of whether or not imports are to be loaded (%s).", validationType, ValidationConstants.INPUT_LOAD_IMPORTS));
+            throw new ValidatorException("validator.label.exception.validationTypeExpectsLoadImports", validationType, ValidationConstants.INPUT_LOAD_IMPORTS);
         }
         if (inputLoadImportsType == ExternalArtifactSupport.NONE && userProvidedFlag!=null) {
-            throw new ValidatorException(String.format("Validation type [%s] does not expect the choice of whether or not imports are to be loaded (%s).", validationType, ValidationConstants.INPUT_LOAD_IMPORTS));
+            throw new ValidatorException("validator.label.exception.validationTypeDoesNotExpectLoadImports", validationType, ValidationConstants.INPUT_LOAD_IMPORTS);
         }
         if ((inputLoadImportsType == ExternalArtifactSupport.OPTIONAL || inputLoadImportsType == ExternalArtifactSupport.NONE) && userProvidedFlag==null) {
             userProvidedFlag = loadImportsType;
@@ -67,19 +67,19 @@ public class InputHelper extends BaseInputHelper<FileManager, DomainConfig, Appl
      */
     public SparqlQueryConfig validateSparqlConfiguration(DomainConfig domainConfig, SparqlQueryConfig inputConfig) {
         if (!domainConfig.isSupportsQueries()) {
-            throw new ValidatorException("SPARQL queries are not supported.");
+            throw new ValidatorException("validator.label.exception.queriesNotSupported");
         }
         SparqlQueryConfig config = new SparqlQueryConfig();
         // Endpoint
         if (StringUtils.isEmpty(domainConfig.getQueryEndpoint())) {
             if (StringUtils.isEmpty(inputConfig.getEndpoint())) {
-                throw new ValidatorException("A SPARQL endpoint is needed to execute the query against.");
+                throw new ValidatorException("validator.label.exception.sparqlEndpointNeeded");
             } else {
                 config.setEndpoint(inputConfig.getEndpoint());
             }
         } else {
             if (!StringUtils.isEmpty(inputConfig.getEndpoint())) {
-                throw new ValidatorException("You cannot provide your own SPARQL endpoint for the validation.");
+                throw new ValidatorException("validator.label.exception.ownSparqlEndpointNotAllowed");
             } else {
                 config.setEndpoint(domainConfig.getQueryEndpoint());
             }
@@ -88,14 +88,14 @@ public class InputHelper extends BaseInputHelper<FileManager, DomainConfig, Appl
         if (StringUtils.isNotBlank(inputConfig.getUsername()) || StringUtils.isNotBlank((inputConfig.getPassword()))) {
             // Provided.
             if (domainConfig.getQueryAuthentication() == ExternalArtifactSupport.NONE) {
-                throw new ValidatorException("You are not expected to provide credentials for the SPARQL endpoint.");
+                throw new ValidatorException("validator.label.exception.sparqlCredentialsNotAllowed");
             }
             config.setUsername(inputConfig.getUsername());
             config.setPassword(inputConfig.getPassword());
         } else {
             // Not provided.
             if (domainConfig.getQueryAuthentication() == ExternalArtifactSupport.REQUIRED) {
-                throw new ValidatorException("You must provide your credentials for the SPARQL endpoint.");
+                throw new ValidatorException("validator.label.exception.sparqlCredentialsRequired");
             }
             config.setUsername(domainConfig.getQueryUsername());
             config.setPassword(domainConfig.getQueryPassword());
@@ -108,7 +108,7 @@ public class InputHelper extends BaseInputHelper<FileManager, DomainConfig, Appl
         }
         // Query
         if (StringUtils.isBlank(inputConfig.getQuery())) {
-            throw new ValidatorException("You must provide the query for the SPARQL endpoint.");
+            throw new ValidatorException("validator.label.exception.sparqlQueryExpected");
         } else {
             config.setQuery(inputConfig.getQuery());
         }

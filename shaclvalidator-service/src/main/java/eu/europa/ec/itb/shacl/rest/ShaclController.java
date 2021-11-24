@@ -204,7 +204,7 @@ public class ShaclController {
         } else {
             if (!validReportSyntax(reportSyntax)) {
                 // The requested syntax is invalid.
-                throw new ValidatorException(String.format("The requested report syntax [%s] is not supported.", reportSyntax));
+                throw new ValidatorException("validator.label.exception.reportSyntaxNotSupported", reportSyntax);
             }
         }
         return reportSyntax;
@@ -249,8 +249,10 @@ public class ShaclController {
                 return validationReport;
             }
         } catch (ValidatorException | NotFoundException e) {
+            // Localisation of the ValidatorException takes place in the ErrorHandler.
             throw e;
         } catch (Exception e) {
+            // Localisation of the ValidatorException takes place in the ErrorHandler.
             throw new ValidatorException(e);
         } finally {
             FileUtils.deleteQuietly(parentFolder);

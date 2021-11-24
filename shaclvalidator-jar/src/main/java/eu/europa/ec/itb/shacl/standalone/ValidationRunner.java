@@ -9,6 +9,7 @@ import eu.europa.ec.itb.shacl.util.Utils;
 import eu.europa.ec.itb.shacl.validation.FileManager;
 import eu.europa.ec.itb.shacl.validation.SHACLValidator;
 import eu.europa.ec.itb.validation.commons.FileInfo;
+import eu.europa.ec.itb.validation.commons.LocalisationHelper;
 import eu.europa.ec.itb.validation.commons.artifact.ExternalArtifactSupport;
 import eu.europa.ec.itb.validation.commons.error.ValidatorException;
 import eu.europa.ec.itb.validation.commons.jar.BaseValidationRunner;
@@ -40,6 +41,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 /**
@@ -180,21 +182,21 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
                                 queryConfig.setPassword(args[++i]);
                             }
                         } else {
-                            throw new IllegalArgumentException("Unexpected parameter ["+args[i]+"]");
+                            throw new ValidatorException("validator.label.exception.unexpectedParameter", args[i]);
                         }
                         i++;
                     }
                     if (requireType && type == null) {
-                        throw new ValidatorException("Unknown validation type. One of [" + String.join("|", domainConfig.getType()) + "] is mandatory.");
+                        throw new ValidatorException("validator.label.exception.unknownValidationType", String.join("|", domainConfig.getType()));
                     }
                     boolean hasExternalShapes = domainConfig.getShapeInfo(type).getExternalArtifactSupport() != ExternalArtifactSupport.NONE;
                     if (!hasExternalShapes && externalShapesList.size() > 0) {
-                        throw new ValidatorException(String.format("Loading external shape files is not supported for validation type [%s] of domain [%s].", type, domainConfig.getDomainName()));
+                        throw new ValidatorException("validator.label.exception.externalShapeLoadingNotSupported", type, domainConfig.getDomainName());
                     }
                     loadImports = inputHelper.validateLoadInputs(domainConfig, loadImports, type);
                     if (queryConfig != null) {
                         if (!inputs.isEmpty()) {
-                            throw new ValidatorException("The content to validate must either be provided via input or SPARQL query but not both.");
+                            throw new ValidatorException("validator.label.exception.contentExpectedAsInpurOrQuery");
                         } else {
                             queryConfig = inputHelper.validateSparqlConfiguration(domainConfig, queryConfig);
                             var inputFile = fileManager.getContentFromSparqlEndpoint(queryConfig, parentFolder, "queryResult").toFile();
@@ -225,9 +227,9 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
                             SHACLValidator validator = applicationContext.getBean(SHACLValidator.class, inputFile, type, input.getContentSyntax(), externalShapesList, loadImports, domainConfig);
                             Model report = validator.validateAll();
                             // Output summary results.
-                            TAR tarReport = Utils.getTAR(report, domainConfig);
+                            TAR tarReport = Utils.getTAR(report, domainConfig, Utils.getDefaultReportLabels(domainConfig));
                             FileReport reporter = new FileReport(input.getFileName(), tarReport, requireType, type);
-                            summary.append("\n").append(reporter.toString()).append("\n");
+                            summary.append("\n").append(reporter).append("\n");
                             // Output SHACL validation report (if not skipped).
                             if (!noReports) {
                                 // Run report post-processing query (if provided).
@@ -243,8 +245,8 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
                                 summary.append("- Detailed report in: [").append(reportFilePath.toFile().getAbsolutePath()).append("] \n");
                             }
                         } catch (ValidatorException e) {
-                            LOGGER_FEEDBACK.info("\nAn error occurred while executing the validation: "+e.getMessage());
-                            LOGGER.error("An error occurred while executing the validation: "+e.getMessage(), e);
+                            LOGGER_FEEDBACK.info("\nAn error occurred while executing the validation: "+e.getMessageForDisplay(new LocalisationHelper(Locale.ENGLISH)));
+                            LOGGER.error("An error occurred while executing the validation: "+e.getMessageForLog(), e);
                             break;
 
                         } catch (Exception e) {
