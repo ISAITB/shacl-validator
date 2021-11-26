@@ -203,6 +203,9 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
                             inputs.add(new ValidationInput(inputFile, type, inputFile.getName(), queryConfig.getPreferredContentType()));
                         }
                     }
+                } catch (ValidatorException e) {
+                    LOGGER_FEEDBACK.info("\nInvalid arguments provided: "+e.getMessageForDisplay(new LocalisationHelper(Locale.ENGLISH))+"\n");
+                    inputs.clear();
                 } catch (Exception e) {
                     LOGGER_FEEDBACK.info("\nInvalid arguments provided: "+e.getMessage()+"\n");
                     inputs.clear();
