@@ -31,10 +31,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Files;
@@ -53,6 +50,7 @@ import java.util.UUID;
 public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
 
     private static final String FLAG_NO_REPORTS = "-noreports";
+    private static final String FLAG_CLI_REPORTS = "-clireports";
     private static final String FLAG_VALIDATION_TYPE = "-validationType";
     private static final String FLAG_REPORT_SYNTAX = "-reportSyntax";
     private static final String FLAG_REPORT_QUERY = "-reportQuery";
@@ -84,7 +82,8 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
         // Process input arguments
         List<ValidationInput> inputs = new ArrayList<>();
         List<FileInfo> externalShapesList = new ArrayList<>();
-        boolean noReports = false;        
+        boolean noReports = false;
+        boolean cliReports = false;
         boolean requireType = domainConfig.hasMultipleValidationTypes();
         Boolean loadImports = null;
         SparqlQueryConfig queryConfig = null;
@@ -110,7 +109,6 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
                             if (requireType && args.length > i+1) {
                                 type = args[++i];
                             }
-
                             if (!domainConfig.getType().contains(type)) {
                                 throw new IllegalArgumentException("Unknown validation type ["+type+"]");
                             }
@@ -184,6 +182,8 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
                                 }
                                 queryConfig.setPassword(args[++i]);
                             }
+                        } else if (FLAG_CLI_REPORTS.equalsIgnoreCase(args[i])) {
+                            cliReports = true;
                         } else if (!FLAG_NO_OUTPUT.equalsIgnoreCase(args[i]) && !FLAG_NO_LOG.equalsIgnoreCase(args[i])) {
                             throw new ValidatorException("validator.label.exception.unexpectedParameter", args[i]);
                         }
@@ -216,10 +216,9 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
                 if (inputs.isEmpty()) {
                     printUsage();
                 } else {
-                    if(reportSyntax==null) {
+                    if (reportSyntax == null) {
                         reportSyntax = domainConfig.getDefaultReportSyntax();
                     }
-
                     // Proceed with validation.
                     StringBuilder summary = new StringBuilder();
                     summary.append("\n");
@@ -236,19 +235,27 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
                             TAR tarReport = Utils.getTAR(report, domainConfig, Utils.getDefaultReportLabels(domainConfig));
                             FileReport reporter = new FileReport(input.getFileName(), tarReport, requireType, type);
                             summary.append("\n").append(reporter).append("\n");
-                            // Output SHACL validation report (if not skipped).
-                            if (!noReports) {
+                            if (!noReports || cliReports) {
                                 // Run report post-processing query (if provided).
                                 if (reportQuery != null) {
                                     Query query = QueryFactory.create(reportQuery);
                                     QueryExecution queryExecution = QueryExecutionFactory.create(query, report);
                                     report = queryExecution.execConstruct();
                                 }
-                                Path reportFilePath = getReportFilePath("report."+i, reportSyntax);
-                                try (OutputStream fos = Files.newOutputStream(reportFilePath)) {
-                                    fileManager.writeRdfModel(fos, report, reportSyntax);
+                                if (!noReports) {
+                                    // Output SHACL validation report as a file.
+                                    Path reportFilePath = getReportFilePath("report."+i, reportSyntax);
+                                    try (OutputStream fos = Files.newOutputStream(reportFilePath)) {
+                                        fileManager.writeRdfModel(fos, report, reportSyntax);
+                                    }
+                                    summary.append("- Detailed report in: [").append(reportFilePath.toFile().getAbsolutePath()).append("] \n");
                                 }
-                                summary.append("- Detailed report in: [").append(reportFilePath.toFile().getAbsolutePath()).append("] \n");
+                                if (cliReports) {
+                                    // Output report also/instead to CLI.
+                                    try (PrintWriter pw = new PrintWriter(System.out)) {
+                                        fileManager.writeRdfModel(pw, report, reportSyntax);
+                                    }
+                                }
                             }
                         } catch (ValidatorException e) {
                             LOGGER_FEEDBACK.info("\nAn error occurred while executing the validation: "+e.getMessageForDisplay(new LocalisationHelper(Locale.ENGLISH)));
@@ -319,9 +326,10 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
                 detailsStr.append("\n").append(PAD).append(PAD).append("- QUERY_PASSWORD is the password to use for authentication against the SPARQL endpoint.");
             }
         }
-        detailsStr.append("\n").append(PAD).append(PAD).append(String.format("- %s disables all command-line output.", FLAG_NO_OUTPUT));
+        detailsStr.append("\n").append(PAD).append(PAD).append(String.format("- %s disables all command-line output (except validation reports, if %s is set).", FLAG_NO_OUTPUT, FLAG_CLI_REPORTS));
         detailsStr.append("\n").append(PAD).append(PAD).append(String.format("- %s disables all log file output.", FLAG_NO_LOG));
-        detailsStr.append("\n").append(PAD).append(PAD).append(String.format("- %s disables validation report generation.", FLAG_NO_REPORTS));
+        detailsStr.append("\n").append(PAD).append(PAD).append(String.format("- %s disables validation report generation as files.", FLAG_NO_REPORTS));
+        detailsStr.append("\n").append(PAD).append(PAD).append(String.format("- %s enables output of validation reports to the command-line.", FLAG_CLI_REPORTS));
         String message = usageStr
                 .append(detailsStr)
                 .append("\n\nThe summary of each validation will be printed and the detailed report produced in the current directory (as \"report.X.SUFFIX\").")
