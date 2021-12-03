@@ -25,7 +25,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.5.6</version>
+        <version>2.6.1</version>
     </parent>
     <modules>
         <module>shaclvalidator-common</module>
@@ -40,7 +40,15 @@
         <java.version>1.8</java.version>
         <validatorBuild.resourceJar>validator-resources</validatorBuild.resourceJar>
         <maven.build.timestamp.format>yyyy-MM-dd HH:mm:ss (XXX)</maven.build.timestamp.format>
-        <version.springBoot>2.5.6</version.springBoot>
+        <!-- Note START
+             For Spring Boot versions above 2.6.1 check to see
+             if the org.thymeleaf.thymeleaf-spring5 dependency is at least at 3.0.13.RELEASE.
+             If yes remove the explicit thymeleaf version and dependency management section
+             (this was added to address CVE-2021-43466).
+        -->
+        <version.springBoot>2.6.1</version.springBoot>
+        <version.thymeleaf>3.0.13.RELEASE</version.thymeleaf>
+        <!-- Note END -->
         <version.swagger>3.0.0</version.swagger>
         <version.cxf>3.4.4</version.cxf>
         <version.jena>4.2.0</version.jena>
@@ -50,7 +58,7 @@
         <version.commonsConfiguration>2.7</version.commonsConfiguration>
         <version.commonsCompress>1.21</version.commonsCompress>
         <version.itbCommons>1.1.0-SNAPSHOT</version.itbCommons>
-        <version.gitbTypes>1.14.1</version.gitbTypes>
+        <version.gitbTypes>1.15.0</version.gitbTypes>
         <version.slf4j>1.7.32</version.slf4j>
         <version.topbraid>1.4.1</version.topbraid>
         <version.freemarker>2.3.30</version.freemarker>
@@ -85,6 +93,11 @@
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>org.thymeleaf</groupId>
+                <artifactId>thymeleaf-spring5</artifactId>
+                <version>${version.thymeleaf}</version>
+            </dependency>
             <!-- Current modules. -->
             <dependency>
                 <groupId>eu.europa.ec.itb.shacl</groupId>
