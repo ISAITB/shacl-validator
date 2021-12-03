@@ -50,7 +50,7 @@
         <version.thymeleaf>3.0.13.RELEASE</version.thymeleaf>
         <!-- Note END -->
         <version.swagger>3.0.0</version.swagger>
-        <version.cxf>3.4.4</version.cxf>
+        <version.cxf>3.4.5</version.cxf>
         <version.jena>4.2.0</version.jena>
         <version.libthrift>0.15.0</version.libthrift>
         <version.commonsIo>2.7</version.commonsIo>
@@ -96,6 +96,11 @@
             <dependency>
                 <groupId>org.thymeleaf</groupId>
                 <artifactId>thymeleaf-spring5</artifactId>
+                <version>${version.thymeleaf}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.thymeleaf</groupId>
+                <artifactId>thymeleaf</artifactId>
                 <version>${version.thymeleaf}</version>
             </dependency>
             <!-- Current modules. -->
