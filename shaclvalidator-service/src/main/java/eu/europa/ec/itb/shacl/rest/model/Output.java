@@ -1,17 +1,16 @@
 package eu.europa.ec.itb.shacl.rest.model;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
  * The validator's output providing the produced SHACL validation report.
  */
-@ApiModel(description = "The content and metadata linked to the validation report that corresponds to a provided RDF input.")
+@Schema(description = "The content and metadata linked to the validation report that corresponds to a provided RDF input.")
 public class Output {
 
-    @ApiModelProperty(notes = "The RDF validation report, provided as a BASE64 encoded String.")
+    @Schema(description = "The RDF validation report, provided as a BASE64 encoded String.")
     private String report;
-    @ApiModelProperty(notes = "The mime type for the validation report as defined by the corresponding Input.reportSyntax property (or the applied default if missing).")
+    @Schema(description = "The mime type for the validation report as defined by the corresponding Input.reportSyntax property (or the applied default if missing).")
     private String reportSyntax;
 
     /**

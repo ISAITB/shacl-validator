@@ -1,19 +1,18 @@
 package eu.europa.ec.itb.shacl.rest.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
  * A supported validation type for a specific domain.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
-@ApiModel(description = "Information on an available validation type that can be requested.")
+@Schema(description = "Information on an available validation type that can be requested.")
 public class ValidationType {
 
-    @ApiModelProperty(notes = "The value to use when requesting the validation type.")
+    @Schema(description = "The value to use when requesting the validation type.")
     private String type;
-    @ApiModelProperty(notes = "The validation type's description.")
+    @Schema(description = "The validation type's description.")
     private String description;
 
     /**

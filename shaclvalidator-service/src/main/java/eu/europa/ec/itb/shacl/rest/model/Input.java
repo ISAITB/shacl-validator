@@ -1,43 +1,42 @@
 package eu.europa.ec.itb.shacl.rest.model;
 
-import java.util.List;
-
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import eu.europa.ec.itb.shacl.SparqlQueryConfig;
 import eu.europa.ec.itb.validation.commons.FileContent;
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
+
+import java.util.List;
 
 /**
  * The input to trigger a new validation via the validator's REST API.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
-@ApiModel(description = "The content and metadata specific to input content that is to be validated.")
+@Schema(description = "The content and metadata specific to input content that is to be validated.")
 public class Input {
 
-    @ApiModelProperty(notes = "The RDF content to validate, provided as a normal string, a URL, or a BASE64-encoded string. Either this must be provided or a SPARQL query (contentQuery).")
+    @Schema(description = "The RDF content to validate, provided as a normal string, a URL, or a BASE64-encoded string. Either this must be provided or a SPARQL query (contentQuery).")
     private String contentToValidate;
-    @ApiModelProperty(notes = "The mime type of the provided RDF content (e.g. \"application/rdf+xml\", \"application/ld+json\", \"text/turtle\"). If not provided the type is determined from the provided content (if possible).")
+    @Schema(description = "The mime type of the provided RDF content (e.g. \"application/rdf+xml\", \"application/ld+json\", \"text/turtle\"). If not provided the type is determined from the provided content (if possible).")
     private String contentSyntax;
-    @ApiModelProperty(notes = "The way in which to interpret the contentToValidate. If not provided, the method will be determined from the contentToValidate value.", allowableValues = FileContent.embedding_STRING+","+FileContent.embedding_URL+","+FileContent.embedding_BASE64)
+    @Schema(description = "The way in which to interpret the contentToValidate. If not provided, the method will be determined from the contentToValidate value.", allowableValues = FileContent.embedding_STRING+","+FileContent.embedding_URL+","+FileContent.embedding_BASE64)
     private String embeddingMethod;
-    @ApiModelProperty(notes = "The type of validation to perform (e.g. the profile to apply or the version to validate against). This can be skipped if a single validation type is supported by the validator. Otherwise, if multiple are supported, the service should fail with an error.")
+    @Schema(description = "The type of validation to perform (e.g. the profile to apply or the version to validate against). This can be skipped if a single validation type is supported by the validator. Otherwise, if multiple are supported, the service should fail with an error.")
     private String validationType;
-    @ApiModelProperty(notes = "A SPARQL CONSTRUCT query that will be executed on the resulting SHACL validation report as a post-processing step. If provided, the result of this query will replace the SHACL validation report in the service's output.")
+    @Schema(description = "A SPARQL CONSTRUCT query that will be executed on the resulting SHACL validation report as a post-processing step. If provided, the result of this query will replace the SHACL validation report in the service's output.")
     private String reportQuery;
-    @ApiModelProperty(notes = "The mime type for the validation report syntax (e.g. \"application/ld+json\", \"application/rdf+xml\", \"text/turtle\", \"application/n-triples\"). If none is provided \"application/rdf+xml\" is considered as the default, unless a different syntax is configured for the domain in question.")
+    @Schema(description = "The mime type for the validation report syntax (e.g. \"application/ld+json\", \"application/rdf+xml\", \"text/turtle\", \"application/n-triples\"). If none is provided \"application/rdf+xml\" is considered as the default, unless a different syntax is configured for the domain in question.")
     private String reportSyntax;
-    @ApiModelProperty(notes = "Any shapes to consider that are externally provided (i.e. provided at the time of the call).")
+    @Schema(description = "Any shapes to consider that are externally provided (i.e. provided at the time of the call).")
     private List<RuleSet> externalRules;
-    @ApiModelProperty(notes = "If owl:Imports should be loaded from the RDF content. This can be skipped if defined in the configuration. If not provided, the decision is determined from the configuration for the domain in question.")
+    @Schema(description = "If owl:Imports should be loaded from the RDF content. This can be skipped if defined in the configuration. If not provided, the decision is determined from the configuration for the domain in question.")
     private Boolean loadImports;
-    @ApiModelProperty(notes = "The SPARQL endpoint URI.")
+    @Schema(description = "The SPARQL endpoint URI.")
     private String contentQueryEndpoint;
-    @ApiModelProperty(notes = "The SPARQL query to execute.")
+    @Schema(description = "The SPARQL query to execute.")
     private String contentQuery;
-    @ApiModelProperty(notes = "Username to access the SPARQL endpoint.")
+    @Schema(description = "Username to access the SPARQL endpoint.")
     private String contentQueryUsername;
-    @ApiModelProperty(notes = "Password to access the SPARQL endpoint.")
+    @Schema(description = "Password to access the SPARQL endpoint.")
     private String contentQueryPassword;
 
     /**

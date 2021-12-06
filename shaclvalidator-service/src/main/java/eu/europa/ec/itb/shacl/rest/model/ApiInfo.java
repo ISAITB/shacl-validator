@@ -2,8 +2,7 @@ package eu.europa.ec.itb.shacl.rest.model;
 
 import eu.europa.ec.itb.shacl.DomainConfig;
 import eu.europa.ec.itb.validation.commons.LocalisationHelper;
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,12 +11,12 @@ import java.util.Locale;
 /**
  * Object providing the information on the validator's supported domains and validation types.
  */
-@ApiModel(description = "The information on how to call the API methods (domain and validation types).")
+@Schema(description = "The information on how to call the API methods (domain and validation types).")
 public class ApiInfo {
 
-    @ApiModelProperty(notes = "The domain value to use in all calls.")
+    @Schema(description = "The domain value to use in all calls.")
     private String domain;
-    @ApiModelProperty(notes = "The supported validation types.")
+    @Schema(description = "The supported validation types.")
     private List<ValidationType> validationTypes = new ArrayList<>();
 
     /**

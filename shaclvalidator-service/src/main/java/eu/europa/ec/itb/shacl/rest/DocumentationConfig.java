@@ -5,6 +5,9 @@ import eu.europa.ec.itb.shacl.DomainConfigCache;
 import eu.europa.ec.itb.shacl.validation.FileManager;
 import freemarker.cache.ClassTemplateLoader;
 import freemarker.template.Template;
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.info.License;
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,12 +15,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import springfox.documentation.builders.ApiInfoBuilder;
-import springfox.documentation.builders.PathSelectors;
-import springfox.documentation.builders.RequestHandlerSelectors;
-import springfox.documentation.service.ApiInfo;
-import springfox.documentation.spi.DocumentationType;
-import springfox.documentation.spring.web.plugins.Docket;
 
 import javax.annotation.PostConstruct;
 import java.io.File;
@@ -42,10 +39,6 @@ public class DocumentationConfig {
     private String restApiTitle;
     @Value("${validator.docs.description}")
     private String restApiDescription;
-    @Value("${validator.docs.host:\"localhost:8080\"}")
-    private String restApiHost;
-    @Value("${validator.docs.schemes:http}")
-    private Set<String> schemes;
     @Value("${validator.hydraRootPath:null}")
     private String hydraRootPath;
     @Value("${server.servlet.context-path:null}")
@@ -56,34 +49,15 @@ public class DocumentationConfig {
     @Autowired
     private FileManager fileManager;
 
-    /**
-     * @return The API documentation entry point bean.
-     */
     @Bean
-    public Docket api() {
-        Docket docket =  new Docket(DocumentationType.SWAGGER_2)
-                .select()
-                    .apis(RequestHandlerSelectors
-                    .basePackage("eu.europa.ec.itb.shacl.rest"))
-                    .paths(PathSelectors.regex("/.*"))
-                .build()
-                .apiInfo(apiEndPointsInfo())
-                .useDefaultResponseMessages(false)
-                .host(restApiHost)
-                .protocols(schemes);
-        return docket;
-    }
-
-    /**
-     * @return The service's API metadata.
-     */
-    private ApiInfo apiEndPointsInfo() {
-        return new ApiInfoBuilder().title(restApiTitle)
-            .description(restApiDescription)
-            .license(licenceDescription)
-            .licenseUrl(licenceUrl)
-            .version(restApiVersion)
-            .build();
+    public OpenAPI api() {
+        return new OpenAPI()
+                .info(new Info()
+                        .title(restApiTitle)
+                        .description(restApiDescription)
+                        .version(restApiVersion)
+                        .license(new License().name(licenceDescription).url(licenceUrl))
+        );
     }
 
     /**
