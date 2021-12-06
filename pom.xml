@@ -49,7 +49,7 @@
         <version.springBoot>2.6.1</version.springBoot>
         <version.thymeleaf>3.0.13.RELEASE</version.thymeleaf>
         <!-- Note END -->
-        <version.swagger>3.0.0</version.swagger>
+        <version.springdoc>1.5.13</version.springdoc>
         <version.cxf>3.4.5</version.cxf>
         <version.jena>4.2.0</version.jena>
         <version.libthrift>0.15.0</version.libthrift>
@@ -188,14 +188,9 @@
             </dependency>
             <!-- Other -->
             <dependency>
-                <groupId>io.springfox</groupId>
-                <artifactId>springfox-boot-starter</artifactId>
-                <version>${version.swagger}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.springfox</groupId>
-                <artifactId>springfox-swagger-ui</artifactId>
-                <version>${version.swagger}</version>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-ui</artifactId>
+                <version>${version.springdoc}</version>
             </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>
