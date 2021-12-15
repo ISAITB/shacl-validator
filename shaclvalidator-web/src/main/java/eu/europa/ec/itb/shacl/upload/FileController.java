@@ -1,6 +1,5 @@
 package eu.europa.ec.itb.shacl.upload;
 
-import com.gitb.tr.TestResultType;
 import eu.europa.ec.itb.shacl.ApplicationConfig;
 import eu.europa.ec.itb.shacl.DomainConfig;
 import eu.europa.ec.itb.shacl.DomainConfigCache;
@@ -8,7 +7,6 @@ import eu.europa.ec.itb.shacl.validation.FileManager;
 import eu.europa.ec.itb.validation.commons.LocalisationHelper;
 import eu.europa.ec.itb.validation.commons.ValidatorChannel;
 import eu.europa.ec.itb.validation.commons.report.ReportGeneratorBean;
-import eu.europa.ec.itb.validation.commons.report.dto.ReportLabels;
 import eu.europa.ec.itb.validation.commons.web.errors.NotFoundException;
 import eu.europa.ec.itb.validation.commons.web.locale.CustomLocaleResolver;
 import org.apache.commons.io.FileUtils;
@@ -33,7 +31,6 @@ import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.List;
-import java.util.Locale;
 
 import static eu.europa.ec.itb.shacl.upload.UploadController.*;
 
@@ -115,7 +112,7 @@ public class FileController {
                     reportGenerator.writeReport(
                             xmlReport,
                             targetFile,
-                            (report) -> getReportLabels(new LocalisationHelper(domainConfig, localeResolver.resolveLocale(request, response, domainConfig, appConfig)), report.getResult())
+                            new LocalisationHelper(domainConfig, localeResolver.resolveLocale(request, response, domainConfig, appConfig))
                     );
                 } else {
                     LOG.error(String.format("Unable to produce PDF report because of missing XML report (validation ID was [%s])", id));
@@ -211,32 +208,6 @@ public class FileController {
             throw new NotFoundException();
         }
         return file;
-    }
-
-    /**
-     * Get the labels to use in PDF reports.
-     *
-     * @param helper The localisation helper.
-     * @param resultType The report's result to consider.
-     * @return The labels.
-     */
-    private ReportLabels getReportLabels(LocalisationHelper helper, TestResultType resultType) {
-        var reportLabels = new ReportLabels();
-        reportLabels.setTitle(helper.localise("validator.reportTitle"));
-        reportLabels.setOverview(helper.localise("validator.label.resultSubSectionOverviewTitle"));
-        reportLabels.setDetails(helper.localise("validator.label.resultSubSectionDetailsTitle"));
-        reportLabels.setDate(helper.localise("validator.label.resultDateLabel"));
-        reportLabels.setResult(helper.localise("validator.label.resultResultLabel"));
-        reportLabels.setFileName(helper.localise("validator.label.resultFileNameLabel"));
-        reportLabels.setErrors(helper.localise("validator.label.resultErrorsLabel"));
-        reportLabels.setWarnings(helper.localise("validator.label.resultWarningsLabel"));
-        reportLabels.setMessages(helper.localise("validator.label.resultMessagesLabel"));
-        reportLabels.setTest(helper.localise("validator.label.resultTestLabel"));
-        reportLabels.setLocation(helper.localise("validator.label.resultLocationLabel"));
-        reportLabels.setPage(helper.localise("validator.label.pageLabel"));
-        reportLabels.setOf(helper.localise("validator.label.ofLabel"));
-        reportLabels.setResultType(helper.localise("validator.label.result."+resultType.value().toLowerCase(Locale.ROOT)));
-        return reportLabels;
     }
 
 }
