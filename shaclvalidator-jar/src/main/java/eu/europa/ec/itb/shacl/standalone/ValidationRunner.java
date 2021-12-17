@@ -223,16 +223,16 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
                     StringBuilder summary = new StringBuilder();
                     summary.append("\n");
                     int i=0;
+                    var localiser = new LocalisationHelper(domainConfig, Locale.ENGLISH);
                     for (ValidationInput input: inputs) {
                         LOGGER_FEEDBACK.info("\nValidating ["+input.getFileName()+"]...");
 
                         File inputFile = input.getInputFile();
-
                         try {
-                            SHACLValidator validator = applicationContext.getBean(SHACLValidator.class, inputFile, type, input.getContentSyntax(), externalShapesList, loadImports, domainConfig);
+                            SHACLValidator validator = applicationContext.getBean(SHACLValidator.class, inputFile, type, input.getContentSyntax(), externalShapesList, loadImports, domainConfig, localiser);
                             Model report = validator.validateAll();
                             // Output summary results.
-                            TAR tarReport = Utils.getTAR(report, domainConfig, Utils.getDefaultReportLabels(domainConfig));
+                            TAR tarReport = Utils.getTAR(report, domainConfig, Utils.getDefaultReportLabels(domainConfig), localiser);
                             FileReport reporter = new FileReport(input.getFileName(), tarReport, requireType, type);
                             summary.append("\n").append(reporter).append("\n");
                             if (!noReports || cliReports) {
@@ -258,7 +258,7 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
                                 }
                             }
                         } catch (ValidatorException e) {
-                            LOGGER_FEEDBACK.info("\nAn error occurred while executing the validation: "+e.getMessageForDisplay(new LocalisationHelper(Locale.ENGLISH)));
+                            LOGGER_FEEDBACK.info("\nAn error occurred while executing the validation: "+e.getMessageForDisplay(localiser));
                             LOGGER.error("An error occurred while executing the validation: "+e.getMessageForLog(), e);
                             break;
 

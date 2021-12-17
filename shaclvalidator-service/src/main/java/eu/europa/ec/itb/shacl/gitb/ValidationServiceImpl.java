@@ -132,6 +132,7 @@ public class ValidationServiceImpl implements ValidationService {
     	MDC.put("domain", domainConfig.getDomain());
 		File parentFolder = fileManager.createTemporaryFolderPath();
 		File contentToValidate;
+        var localiser = new LocalisationHelper(domainConfig, Locale.ENGLISH);
 		try {
 			// Validation of the input data
 			String contentSyntax = validateContentSyntax(validateRequest);
@@ -151,7 +152,7 @@ public class ValidationServiceImpl implements ValidationService {
 			boolean addInputToReport = getInputAsBoolean(validateRequest, ValidationConstants.INPUT_ADD_INPUT_TO_REPORT, false);
             boolean addShapesToReport = getInputAsBoolean(validateRequest, ValidationConstants.INPUT_ADD_RULES_TO_REPORT, false);
             boolean addRdfReportToReport = getInputAsBoolean(validateRequest, ValidationConstants.INPUT_ADD_RDF_REPORT_TO_REPORT, false);
-			SHACLValidator validator = ctx.getBean(SHACLValidator.class, contentToValidate, validationType, contentSyntax, externalShapes, loadImports, domainConfig);
+			SHACLValidator validator = ctx.getBean(SHACLValidator.class, contentToValidate, validationType, contentSyntax, externalShapes, loadImports, domainConfig, localiser);
 			Model reportModel = validator.validateAll();
 			TAR report = Utils.getTAR(
 			        reportModel,
@@ -159,17 +160,18 @@ public class ValidationServiceImpl implements ValidationService {
                     addInputToReport?contentToValidate.toPath():null,
                     addShapesToReport?validator.getAggregatedShapes():null,
                     domainConfig,
-                    Utils.getDefaultReportLabels(domainConfig)
+                    Utils.getDefaultReportLabels(domainConfig),
+                    localiser
             );
 			ValidationResponse result = new ValidationResponse();
 			result.setReport(report);
 			return result;
 		} catch (ValidatorException e) {
     		logger.error(e.getMessageForLog(), e);
-    		throw new ValidatorException(e.getMessageForDisplay(new LocalisationHelper(Locale.ENGLISH)), true);
+    		throw new ValidatorException(e.getMessageForDisplay(localiser), true);
 		} catch (Exception e) {
 			logger.error("Unexpected error", e);
-            var message = new LocalisationHelper(Locale.ENGLISH).localise(ValidatorException.MESSAGE_DEFAULT);
+            var message = localiser.localise(ValidatorException.MESSAGE_DEFAULT);
 			throw new ValidatorException(message, e, true, (Object[]) null);
 		} finally {
 			FileUtils.deleteQuietly(parentFolder);

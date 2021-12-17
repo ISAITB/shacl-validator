@@ -22,10 +22,11 @@ public class Utils extends eu.europa.ec.itb.validation.commons.Utils {
      * @param report The SHACL validation report.
      * @param domainConfig The domain configuration to consider.
      * @param labels The labels to use for fixed texts.
+     * @param localiser HElper class to lookup translations.
      * @return The TAR validation report.
      */
-    public static TAR getTAR(Model report, DomainConfig domainConfig, SHACLReportHandler.ReportLabels labels) {
-        SHACLReportHandler reportHandler = new SHACLReportHandler(report, domainConfig, labels);
+    public static TAR getTAR(Model report, DomainConfig domainConfig, SHACLReportHandler.ReportLabels labels, LocalisationHelper localiser) {
+        SHACLReportHandler reportHandler = new SHACLReportHandler(report, domainConfig, labels, localiser);
         return reportHandler.createReport();
     }
 
@@ -38,16 +39,17 @@ public class Utils extends eu.europa.ec.itb.validation.commons.Utils {
      * @param aggregatedShapes The SHACL shapes to add to the TAR report as context.
      * @param domainConfig The domain configuration to consider.
      * @param labels The labels for fixed texts.
+     * @param localiser Helper class to lookup translations.
      * @return The TAR validation report.
      */
-    public static TAR getTAR(Model report, String reportContentToInclude, Path inputFilePath, Model aggregatedShapes, DomainConfig domainConfig, SHACLReportHandler.ReportLabels labels) {
+    public static TAR getTAR(Model report, String reportContentToInclude, Path inputFilePath, Model aggregatedShapes, DomainConfig domainConfig, SHACLReportHandler.ReportLabels labels, LocalisationHelper localiser) {
         //SHACL report: from Model to TAR
         try {
             String contentToValidateString = null;
             if (inputFilePath != null) {
                 contentToValidateString = new String(Files.readAllBytes(inputFilePath));
             }
-            SHACLReportHandler reportHandler = new SHACLReportHandler(contentToValidateString, aggregatedShapes, report, reportContentToInclude, domainConfig, labels);
+            SHACLReportHandler reportHandler = new SHACLReportHandler(contentToValidateString, aggregatedShapes, report, reportContentToInclude, domainConfig, labels, localiser);
             return reportHandler.createReport();
         } catch (IOException e) {
             throw new IllegalStateException("Error during the transformation of the report to TAR");
