@@ -7,6 +7,7 @@ import com.gitb.vs.ValidationResponse;
 import eu.europa.ec.itb.shacl.DomainConfig;
 import eu.europa.ec.itb.shacl.util.Utils;
 import eu.europa.ec.itb.validation.commons.FileInfo;
+import eu.europa.ec.itb.validation.commons.LocalisationHelper;
 import eu.europa.ec.itb.validation.commons.config.DomainPluginConfigProvider;
 import eu.europa.ec.itb.validation.commons.error.ValidatorException;
 import eu.europa.ec.itb.validation.plugin.PluginManager;
@@ -50,15 +51,16 @@ public class SHACLValidator {
     @Autowired
     private DomainPluginConfigProvider pluginConfigProvider = null;
 
-    private File inputFileToValidate;
+    private final File inputFileToValidate;
     private final DomainConfig domainConfig;
+    private final LocalisationHelper localiser;
     private String validationType;
-    private String contentSyntax;
+    private final String contentSyntax;
     private Lang contentSyntaxLang;
-    private List<FileInfo> externalShaclFiles;
+    private final List<FileInfo> externalShaclFiles;
     private Model aggregatedShapes;
     private Model importedShapes;
-    private boolean loadImports;
+    private final boolean loadImports;
 
     /**
      * Constructor to start the SHACL validator.
@@ -67,15 +69,17 @@ public class SHACLValidator {
      * @param contentSyntax The mime type of the provided RDF content.
      * @param externalShaclFiles Any shapes to consider that are externally provided
      * @param loadImports True if OWL imports in the content should be loaded before validation.
-     * @param domainConfig Domain
+     * @param domainConfig The domain in question.
+     * @param localiser Helper class for localisations.
      */
-    public SHACLValidator(File inputFileToValidate, String validationType, String contentSyntax, List<FileInfo> externalShaclFiles, boolean loadImports, DomainConfig domainConfig) {
+    public SHACLValidator(File inputFileToValidate, String validationType, String contentSyntax, List<FileInfo> externalShaclFiles, boolean loadImports, DomainConfig domainConfig, LocalisationHelper localiser) {
     	this.contentSyntax = contentSyntax;
     	this.inputFileToValidate = inputFileToValidate;
         this.validationType = validationType;
         this.domainConfig = domainConfig;
         this.externalShaclFiles = externalShaclFiles;
         this.loadImports = loadImports;
+        this.localiser = localiser;
         if (validationType == null) {
             this.validationType = domainConfig.getType().get(0);
         }
@@ -142,6 +146,7 @@ public class SHACLValidator {
         request.getInput().add(Utils.createInputItem("domain", domainConfig.getDomainName()));
         request.getInput().add(Utils.createInputItem("validationType", validationType));
         request.getInput().add(Utils.createInputItem("tempFolder", pluginTmpFolder.getAbsolutePath()));
+        request.getInput().add(Utils.createInputItem("locale", localiser.getLocale().toString()));
         return request;
     }
 

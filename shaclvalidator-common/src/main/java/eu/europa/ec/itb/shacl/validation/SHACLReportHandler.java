@@ -5,6 +5,8 @@ import com.gitb.core.ValueEmbeddingEnumeration;
 import com.gitb.tr.*;
 import eu.europa.ec.itb.shacl.DomainConfig;
 import eu.europa.ec.itb.shacl.util.Utils;
+import eu.europa.ec.itb.validation.commons.LocalisationHelper;
+import org.apache.commons.lang3.LocaleUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jena.rdf.model.*;
 import org.slf4j.Logger;
@@ -13,8 +15,7 @@ import org.slf4j.LoggerFactory;
 import javax.xml.bind.JAXBElement;
 import java.io.StringWriter;
 import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Comparator;
+import java.util.*;
 
 /**
  * Class to handle a SHACL validation report and produce a TAR report.
@@ -28,6 +29,7 @@ public class SHACLReportHandler {
 	private final DomainConfig domainConfig;
     private final ObjectFactory objectFactory = new ObjectFactory();
     private final ReportLabels labels;
+    private final LocalisationHelper localiser;
 
     /**
      * Constructor.
@@ -35,9 +37,10 @@ public class SHACLReportHandler {
      * @param shaclReport The RDF report.
      * @param domainConfig The domain configuration.
      * @param labels The labels to use for fixed texts.
+     * @param localiser Helper class to lookup translations.
      */
-    public SHACLReportHandler(Model shaclReport, DomainConfig domainConfig, ReportLabels labels) {
-        this(null, null, shaclReport, null, domainConfig, labels);
+    public SHACLReportHandler(Model shaclReport, DomainConfig domainConfig, ReportLabels labels, LocalisationHelper localiser) {
+        this(null, null, shaclReport, null, domainConfig, labels, localiser);
     }
 
     /**
@@ -49,11 +52,13 @@ public class SHACLReportHandler {
      * @param reportContentToInclude The content for the validation report to add as context to the TAR report.
      * @param domainConfig The domain configuration.
      * @param labels The labels to use for fixed texts.
+     * @param localiser Helper class to lookup translations.
      */
-	public SHACLReportHandler(String inputFile, Model shapes, Model shaclReport, String reportContentToInclude, DomainConfig domainConfig, ReportLabels labels) {
+	public SHACLReportHandler(String inputFile, Model shapes, Model shaclReport, String reportContentToInclude, DomainConfig domainConfig, ReportLabels labels, LocalisationHelper localiser) {
 		this.shaclReport = shaclReport;
 		this.domainConfig = domainConfig;
         this.labels = labels;
+        this.localiser = localiser;
 		report = new TAR();
         report.setResult(TestResultType.SUCCESS);
         report.setDate(Utils.getXMLGregorianCalendarDateTime());
@@ -94,6 +99,24 @@ public class SHACLReportHandler {
 	}
 
     /**
+     * Get the language code for the provided statement.
+     *
+     * @param statement The statement.
+     * @return The language code (empty string if none was defined).
+     */
+    private String getLanguageCode(Statement statement) {
+        RDFNode node = statement.getObject();
+        if (node.isLiteral()) {
+            if (node.asLiteral().getLanguage() == null) {
+                return "";
+            } else {
+                return StringUtils.replaceChars(node.asLiteral().getLanguage(), '-', '_');
+            }
+        }
+        return "";
+    }
+
+    /**
      * Convert the provided RDF statement to a string.
      *
      * @param statement The statement.
@@ -126,13 +149,16 @@ public class SHACLReportHandler {
         int infos = 0;
         int warnings = 0;
         int errors = 0;
-        
+        var messageMap = new LinkedHashMap<String, String>();
+        var detectedInvalidLanguageCodes = new HashSet<String>();
+
 		if(this.shaclReport != null) {
             NodeIterator niResult = this.shaclReport.listObjectsOfProperty(this.shaclReport.getProperty("http://www.w3.org/ns/shacl#conforms"));
             NodeIterator niValidationResult = this.shaclReport.listObjectsOfProperty(this.shaclReport.getProperty("http://www.w3.org/ns/shacl#result"));
             ArrayList reports = new ArrayList();
 
             if(niResult.hasNext() && !niResult.next().asLiteral().getBoolean()) {
+                messageMap.clear();
             	while(niValidationResult.hasNext()) {
             		RDFNode node = niValidationResult.next();
             		StmtIterator it = this.shaclReport.listStatements(node.asResource(), null, (RDFNode)null);
@@ -147,7 +173,9 @@ public class SHACLReportHandler {
             			Statement statement = it.next();
             			
             			if(statement.getPredicate().hasURI("http://www.w3.org/ns/shacl#resultMessage")) {
-                            error.setDescription(getStatementSafe(statement));
+                            var message = getStatementSafe(statement);
+                            var languageCode = getLanguageCode(statement);
+                            messageMap.put(languageCode, message);
             			}
             			if(statement.getPredicate().hasURI("http://www.w3.org/ns/shacl#focusNode")) {
             				focusNode = getStatementSafe(statement);
@@ -165,6 +193,7 @@ public class SHACLReportHandler {
                             value = getStatementSafe(statement);
                         }
             		}
+                    error.setDescription(getErrorDescription(messageMap, detectedInvalidLanguageCodes));
             		error.setLocation(createStringMessageFromParts(new String[] {labels.getFocusNode(), labels.getResultPath()}, new String[] {focusNode, resultPath}));
                     error.setTest(createStringMessageFromParts(new String[] {labels.getShape(), labels.getValue()}, new String[] {shape, value}));
                     JAXBElement element;
@@ -180,11 +209,14 @@ public class SHACLReportHandler {
                     }   
                     reports.add(element);
             	}
+                if (!detectedInvalidLanguageCodes.isEmpty()) {
+                    logger.warn("Detected invalid languages codes for shape messages: "+detectedInvalidLanguageCodes);
+                }
                 this.report.getReports().getInfoOrWarningOrError().addAll(reports);
             }
 		} else {
             BAR error1 = new BAR();
-            error1.setDescription("An error occurred when generating SHACL Validation Report due to a problem in given content.");
+            error1.setDescription(localiser.localise("validator.label.exception.unableToGenerateReportDueToContentProblem"));
             JAXBElement element1 = this.objectFactory.createTestAssertionGroupReportsTypeError(error1);
             this.report.getReports().getInfoOrWarningOrError().add(element1);
             
@@ -207,6 +239,57 @@ public class SHACLReportHandler {
         
 		return this.report;
 	}
+
+    /**
+     * Get the message to use from the loaded messages considering the current locale.
+     *
+     * @param messageMap The loaded messages.
+     * @param detectedInvalidLanguageCodes The set to which to add any detected invalid language codes.
+     * @return The message to use.
+     */
+    private String getErrorDescription(LinkedHashMap<String, String> messageMap, Set<String> detectedInvalidLanguageCodes) {
+        if (messageMap.isEmpty()) {
+            return "";
+        } else if (messageMap.size() == 1) {
+            return messageMap.values().iterator().next();
+        } else {
+            var localeMap = new HashMap<Locale, String>();
+            String defaultMessage = null;
+            for (var messageEntry: messageMap.entrySet()) {
+                if (messageEntry.getKey().isEmpty()) {
+                    defaultMessage = messageEntry.getValue();
+                } else {
+                    try {
+                        var messageLocale = LocaleUtils.toLocale(messageEntry.getKey());
+                        localeMap.put(messageLocale, messageEntry.getValue());
+                    } catch (IllegalArgumentException e) {
+                        detectedInvalidLanguageCodes.add(messageEntry.getKey());
+                    }
+                }
+            }
+            String messageToReturn = null;
+            if (localeMap.containsKey(localiser.getLocale())) {
+                // Exact match.
+                messageToReturn = localeMap.get(localiser.getLocale());
+            } else {
+                var matchedLanguage = localeMap.entrySet().stream().filter((entry) -> entry.getKey().getLanguage().equals(localiser.getLocale().getLanguage())).findFirst();
+                if (matchedLanguage.isPresent()) {
+                    // Message for same language.
+                    messageToReturn = matchedLanguage.get().getValue();
+                } else if (defaultMessage != null) {
+                    // Message defined without a language code.
+                    messageToReturn = defaultMessage;
+                } else if (!localeMap.isEmpty()) {
+                    // The first defined message with a valid language code.
+                    messageToReturn = localeMap.values().iterator().next();
+                } else if (!messageMap.isEmpty()) {
+                    // The first defined message even with an invalid language code.
+                    messageToReturn = messageMap.values().iterator().next();
+                }
+            }
+            return StringUtils.defaultString(messageToReturn);
+        }
+    }
 
     /**
      * Create a report item message from the provided parts.

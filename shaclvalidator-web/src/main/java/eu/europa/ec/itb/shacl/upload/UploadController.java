@@ -232,9 +232,9 @@ public class UploadController {
                         loadImportsValue = null;
                     }
                     loadImportsValue = inputHelper.validateLoadInputs(domainConfig, loadImportsValue, validationType);
-                    SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile, validationType, contentSyntaxType, userProvidedShapes, loadImportsValue, domainConfig);
+                    SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile, validationType, contentSyntaxType, userProvidedShapes, loadImportsValue, domainConfig, localisationHelper);
                     org.apache.jena.rdf.model.Model reportModel = validator.validateAll();
-                    TAR tarReport = Utils.getTAR(reportModel, domainConfig, Utils.getReportLabels(localisationHelper));
+                    TAR tarReport = Utils.getTAR(reportModel, domainConfig, Utils.getReportLabels(localisationHelper), localisationHelper);
                     if (tarReport.getReports().getInfoOrWarningOrError().size() <= domainConfig.getMaximumReportsForDetailedOutput()) {
                         fileManager.saveReport(tarReport, fileManager.createFile(parentFolder, ".xml", FILE_NAME__TAR).toFile(), domainConfig);
                     }

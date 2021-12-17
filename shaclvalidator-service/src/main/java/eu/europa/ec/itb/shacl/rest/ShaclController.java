@@ -13,6 +13,7 @@ import eu.europa.ec.itb.shacl.validation.FileManager;
 import eu.europa.ec.itb.shacl.validation.SHACLValidator;
 import eu.europa.ec.itb.validation.commons.FileContent;
 import eu.europa.ec.itb.validation.commons.FileInfo;
+import eu.europa.ec.itb.validation.commons.LocalisationHelper;
 import eu.europa.ec.itb.validation.commons.ValidatorChannel;
 import eu.europa.ec.itb.validation.commons.error.ValidatorException;
 import eu.europa.ec.itb.validation.commons.web.errors.NotFoundException;
@@ -245,7 +246,7 @@ public class ShaclController {
             }
             Boolean loadImports = inputHelper.validateLoadInputs(domainConfig, in.isLoadImports(), validationType);
             // Execute validation
-            SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile, validationType, contentSyntax, externalShapes, loadImports, domainConfig);
+            SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile, validationType, contentSyntax, externalShapes, loadImports, domainConfig, new LocalisationHelper(domainConfig, Locale.ENGLISH));
             Model validationReport = validator.validateAll();
             if (in.getReportQuery() != null && !in.getReportQuery().isBlank()) {
                 // Run post-processing query on report and return based on content-type
