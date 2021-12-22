@@ -25,7 +25,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.6.1</version>
+        <version>2.6.2</version>
     </parent>
     <modules>
         <module>shaclvalidator-common</module>
@@ -40,15 +40,7 @@
         <java.version>1.8</java.version>
         <validatorBuild.resourceJar>validator-resources</validatorBuild.resourceJar>
         <maven.build.timestamp.format>yyyy-MM-dd HH:mm:ss (XXX)</maven.build.timestamp.format>
-        <!-- Note START
-             For Spring Boot versions above 2.6.1 check to see
-             if the org.thymeleaf.thymeleaf-spring5 dependency is at least at 3.0.13.RELEASE.
-             If yes remove the explicit thymeleaf version and dependency management section
-             (this was added to address CVE-2021-43466).
-        -->
-        <version.springBoot>2.6.1</version.springBoot>
-        <version.thymeleaf>3.0.13.RELEASE</version.thymeleaf>
-        <!-- Note END -->
+        <version.springBoot>2.6.2</version.springBoot>
         <version.springdoc>1.5.13</version.springdoc>
         <version.cxf>3.4.5</version.cxf>
         <version.jena>4.2.0</version.jena>
@@ -93,16 +85,6 @@
 
     <dependencyManagement>
         <dependencies>
-            <dependency>
-                <groupId>org.thymeleaf</groupId>
-                <artifactId>thymeleaf-spring5</artifactId>
-                <version>${version.thymeleaf}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.thymeleaf</groupId>
-                <artifactId>thymeleaf</artifactId>
-                <version>${version.thymeleaf}</version>
-            </dependency>
             <!-- Current modules. -->
             <dependency>
                 <groupId>eu.europa.ec.itb.shacl</groupId>
