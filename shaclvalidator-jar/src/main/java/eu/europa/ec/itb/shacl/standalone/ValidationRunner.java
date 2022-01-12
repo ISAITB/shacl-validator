@@ -17,6 +17,7 @@ import eu.europa.ec.itb.validation.commons.jar.BaseValidationRunner;
 import eu.europa.ec.itb.validation.commons.jar.FileReport;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.LocaleUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jena.atlas.web.ContentType;
 import org.apache.jena.query.Query;
@@ -61,6 +62,7 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
     private static final String FLAG_CONTENT_QUERY_ENDPOINT = "-contentQueryEndpoint";
     private static final String FLAG_CONTENT_QUERY_USERNAME = "-contentQueryUsername";
     private static final String FLAG_CONTENT_QUERY_PASSWORD = "-contentQueryPassword";
+    private static final String FLAG_LOCALE = "-locale";
 
     @Autowired
     FileManager fileManager;
@@ -91,6 +93,7 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
         String reportSyntax = null;
         String reportQuery = null;
         String type = null;
+        String locale = null;
         
         if (!requireType) {
             type = domainConfig.getType().get(0);        	
@@ -184,6 +187,10 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
                             }
                         } else if (FLAG_CLI_REPORTS.equalsIgnoreCase(args[i])) {
                             cliReports = true;
+                        } else if (FLAG_LOCALE.equalsIgnoreCase(args[i])) {
+                            if (args.length > i+1) {
+                                locale = args[++i];
+                            }
                         } else if (!FLAG_NO_OUTPUT.equalsIgnoreCase(args[i]) && !FLAG_NO_LOG.equalsIgnoreCase(args[i])) {
                             throw new ValidatorException("validator.label.exception.unexpectedParameter", args[i]);
                         }
@@ -223,7 +230,7 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
                     StringBuilder summary = new StringBuilder();
                     summary.append("\n");
                     int i=0;
-                    var localiser = new LocalisationHelper(domainConfig, Locale.ENGLISH);
+                    var localiser = new LocalisationHelper(domainConfig, Utils.getSupportedLocale(LocaleUtils.toLocale(locale), domainConfig));
                     for (ValidationInput input: inputs) {
                         LOGGER_FEEDBACK.info("\nValidating ["+input.getFileName()+"]...");
 
@@ -295,7 +302,7 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
      * Print how to call the validation JAR.
      */
     private void printUsage() {
-        StringBuilder usageStr = new StringBuilder(String.format("\nExpected usage: java -jar validator.jar %s FILE_1/URI_1 CONTENT_SYNTAX_1 ... [%s FILE_N/URI_N CONTENT_SYNTAX_N] [%s] [%s] [%s] [%s REPORT_SYNTAX] [%s REPORT_QUERY]", FLAG_CONTENT_TO_VALIDATE, FLAG_CONTENT_TO_VALIDATE, FLAG_NO_OUTPUT, FLAG_NO_LOG, FLAG_NO_REPORTS, FLAG_REPORT_SYNTAX, FLAG_REPORT_QUERY));
+        StringBuilder usageStr = new StringBuilder(String.format("\nExpected usage: java -jar validator.jar %s FILE_1/URI_1 CONTENT_SYNTAX_1 ... [%s FILE_N/URI_N CONTENT_SYNTAX_N] [%s] [%s] [%s] [%s REPORT_SYNTAX] [%s REPORT_QUERY] [%s LOCALE]", FLAG_CONTENT_TO_VALIDATE, FLAG_CONTENT_TO_VALIDATE, FLAG_NO_OUTPUT, FLAG_NO_LOG, FLAG_NO_REPORTS, FLAG_REPORT_SYNTAX, FLAG_REPORT_QUERY, FLAG_LOCALE));
         StringBuilder detailsStr = new StringBuilder("\n").append(PAD).append("Where:");
         detailsStr.append("\n").append(PAD).append(PAD).append(String.format("- FILE_X or URI_X is the full file path or URI to the content to validate, optionally followed by CONTENT_SYNTAX_X as the content's mime type (one of %s).", appConfig.getContentSyntax()));
         detailsStr.append("\n").append(PAD).append(PAD).append(String.format("- REPORT_SYNTAX is the mime type for the validation report(s) (one of %s).", appConfig.getContentSyntax()));
@@ -330,6 +337,7 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
         detailsStr.append("\n").append(PAD).append(PAD).append(String.format("- %s disables all log file output.", FLAG_NO_LOG));
         detailsStr.append("\n").append(PAD).append(PAD).append(String.format("- %s disables validation report generation as files.", FLAG_NO_REPORTS));
         detailsStr.append("\n").append(PAD).append(PAD).append(String.format("- %s enables output of validation reports to the command-line.", FLAG_CLI_REPORTS));
+        detailsStr.append("\n").append(PAD).append(PAD).append("- LOCALE is the language code to consider for reporting of results. If the provided locale is not supported by the validator the default locale will be used instead (e.g. 'fr', 'fr_FR').");
         String message = usageStr
                 .append(detailsStr)
                 .append("\n\nThe summary of each validation will be printed and the detailed report produced in the current directory (as \"report.X.SUFFIX\").")

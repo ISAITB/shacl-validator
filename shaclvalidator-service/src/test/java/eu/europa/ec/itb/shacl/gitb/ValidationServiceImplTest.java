@@ -54,7 +54,8 @@ public class ValidationServiceImplTest {
                 descriptionEntryOf(ValidationConstants.INPUT_CONTENT_QUERY),
                 descriptionEntryOf(ValidationConstants.INPUT_CONTENT_QUERY_ENDPOINT),
                 descriptionEntryOf(ValidationConstants.INPUT_CONTENT_QUERY_USERNAME),
-                descriptionEntryOf(ValidationConstants.INPUT_CONTENT_QUERY_PASSWORD)
+                descriptionEntryOf(ValidationConstants.INPUT_CONTENT_QUERY_PASSWORD),
+                descriptionEntryOf(ValidationConstants.INPUT_LOCALE)
         )).when(domainConfig).getWebServiceDescription();
         var service = new ValidationServiceImpl(domainConfig);
         var result = service.getModuleDefinition(new Void());
@@ -62,7 +63,7 @@ public class ValidationServiceImplTest {
         assertNotNull(result.getModule());
         assertEquals("service1", result.getModule().getId());
         assertNotNull(result.getModule().getInputs());
-        assertEquals(15, result.getModule().getInputs().getParam().size());
+        assertEquals(16, result.getModule().getInputs().getParam().size());
         assertWebServiceInputDocumentation(ValidationConstants.INPUT_CONTENT, result.getModule().getInputs().getParam().get(0), UsageEnumeration.O);
         assertWebServiceInputDocumentation(ValidationConstants.INPUT_EMBEDDING_METHOD, result.getModule().getInputs().getParam().get(1), UsageEnumeration.O);
         assertWebServiceInputDocumentation(ValidationConstants.INPUT_SYNTAX, result.getModule().getInputs().getParam().get(2), UsageEnumeration.O);
@@ -78,6 +79,7 @@ public class ValidationServiceImplTest {
         assertWebServiceInputDocumentation(ValidationConstants.INPUT_CONTENT_QUERY_ENDPOINT, result.getModule().getInputs().getParam().get(12), UsageEnumeration.O);
         assertWebServiceInputDocumentation(ValidationConstants.INPUT_CONTENT_QUERY_USERNAME, result.getModule().getInputs().getParam().get(13), UsageEnumeration.O);
         assertWebServiceInputDocumentation(ValidationConstants.INPUT_CONTENT_QUERY_PASSWORD, result.getModule().getInputs().getParam().get(14), UsageEnumeration.O);
+        assertWebServiceInputDocumentation(ValidationConstants.INPUT_LOCALE, result.getModule().getInputs().getParam().get(15), UsageEnumeration.O);
     }
 
     private Map.Entry<String, String> descriptionEntryOf(String inputName) {

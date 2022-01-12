@@ -39,5 +39,7 @@ public class ValidationConstants {
     public static String INPUT_CONTENT_QUERY_USERNAME = "contentQueryUsername";
     /** The password to authenticate against the SPARQL endpoint. */
     public static String INPUT_CONTENT_QUERY_PASSWORD = "contentQueryPassword";
+    /** The locale string to consider. */
+    public static String INPUT_LOCALE = "locale";
 
 }

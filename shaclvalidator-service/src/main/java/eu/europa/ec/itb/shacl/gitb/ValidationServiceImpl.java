@@ -15,6 +15,7 @@ import eu.europa.ec.itb.validation.commons.FileInfo;
 import eu.europa.ec.itb.validation.commons.LocalisationHelper;
 import eu.europa.ec.itb.validation.commons.error.ValidatorException;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.LocaleUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryExecution;
@@ -116,6 +117,7 @@ public class ValidationServiceImpl implements ValidationService {
                 response.getModule().getInputs().getParam().add(Utils.createParameter(ValidationConstants.INPUT_CONTENT_QUERY_PASSWORD, "string", UsageEnumeration.O, ConfigurationType.SIMPLE, domainConfig.getWebServiceDescription().get(ValidationConstants.INPUT_CONTENT_QUERY_PASSWORD)));
             }
         }
+        response.getModule().getInputs().getParam().add(Utils.createParameter(ValidationConstants.INPUT_LOCALE, "string", UsageEnumeration.O, ConfigurationType.SIMPLE, domainConfig.getWebServiceDescription().get(ValidationConstants.INPUT_LOCALE)));
         return response;
     }
 
@@ -132,7 +134,7 @@ public class ValidationServiceImpl implements ValidationService {
     	MDC.put("domain", domainConfig.getDomain());
 		File parentFolder = fileManager.createTemporaryFolderPath();
 		File contentToValidate;
-        var localiser = new LocalisationHelper(domainConfig, Locale.ENGLISH);
+        var localiser = new LocalisationHelper(domainConfig, Utils.getSupportedLocale(LocaleUtils.toLocale(getInputAsString(validateRequest, ValidationConstants.INPUT_LOCALE, null)), domainConfig));
 		try {
 			// Validation of the input data
 			String contentSyntax = validateContentSyntax(validateRequest);

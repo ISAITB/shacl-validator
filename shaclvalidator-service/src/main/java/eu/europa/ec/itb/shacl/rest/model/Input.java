@@ -38,6 +38,8 @@ public class Input {
     private String contentQueryUsername;
     @Schema(description = "Password to access the SPARQL endpoint.")
     private String contentQueryPassword;
+    @Schema(description = "Locale (language code) to use for reporting of results. If the provided locale is not supported by the validator the default locale will be used instead (e.g. 'fr', 'fr_FR').")
+    private String locale;
 
     /**
      * @return The string representing the content to validate (string as-is, URL or base64 content).
@@ -212,5 +214,19 @@ public class Input {
             config = new SparqlQueryConfig(contentQueryEndpoint, contentQuery, contentQueryUsername, contentQueryPassword, contentSyntax);
         }
         return config;
+    }
+
+    /**
+     * @return The locale string.
+     */
+    public String getLocale() {
+        return locale;
+    }
+
+    /**
+     * @param locale The locale string to set.
+     */
+    public void setLocale(String locale) {
+        this.locale = locale;
     }
 }
