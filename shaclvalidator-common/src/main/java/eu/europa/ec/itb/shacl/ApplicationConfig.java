@@ -1,5 +1,6 @@
 package eu.europa.ec.itb.shacl;
 
+import eu.europa.ec.itb.shacl.validation.ValidationConstants;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
@@ -36,6 +37,7 @@ public class ApplicationConfig extends eu.europa.ec.itb.validation.commons.confi
     private String defaultAddRdfReportToReportDescription;
     private String defaultRdfReportSyntaxDescription;
     private String defaultRdfReportQueryDescription;
+    private String defaultLocaleDescription;
 
     /**
      * @return The default web service input description for adding the SHACL validation report to the TAR report context.
@@ -295,6 +297,20 @@ public class ApplicationConfig extends eu.europa.ec.itb.validation.commons.confi
     }
 
     /**
+     * @return The default web service input description for the locale to use.
+     */
+    public String getDefaultLocaleDescription() {
+        return defaultLocaleDescription;
+    }
+
+    /**
+     * @param defaultLocaleDescription The default web service input description for the locale to use.
+     */
+    public void setDefaultLocaleDescription(String defaultLocaleDescription) {
+        this.defaultLocaleDescription = defaultLocaleDescription;
+    }
+
+    /**
      * @return The set of supported RDF syntax values (provided as mime types).
      */
 	public Set<String> getContentSyntax() {
@@ -322,21 +338,22 @@ public class ApplicationConfig extends eu.europa.ec.itb.validation.commons.confi
     public void init() {
         super.init();
         // Default labels.
-        defaultLabels.put("contentToValidate", defaultContentToValidateDescription);
-        defaultLabels.put("contentSyntax", defaultContentSyntaxDescription);
-        defaultLabels.put("embeddingMethod", defaultEmbeddingMethodDescription);
-        defaultLabels.put("externalRules", defaultExternalRulesDescription);
-        defaultLabels.put("validationType", defaultValidationTypeDescription);
-        defaultLabels.put("loadImports", defaultLoadImportsDescription);
-        defaultLabels.put("addInputToReport", defaultAddInputToReportDescription);
-        defaultLabels.put("addRulesToReport", defaultAddRulesToReportDescription);
-        defaultLabels.put("contentQuery", defaultContentQueryDescription);
-        defaultLabels.put("contentQueryEndpoint", defaultContentQueryEndpointDescription);
-        defaultLabels.put("contentQueryUsername", defaultContentQueryUsernameDescription);
-        defaultLabels.put("contentQueryPassword", defaultContentQueryPasswordDescription);
-        defaultLabels.put("addRdfReportToReport", defaultAddRdfReportToReportDescription);
-        defaultLabels.put("rdfReportSyntax", defaultRdfReportSyntaxDescription);
-        defaultLabels.put("rdfReportQuery", defaultRdfReportQueryDescription);
+        defaultLabels.put(ValidationConstants.INPUT_CONTENT, defaultContentToValidateDescription);
+        defaultLabels.put(ValidationConstants.INPUT_SYNTAX, defaultContentSyntaxDescription);
+        defaultLabels.put(ValidationConstants.INPUT_EMBEDDING_METHOD, defaultEmbeddingMethodDescription);
+        defaultLabels.put(ValidationConstants.INPUT_EXTERNAL_RULES, defaultExternalRulesDescription);
+        defaultLabels.put(ValidationConstants.INPUT_VALIDATION_TYPE, defaultValidationTypeDescription);
+        defaultLabels.put(ValidationConstants.INPUT_LOAD_IMPORTS, defaultLoadImportsDescription);
+        defaultLabels.put(ValidationConstants.INPUT_ADD_INPUT_TO_REPORT, defaultAddInputToReportDescription);
+        defaultLabels.put(ValidationConstants.INPUT_ADD_RULES_TO_REPORT, defaultAddRulesToReportDescription);
+        defaultLabels.put(ValidationConstants.INPUT_CONTENT_QUERY, defaultContentQueryDescription);
+        defaultLabels.put(ValidationConstants.INPUT_CONTENT_QUERY_ENDPOINT, defaultContentQueryEndpointDescription);
+        defaultLabels.put(ValidationConstants.INPUT_CONTENT_QUERY_USERNAME, defaultContentQueryUsernameDescription);
+        defaultLabels.put(ValidationConstants.INPUT_CONTENT_QUERY_PASSWORD, defaultContentQueryPasswordDescription);
+        defaultLabels.put(ValidationConstants.INPUT_ADD_RDF_REPORT_TO_REPORT, defaultAddRdfReportToReportDescription);
+        defaultLabels.put(ValidationConstants.INPUT_RDF_REPORT_SYNTAX, defaultRdfReportSyntaxDescription);
+        defaultLabels.put(ValidationConstants.INPUT_RDF_REPORT_QUERY, defaultRdfReportQueryDescription);
+        defaultLabels.put(ValidationConstants.INPUT_LOCALE, defaultLocaleDescription);
     }
 
 }

@@ -125,7 +125,7 @@ public class FileManager extends BaseFileManager<ApplicationConfig> {
         try {
             writer.write(rdfModel, outputWriter, null);
             outputWriter.flush();
-        } catch (Exception e) {
+        } catch (IOException e) {
             logger.error("Error writing RDF model", e);
             throw new IllegalStateException("Error writing RDF model", e);
         } finally {

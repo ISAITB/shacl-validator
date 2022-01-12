@@ -429,6 +429,8 @@ public class SHACLValidator {
 	            	this.importedShapes.removeAll();
 	            }
             }
+        } catch (ValidatorException e) {
+            throw e;
         } catch (Exception e) {
             throw new ValidatorException("validator.label.exception.errorWhileReadingProvidedContent", e, e.getMessage());
         }
