@@ -43,7 +43,8 @@
         <version.springBoot>2.6.2</version.springBoot>
         <version.springdoc>1.5.13</version.springdoc>
         <version.cxf>3.4.5</version.cxf>
-        <version.jena>4.2.0</version.jena>
+        <!-- Ensure the Jena version matches the one used within the TopBraid SHACL library. -->
+        <version.jena>4.3.2</version.jena>
         <version.libthrift>0.15.0</version.libthrift>
         <version.commonsIo>2.7</version.commonsIo>
         <version.commonsLang>3.10</version.commonsLang>
