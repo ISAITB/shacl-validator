@@ -158,7 +158,6 @@ public class SHACLReportHandler {
             ArrayList reports = new ArrayList();
 
             if(niResult.hasNext() && !niResult.next().asLiteral().getBoolean()) {
-                messageMap.clear();
             	while(niValidationResult.hasNext()) {
             		RDFNode node = niValidationResult.next();
             		StmtIterator it = this.shaclReport.listStatements(node.asResource(), null, (RDFNode)null);
@@ -208,6 +207,7 @@ public class SHACLReportHandler {
                         errors += 1;
                     }   
                     reports.add(element);
+                    messageMap.clear();
             	}
                 if (!detectedInvalidLanguageCodes.isEmpty()) {
                     logger.warn("Detected invalid languages codes for shape messages: "+detectedInvalidLanguageCodes);
