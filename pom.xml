@@ -50,7 +50,7 @@
         <version.commonsLang>3.10</version.commonsLang>
         <version.commonsConfiguration>2.7</version.commonsConfiguration>
         <version.commonsCompress>1.21</version.commonsCompress>
-        <version.itbCommons>1.1.0-SNAPSHOT</version.itbCommons>
+        <version.itbCommons>1.1.0</version.itbCommons>
         <version.gitbTypes>1.15.0</version.gitbTypes>
         <version.slf4j>1.7.32</version.slf4j>
         <version.topbraid>1.4.2</version.topbraid>
