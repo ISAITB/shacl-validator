@@ -25,7 +25,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.6.2</version>
+        <version>2.6.4</version>
     </parent>
     <modules>
         <module>shaclvalidator-common</module>
@@ -40,7 +40,7 @@
         <java.version>1.8</java.version>
         <validatorBuild.resourceJar>validator-resources</validatorBuild.resourceJar>
         <maven.build.timestamp.format>yyyy-MM-dd HH:mm:ss (XXX)</maven.build.timestamp.format>
-        <version.springBoot>2.6.2</version.springBoot>
+        <version.springBoot>2.6.4</version.springBoot>
         <version.springdoc>1.5.13</version.springdoc>
         <version.cxf>3.4.5</version.cxf>
         <!-- Ensure the Jena version matches the one used within the TopBraid SHACL library. -->
@@ -52,7 +52,6 @@
         <version.commonsCompress>1.21</version.commonsCompress>
         <version.itbCommons>1.2.0-SNAPSHOT</version.itbCommons>
         <version.gitbTypes>1.15.0</version.gitbTypes>
-        <version.slf4j>1.7.32</version.slf4j>
         <version.topbraid>1.4.2</version.topbraid>
         <version.freemarker>2.3.30</version.freemarker>
         <version.jaxws>2.3.1</version.jaxws>
@@ -174,11 +173,6 @@
                 <groupId>org.springdoc</groupId>
                 <artifactId>springdoc-openapi-ui</artifactId>
                 <version>${version.springdoc}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.slf4j</groupId>
-                <artifactId>slf4j-api</artifactId>
-                <version>${version.slf4j}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.commons</groupId>
