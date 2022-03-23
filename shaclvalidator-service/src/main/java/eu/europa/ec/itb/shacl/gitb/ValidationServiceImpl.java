@@ -6,6 +6,7 @@ import com.gitb.vs.Void;
 import com.gitb.vs.*;
 import eu.europa.ec.itb.shacl.DomainConfig;
 import eu.europa.ec.itb.shacl.InputHelper;
+import eu.europa.ec.itb.shacl.ModelPair;
 import eu.europa.ec.itb.shacl.SparqlQueryConfig;
 import eu.europa.ec.itb.shacl.util.ShaclValidatorUtils;
 import eu.europa.ec.itb.shacl.validation.FileManager;
@@ -154,10 +155,10 @@ public class ValidationServiceImpl implements ValidationService {
             boolean addShapesToReport = getInputAsBoolean(validateRequest, ValidationConstants.INPUT_ADD_RULES_TO_REPORT, false);
             boolean addRdfReportToReport = getInputAsBoolean(validateRequest, ValidationConstants.INPUT_ADD_RDF_REPORT_TO_REPORT, false);
 			SHACLValidator validator = ctx.getBean(SHACLValidator.class, contentToValidate, validationType, contentSyntax, externalShapes, loadImports, domainConfig, localiser);
-			Model reportModel = validator.validateAll();
+			ModelPair models = validator.validateAll();
 			TAR report = ShaclValidatorUtils.getTAR(
-			        reportModel,
-                    addRdfReportToReport?getRdfReportToInclude(reportModel, validateRequest):null,
+                    models,
+                    addRdfReportToReport?getRdfReportToInclude(models.getReportModel(), validateRequest):null,
                     addInputToReport?contentToValidate.toPath():null,
                     addShapesToReport?validator.getAggregatedShapes():null,
                     domainConfig,

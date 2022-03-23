@@ -2,10 +2,7 @@ package eu.europa.ec.itb.shacl.standalone;
 
 
 import com.gitb.tr.TAR;
-import eu.europa.ec.itb.shacl.ApplicationConfig;
-import eu.europa.ec.itb.shacl.DomainConfig;
-import eu.europa.ec.itb.shacl.InputHelper;
-import eu.europa.ec.itb.shacl.SparqlQueryConfig;
+import eu.europa.ec.itb.shacl.*;
 import eu.europa.ec.itb.shacl.util.ShaclValidatorUtils;
 import eu.europa.ec.itb.shacl.validation.FileManager;
 import eu.europa.ec.itb.shacl.validation.SHACLValidator;
@@ -237,11 +234,12 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
                         File inputFile = input.getInputFile();
                         try {
                             SHACLValidator validator = applicationContext.getBean(SHACLValidator.class, inputFile, type, input.getContentSyntax(), externalShapesList, loadImports, domainConfig, localiser);
-                            Model report = validator.validateAll();
+                            ModelPair models = validator.validateAll();
                             // Output summary results.
-                            TAR tarReport = ShaclValidatorUtils.getTAR(report, domainConfig, ShaclValidatorUtils.getDefaultReportLabels(domainConfig), localiser);
+                            TAR tarReport = ShaclValidatorUtils.getTAR(models, domainConfig, ShaclValidatorUtils.getDefaultReportLabels(domainConfig), localiser);
                             FileReport reporter = new FileReport(input.getFileName(), tarReport, requireType, type);
                             summary.append("\n").append(reporter).append("\n");
+                            Model report = models.getReportModel();
                             if (!noReports || cliReports) {
                                 // Run report post-processing query (if provided).
                                 if (reportQuery != null) {
