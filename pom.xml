@@ -40,6 +40,8 @@
         <java.version>1.8</java.version>
         <validatorBuild.resourceJar>validator-resources</validatorBuild.resourceJar>
         <maven.build.timestamp.format>yyyy-MM-dd HH:mm:ss (XXX)</maven.build.timestamp.format>
+        <sonar.organization>isaitb</sonar.organization>
+        <sonar.host.url>https://sonarcloud.io</sonar.host.url>
         <version.springBoot>2.6.4</version.springBoot>
         <version.springdoc>1.5.13</version.springdoc>
         <version.cxf>3.4.5</version.cxf>
