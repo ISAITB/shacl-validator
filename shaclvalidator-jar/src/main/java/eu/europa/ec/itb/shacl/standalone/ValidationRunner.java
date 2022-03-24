@@ -34,7 +34,6 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import java.io.*;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -374,34 +373,26 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
      */
     private File getContent(String file, String contentType, File parentFolder, String filename) {
         File inputFile = new File(file);
-        
     	try {
-        	contentType = getContentType(file, contentType);
-        	boolean validSyntax = validRDFSyntax(contentType);
-			Lang langExtension = RDFLanguages.contentTypeToLang(contentType);
-			
-            if(!inputFile.exists() || !inputFile.isFile() || !inputFile.canRead()) {           	
-            	
-            	if(validSyntax && langExtension!=null) {
-            	    try {
-            	        new URL(file);
-                        inputFile = this.fileManager.getFileFromURL(parentFolder, file, langExtension.getFileExtensions().get(0), filename);
-                    } catch (MalformedURLException e) {
-                        throw new IllegalArgumentException("Unable to load content from ["+file+"]");
-                    }
-            	}else {
-                    throw new IllegalArgumentException("Unknown content syntax ["+contentType+"]");
-            	}
-            }else {
-            	inputFile = this.fileManager.getFileFromInputStream(parentFolder, new FileInputStream(inputFile), contentType, FilenameUtils.removeExtension(inputFile.getName()));
+            contentType = getContentType(file, contentType);
+            boolean validSyntax = validRDFSyntax(contentType);
+            Lang langExtension = RDFLanguages.contentTypeToLang(contentType);
+            if (!inputFile.exists() || !inputFile.isFile() || !inputFile.canRead()) {
+                if (validSyntax && langExtension != null) {
+                    new URL(file);
+                    inputFile = this.fileManager.getFileFromURL(parentFolder, file, langExtension.getFileExtensions().get(0), filename);
+                } else {
+                    throw new IllegalArgumentException("Unknown content syntax [" + contentType + "]");
+                }
+            } else {
+                inputFile = this.fileManager.getFileFromInputStream(parentFolder, new FileInputStream(inputFile), contentType, FilenameUtils.removeExtension(inputFile.getName()));
             }
             if (!inputFile.exists() || !inputFile.isFile() || !inputFile.canRead()) {
-                throw new IllegalArgumentException("Unable to read file or URL ["+file+"]");
+                throw new IllegalArgumentException("Unable to read file or URL [" + file + "]");
             }
-        }catch(IOException e) {
+        } catch (IOException e) {
             throw new IllegalArgumentException("Unable to read file or URL ["+file+"]");
         }
-    	
     	return inputFile;
     }
 

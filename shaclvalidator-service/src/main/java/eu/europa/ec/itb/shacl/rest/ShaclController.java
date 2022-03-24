@@ -48,6 +48,8 @@ import java.nio.charset.Charset;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static eu.europa.ec.itb.validation.commons.web.Constants.MDC_DOMAIN;
+
 /**
  * REST controller to allow triggering the validator via its REST API.
  */
@@ -328,12 +330,12 @@ public class ShaclController {
      * @throws NotFoundException If the domain does not exist or it does not support a REST API.
      */
     private DomainConfig validateDomain(String domain) {
-        DomainConfig config = domainConfigs.getConfigForDomainName(domain);
-        if (config == null || !config.isDefined() || !config.getChannels().contains(ValidatorChannel.REST_API)) {
+        DomainConfig domainConfig = domainConfigs.getConfigForDomainName(domain);
+        if (domainConfig == null || !domainConfig.isDefined() || !domainConfig.getChannels().contains(ValidatorChannel.REST_API)) {
             throw new NotFoundException(domain);
         }
-        MDC.put("domain", domain);
-        return config;
+        MDC.put(MDC_DOMAIN, domain);
+        return domainConfig;
     }
 
     /**

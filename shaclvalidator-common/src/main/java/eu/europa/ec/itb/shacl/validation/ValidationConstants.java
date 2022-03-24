@@ -5,6 +5,11 @@ package eu.europa.ec.itb.shacl.validation;
  */
 public class ValidationConstants {
 
+    /**
+     * Constructor to prevent instantiation.
+     */
+    private ValidationConstants() { throw new IllegalStateException("Utility class"); }
+
     /** The RDF content to validate. */
     public static final String INPUT_CONTENT = "contentToValidate";
     /** The explicit content embedding method. */

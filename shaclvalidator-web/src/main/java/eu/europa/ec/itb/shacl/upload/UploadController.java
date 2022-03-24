@@ -483,13 +483,11 @@ public class UploadController {
                         }
                         inputFile = this.fileManager.getFileFromInputStream(parentFolder, externalFiles[i].getInputStream(), contentSyntaxType, null);
                     }
-                } else if (CONTENT_TYPE_URI.equals(externalContentType[i])) {
-                    if (externalUri.length>i && !externalUri[i].isEmpty()) {
-                        if (StringUtils.isEmpty(contentSyntaxType) || contentSyntaxType.equals(EMPTY)) {
-                            contentSyntaxType = getExtensionContentType(externalUri[i]);
-                        }
-                        inputFile = this.fileManager.getFileFromURL(parentFolder, externalUri[i]);
+                } else if (CONTENT_TYPE_URI.equals(externalContentType[i]) && externalUri.length > i && !externalUri[i].isEmpty()) {
+                    if (StringUtils.isEmpty(contentSyntaxType) || contentSyntaxType.equals(EMPTY)) {
+                        contentSyntaxType = getExtensionContentType(externalUri[i]);
                     }
+                    inputFile = this.fileManager.getFileFromURL(parentFolder, externalUri[i]);
                 }
                 if (inputFile != null) {
                     FileInfo fi = new FileInfo(inputFile, contentSyntaxType);

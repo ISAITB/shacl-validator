@@ -17,6 +17,11 @@ import java.util.Locale;
 public class ShaclValidatorUtils {
 
     /**
+     * Constructor to prevent instantiation.
+     */
+    private ShaclValidatorUtils() { throw new IllegalStateException("Utility class"); }
+
+    /**
      * Create a TAR validation report from the provided SHACL validation report.
      *
      * @param report The SHACL validation report.
