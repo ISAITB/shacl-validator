@@ -7,12 +7,13 @@ import com.gitb.vs.*;
 import eu.europa.ec.itb.shacl.DomainConfig;
 import eu.europa.ec.itb.shacl.InputHelper;
 import eu.europa.ec.itb.shacl.SparqlQueryConfig;
-import eu.europa.ec.itb.shacl.util.Utils;
+import eu.europa.ec.itb.shacl.util.ShaclValidatorUtils;
 import eu.europa.ec.itb.shacl.validation.FileManager;
 import eu.europa.ec.itb.shacl.validation.SHACLValidator;
 import eu.europa.ec.itb.shacl.validation.ValidationConstants;
 import eu.europa.ec.itb.validation.commons.FileInfo;
 import eu.europa.ec.itb.validation.commons.LocalisationHelper;
+import eu.europa.ec.itb.validation.commons.Utils;
 import eu.europa.ec.itb.validation.commons.error.ValidatorException;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.LocaleUtils;
@@ -33,10 +34,8 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Resource;
 import javax.jws.WebParam;
 import javax.xml.ws.WebServiceContext;
-
 import java.io.File;
 import java.util.List;
-import java.util.Locale;
 
 /**
  * Spring component that realises the validation SOAP service.
@@ -156,13 +155,13 @@ public class ValidationServiceImpl implements ValidationService {
             boolean addRdfReportToReport = getInputAsBoolean(validateRequest, ValidationConstants.INPUT_ADD_RDF_REPORT_TO_REPORT, false);
 			SHACLValidator validator = ctx.getBean(SHACLValidator.class, contentToValidate, validationType, contentSyntax, externalShapes, loadImports, domainConfig, localiser);
 			Model reportModel = validator.validateAll();
-			TAR report = Utils.getTAR(
+			TAR report = ShaclValidatorUtils.getTAR(
 			        reportModel,
                     addRdfReportToReport?getRdfReportToInclude(reportModel, validateRequest):null,
                     addInputToReport?contentToValidate.toPath():null,
                     addShapesToReport?validator.getAggregatedShapes():null,
                     domainConfig,
-                    Utils.getDefaultReportLabels(domainConfig),
+                    ShaclValidatorUtils.getDefaultReportLabels(domainConfig),
                     localiser
             );
 			ValidationResponse result = new ValidationResponse();
@@ -193,8 +192,9 @@ public class ValidationServiceImpl implements ValidationService {
         Model reportToInclude = reportModel;
         if (reportQuery != null && !reportQuery.isBlank()) {
             Query query = QueryFactory.create(reportQuery);
-            QueryExecution queryExecution = QueryExecutionFactory.create(query, reportToInclude);
-            reportToInclude = queryExecution.execConstruct();
+            try (QueryExecution queryExecution = QueryExecutionFactory.create(query, reportToInclude)) {
+                reportToInclude = queryExecution.execConstruct();
+            }
         }
         return fileManager.writeRdfModelToString(reportToInclude, mimeType);
     }

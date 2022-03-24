@@ -10,7 +10,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
-import org.apache.http.client.HttpClient;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
@@ -182,19 +181,36 @@ public class FileManager extends BaseFileManager<ApplicationConfig> {
      * @return The path to the stored file.
      */
     public Path getContentFromSparqlEndpoint(SparqlQueryConfig queryConfig, File parentFolder, String fileName) {
-        Query query = getQuery(queryConfig.getQuery());
-        HttpClient httpclient = getHttpClient(queryConfig.getUsername(), queryConfig.getPassword());
-        QueryEngineHTTP qEngine = new QueryEngineHTTP(queryConfig.getEndpoint(), query);
         Model resultModel;
-        try {
-            qEngine.setClient(httpclient);
+        try (QueryEngineHTTP qEngine = new QueryEngineHTTP(queryConfig.getEndpoint(), getQuery(queryConfig.getQuery()))) {
+            HttpClientBuilder httpBuilder = HttpClients.custom();
+            if (queryConfig.getUsername() != null && queryConfig.getPassword() != null && !queryConfig.getUsername().isBlank() && !queryConfig.getPassword().isBlank()) {
+                CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+                credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(queryConfig.getUsername(), queryConfig.getPassword()));
+                httpBuilder.setDefaultCredentialsProvider(credentialsProvider);
+            }
+            qEngine.setClient(httpBuilder.build());
             qEngine.setModelContentType(queryConfig.getPreferredContentType());
             resultModel = qEngine.execConstruct();
         } catch (Exception e) {
             throw new ValidatorException("validator.label.exception.sparqlQueryError", e, e.getMessage());
-        } finally {
-            qEngine.close();
         }
+        /*
+            The following authentication code is what Jena proposes as the latest way of doing the authentication. The previous
+            deprecated approach is maintained however as Jena currently has a bug that inverts the request URI and HTTP method
+            when preparing the response for digest authentication. Once this is resolved, the deprecated approach (above) can be
+            replaced with the corrected one (commented below).
+
+        AuthEnv.get().registerUsernamePassword(URI.create(queryConfig.getEndpoint()), queryConfig.getUsername(), queryConfig.getPassword());
+        try (var query = QueryExecutionHTTP.service(queryConfig.getEndpoint())
+                .query(getQuery(queryConfig.getQuery()))
+                .acceptHeader(queryConfig.getPreferredContentType())
+                .build()) {
+            resultModel = query.execConstruct();
+        } catch (Exception e) {
+            throw new ValidatorException("validator.label.exception.sparqlQueryError", e, e.getMessage());
+        }
+         */
         Path modelPath = null;
         if (resultModel != null) {
             modelPath = createFile(parentFolder, getFileExtension(queryConfig.getPreferredContentType()), fileName);
@@ -216,23 +232,6 @@ public class FileManager extends BaseFileManager<ApplicationConfig> {
      */
     public Path getContentFromSparqlEndpoint(SparqlQueryConfig queryConfig, File parentFolder) {
         return this.getContentFromSparqlEndpoint(queryConfig, parentFolder, null);
-    }
-
-    /**
-     * Construct an HTTP client to make the SPARQL query.
-     *
-     * @param username The username to use.
-     * @param password The password to use.
-     * @return The client.
-     */
-    private HttpClient getHttpClient(String username, String password) {
-        HttpClientBuilder httpBuilder = HttpClients.custom();
-        if (username != null && password != null && !username.isBlank() && !password.isBlank()) {
-            CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-            credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(username, password));
-            httpBuilder.setDefaultCredentialsProvider(credentialsProvider);
-        }
-        return httpBuilder.build();
     }
 
     /**

@@ -91,7 +91,7 @@ public class DocumentationConfig {
                 entryPointTemplate.process(model, Files.newBufferedWriter(new File(domainRoot, entryPointTemplate.getName()).toPath()));
                 vocabTemplate.process(model, Files.newBufferedWriter(new File(domainRoot, vocabTemplate.getName()).toPath()));
             }
-            logger.info("Generated hydra documentation files in ["+docsRoot.getAbsolutePath()+"]");
+            logger.info("Generated hydra documentation files in [{}]", docsRoot.getAbsolutePath());
         } catch (Exception e) {
             throw new IllegalStateException("Failed to initialise hydra documentation", e);
         }

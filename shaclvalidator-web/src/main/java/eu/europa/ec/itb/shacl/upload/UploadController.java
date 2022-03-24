@@ -2,13 +2,14 @@ package eu.europa.ec.itb.shacl.upload;
 
 import com.gitb.tr.TAR;
 import eu.europa.ec.itb.shacl.*;
-import eu.europa.ec.itb.shacl.util.Utils;
+import eu.europa.ec.itb.shacl.util.ShaclValidatorUtils;
 import eu.europa.ec.itb.shacl.validation.FileManager;
 import eu.europa.ec.itb.shacl.validation.SHACLValidator;
 import eu.europa.ec.itb.validation.commons.FileInfo;
 import eu.europa.ec.itb.validation.commons.LocalisationHelper;
 import eu.europa.ec.itb.validation.commons.ValidatorChannel;
 import eu.europa.ec.itb.validation.commons.artifact.ExternalArtifactSupport;
+import eu.europa.ec.itb.validation.commons.config.WebDomainConfig;
 import eu.europa.ec.itb.validation.commons.error.ValidatorException;
 import eu.europa.ec.itb.validation.commons.web.KeyWithLabel;
 import eu.europa.ec.itb.validation.commons.web.errors.NotFoundException;
@@ -40,7 +41,7 @@ import java.io.InputStream;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static eu.europa.ec.itb.validation.commons.web.Constants.IS_MINIMAL;
+import static eu.europa.ec.itb.validation.commons.web.Constants.*;
 
 /**
  * Controller to manage the validator's web user interface.
@@ -50,18 +51,24 @@ public class UploadController {
 
     private static final Logger logger = LoggerFactory.getLogger(UploadController.class);
 
-    private static final String CONTENT_TYPE__FILE = "fileType" ;
-    private static final String CONTENT_TYPE__URI = "uriType" ;
-    private static final String CONTENT_TYPE__EDITOR = "stringType" ;
-    private static final String CONTENT_TYPE__QUERY = "queryType" ;
-    static final String DOWNLOAD_TYPE__REPORT = "reportType";
-    static final String DOWNLOAD_TYPE__SHAPES = "shapesType";
-    static final String DOWNLOAD_TYPE__CONTENT = "contentType";
-    static final String FILE_NAME__INPUT = "inputFile";
-    static final String FILE_NAME__REPORT = "reportFile";
-    static final String FILE_NAME__PDF_REPORT = "pdfReportFile";
-    static final String FILE_NAME__SHAPES = "shapesFile";
-    static final String FILE_NAME__TAR = "tarFile";
+    private static final String CONTENT_TYPE_FILE = "fileType" ;
+    private static final String CONTENT_TYPE_URI = "uriType" ;
+    private static final String CONTENT_TYPE_EDITOR = "stringType" ;
+    private static final String CONTENT_TYPE_QUERY = "queryType" ;
+    private static final String PARAM_CONTENT_SYNTAX = "contentSyntax";
+    private static final String PARAM_LOAD_IMPORTS_INFO = "loadImportsInfo";
+    private static final String PARAM_CONTENT_TYPE = "contentType";
+    private static final String PARAM_DOWNLOAD_TYPE = "downloadType";
+    private static final String PARAM_REPORT_ID = "reportID";
+    private static final String EMPTY = "empty";
+    static final String DOWNLOAD_TYPE_REPORT = "reportType";
+    static final String DOWNLOAD_TYPE_SHAPES = "shapesType";
+    static final String DOWNLOAD_TYPE_CONTENT = "contentType";
+    static final String FILE_NAME_INPUT = "inputFile";
+    static final String FILE_NAME_REPORT = "reportFile";
+    static final String FILE_NAME_PDF_REPORT = "pdfReportFile";
+    static final String FILE_NAME_SHAPES = "shapesFile";
+    static final String FILE_NAME_TAR = "tarFile";
 
     @Autowired
     private FileManager fileManager = null;
@@ -101,18 +108,18 @@ public class UploadController {
         }
 
         Map<String, Object> attributes = new HashMap<>();
-        attributes.put("contentSyntax", getContentSyntax(domainConfig));
-        attributes.put("externalArtifactInfo", domainConfig.getExternalArtifactInfoMap());
-        attributes.put("loadImportsInfo", domainConfig.getUserInputForLoadImportsType());
-        attributes.put("minimalUI", false);
-        attributes.put("config", domainConfig);
-        attributes.put("appConfig", appConfig);
+        attributes.put(PARAM_CONTENT_SYNTAX, getContentSyntax(domainConfig));
+        attributes.put(PARAM_EXTERNAL_ARTIFACT_INFO, domainConfig.getExternalArtifactInfoMap());
+        attributes.put(PARAM_LOAD_IMPORTS_INFO, domainConfig.getUserInputForLoadImportsType());
+        attributes.put(PARAM_MINIMAL_UI, false);
+        attributes.put(PARAM_DOMAIN_CONFIG, domainConfig);
+        attributes.put(PARAM_APP_CONFIG, appConfig);
         var localisationHelper = new LocalisationHelper(domainConfig, localeResolver.resolveLocale(request, response, domainConfig, appConfig));
-        attributes.put("localiser", localisationHelper);
-        attributes.put("contentType", getContentType(localisationHelper));
-        attributes.put("htmlBannerExists", localisationHelper.propertyExists("validator.bannerHtml"));
+        attributes.put(PARAM_LOCALISER, localisationHelper);
+        attributes.put(PARAM_CONTENT_TYPE, getContentType(localisationHelper));
+        attributes.put(PARAM_HTML_BANNER_EXISTS, localisationHelper.propertyExists("validator.bannerHtml"));
 
-        return new ModelAndView("uploadForm", attributes);
+        return new ModelAndView(VIEW_UPLOAD_FORM, attributes);
     }
 
     /**
@@ -172,44 +179,44 @@ public class UploadController {
         File inputFile;
         List<FileInfo> userProvidedShapes = null;
         Map<String, Object> attributes = new HashMap<>();
-        attributes.put("contentSyntax", getContentSyntax(domainConfig));
-        attributes.put("externalArtifactInfo", domainConfig.getExternalArtifactInfoMap());
-        attributes.put("loadImportsInfo", domainConfig.getUserInputForLoadImportsType());
-        attributes.put("minimalUI", false);
-        attributes.put("config", domainConfig);
-        attributes.put("appConfig", appConfig);
-        attributes.put("localiser", localisationHelper);
-        attributes.put("contentType", getContentType(localisationHelper));
-        attributes.put("downloadType", getDownloadType(localisationHelper));
-        attributes.put("htmlBannerExists", localisationHelper.propertyExists("validator.bannerHtml"));
+        attributes.put(PARAM_CONTENT_SYNTAX, getContentSyntax(domainConfig));
+        attributes.put(PARAM_EXTERNAL_ARTIFACT_INFO, domainConfig.getExternalArtifactInfoMap());
+        attributes.put(PARAM_LOAD_IMPORTS_INFO, domainConfig.getUserInputForLoadImportsType());
+        attributes.put(PARAM_MINIMAL_UI, false);
+        attributes.put(PARAM_DOMAIN_CONFIG, domainConfig);
+        attributes.put(PARAM_APP_CONFIG, appConfig);
+        attributes.put(PARAM_LOCALISER, localisationHelper);
+        attributes.put(PARAM_CONTENT_TYPE, getContentType(localisationHelper));
+        attributes.put(PARAM_DOWNLOAD_TYPE, getDownloadType(localisationHelper));
+        attributes.put(PARAM_HTML_BANNER_EXISTS, localisationHelper.propertyExists("validator.bannerHtml"));
 
         if (StringUtils.isNotBlank(validationType)) {
-            attributes.put("validationTypeLabel", domainConfig.getCompleteTypeOptionLabel(validationType, localisationHelper));
+            attributes.put(PARAM_VALIDATION_TYPE_LABEL, domainConfig.getCompleteTypeOptionLabel(validationType, localisationHelper));
         }
         boolean forceCleanup = false;
         try {
-            if (CONTENT_TYPE__QUERY.equals(contentType)) {
+            if (CONTENT_TYPE_QUERY.equals(contentType)) {
                 contentSyntaxType = domainConfig.getQueryContentType();
             } else {
-                if (contentSyntaxType.isEmpty() || contentSyntaxType.equals("empty")) {
-                    if (!contentType.equals(CONTENT_TYPE__EDITOR)) {
-                        contentSyntaxType = getExtensionContentType((contentType.equals(CONTENT_TYPE__FILE) ? file.getOriginalFilename() : uri));
+                if (contentSyntaxType.isEmpty() || contentSyntaxType.equals(EMPTY)) {
+                    if (!contentType.equals(CONTENT_TYPE_EDITOR)) {
+                        contentSyntaxType = getExtensionContentType((contentType.equals(CONTENT_TYPE_FILE) ? file.getOriginalFilename() : uri));
                     } else {
                         logger.error("Provided content syntax type is not valid");
-                        attributes.put("message", "Provided content syntax type is not valid");
+                        attributes.put(PARAM_MESSAGE, "Provided content syntax type is not valid");
                     }
                 }
             }
             if (!contentQuery.isEmpty() || !contentQueryEndpoint.isEmpty() || !contentQueryUsername.isEmpty() || !contentQueryPassword.isEmpty()) {
                 // Load input using SPARQL query.
-                if (!domainConfig.isQueryAuthenticationMandatory() && !contentQueryAuthenticate) {
+                if (!domainConfig.isQueryAuthenticationMandatory() && Boolean.FALSE.equals(contentQueryAuthenticate)) {
                     // Empty the optional credentials
                     contentQueryUsername = null;
                     contentQueryPassword = null;
                 }
                 SparqlQueryConfig queryConfig = new SparqlQueryConfig(contentQueryEndpoint, contentQuery, contentQueryUsername, contentQueryPassword, contentSyntaxType);
                 queryConfig = inputHelper.validateSparqlConfiguration(domainConfig, queryConfig);
-                inputFile = fileManager.getContentFromSparqlEndpoint(queryConfig, parentFolder, FILE_NAME__INPUT).toFile();
+                inputFile = fileManager.getContentFromSparqlEndpoint(queryConfig, parentFolder, FILE_NAME_INPUT).toFile();
             } else {
                 // Load input using file, URI or editor.
                 inputFile = getInputFile(contentType, file.getInputStream(), uri, string, contentSyntaxType, parentFolder);
@@ -219,7 +226,7 @@ public class UploadController {
             }
             if (domainConfig.hasMultipleValidationTypes() && (validationType == null || !domainConfig.getType().contains(validationType))) {
                 // A validation type is required.
-                attributes.put("message", "Provided validation type is not valid");
+                attributes.put(PARAM_MESSAGE, "Provided validation type is not valid");
             } else {
                 if (inputFile != null) {
                     if (hasExternalShapes(domainConfig, validationType)) {
@@ -234,43 +241,43 @@ public class UploadController {
                     loadImportsValue = inputHelper.validateLoadInputs(domainConfig, loadImportsValue, validationType);
                     SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile, validationType, contentSyntaxType, userProvidedShapes, loadImportsValue, domainConfig, localisationHelper);
                     org.apache.jena.rdf.model.Model reportModel = validator.validateAll();
-                    TAR tarReport = Utils.getTAR(reportModel, domainConfig, Utils.getReportLabels(localisationHelper), localisationHelper);
+                    TAR tarReport = ShaclValidatorUtils.getTAR(reportModel, domainConfig, ShaclValidatorUtils.getReportLabels(localisationHelper), localisationHelper);
                     if (tarReport.getReports().getInfoOrWarningOrError().size() <= domainConfig.getMaximumReportsForDetailedOutput()) {
-                        fileManager.saveReport(tarReport, fileManager.createFile(parentFolder, ".xml", FILE_NAME__TAR).toFile(), domainConfig);
+                        fileManager.saveReport(tarReport, fileManager.createFile(parentFolder, ".xml", FILE_NAME_TAR).toFile(), domainConfig);
                     }
                     String fileName;
-                    if (CONTENT_TYPE__FILE.equals(contentType)) {
+                    if (CONTENT_TYPE_FILE.equals(contentType)) {
                         fileName = file.getOriginalFilename();
-                    } else if (CONTENT_TYPE__URI.equals(contentType)) {
+                    } else if (CONTENT_TYPE_URI.equals(contentType)) {
                         fileName = uri;
                     } else {
                         // Query or editor.
                         fileName = "-";
                     }
                     String extension = fileManager.getFileExtension(domainConfig.getDefaultReportSyntax());
-                    try (FileWriter out = new FileWriter(fileManager.createFile(parentFolder, extension, FILE_NAME__REPORT).toFile())) {
+                    try (FileWriter out = new FileWriter(fileManager.createFile(parentFolder, extension, FILE_NAME_REPORT).toFile())) {
                         fileManager.writeRdfModel(out, reportModel, domainConfig.getDefaultReportSyntax());
                     }
-                    try (FileWriter out = new FileWriter(fileManager.createFile(parentFolder, extension, FILE_NAME__SHAPES).toFile())) {
+                    try (FileWriter out = new FileWriter(fileManager.createFile(parentFolder, extension, FILE_NAME_SHAPES).toFile())) {
                         fileManager.writeRdfModel(out, validator.getAggregatedShapes(), domainConfig.getDefaultReportSyntax());
                     }
                     // All ok - add attributes for the UI.
-                    attributes.put("reportID", parentFolder.getName());
-                    attributes.put("fileName", fileName);
-                    attributes.put("report", tarReport);
-                    attributes.put("date", tarReport.getDate().toString());
+                    attributes.put(PARAM_REPORT_ID, parentFolder.getName());
+                    attributes.put(PARAM_FILE_NAME, fileName);
+                    attributes.put(PARAM_REPORT, tarReport);
+                    attributes.put(PARAM_DATE, tarReport.getDate().toString());
                 }
             }
         } catch (ValidatorException e) {
             logger.error(e.getMessageForLog(), e);
-            attributes.put("message", e.getMessageForDisplay(localisationHelper));
+            attributes.put(PARAM_MESSAGE, e.getMessageForDisplay(localisationHelper));
             forceCleanup = true;
         } catch (Exception e) {
             logger.error("An error occurred during the validation [" + e.getMessage() + "]", e);
             if (e.getMessage() != null) {
-                attributes.put("message", localisationHelper.localise("validator.label.exception.unexpectedErrorDuringValidationWithParams", e.getMessage()));
+                attributes.put(PARAM_MESSAGE, localisationHelper.localise("validator.label.exception.unexpectedErrorDuringValidationWithParams", e.getMessage()));
             } else {
-                attributes.put("message", localisationHelper.localise("validator.label.exception.unexpectedErrorDuringValidation"));
+                attributes.put(PARAM_MESSAGE, localisationHelper.localise("validator.label.exception.unexpectedErrorDuringValidation"));
             }
             forceCleanup = true;
         } finally {
@@ -283,7 +290,7 @@ public class UploadController {
                 fileManager.removeContentToValidate(null, userProvidedShapes);
             }
         }
-        return new ModelAndView("uploadForm", attributes);
+        return new ModelAndView(VIEW_UPLOAD_FORM, attributes);
     }
 
     /**
@@ -305,23 +312,23 @@ public class UploadController {
             throw new NotFoundException();
         }
         if(!domainConfig.isSupportMinimalUserInterface()) {
-            logger.error("Minimal user interface is not supported in this domain [" + domain + "].");
+            logger.error("Minimal user interface is not supported in this domain [{}].", domain);
             throw new NotFoundException();
         }
 
         Map<String, Object> attributes = new HashMap<>();
-        attributes.put("contentSyntax", getContentSyntax(domainConfig));
-        attributes.put("externalArtifactInfo", domainConfig.getExternalArtifactInfoMap());
-        attributes.put("loadImportsInfo", domainConfig.getUserInputForLoadImportsType());
-        attributes.put("minimalUI", true);
-        attributes.put("config", domainConfig);
-        attributes.put("appConfig", appConfig);
+        attributes.put(PARAM_CONTENT_SYNTAX, getContentSyntax(domainConfig));
+        attributes.put(PARAM_EXTERNAL_ARTIFACT_INFO, domainConfig.getExternalArtifactInfoMap());
+        attributes.put(PARAM_LOAD_IMPORTS_INFO, domainConfig.getUserInputForLoadImportsType());
+        attributes.put(PARAM_MINIMAL_UI, true);
+        attributes.put(PARAM_DOMAIN_CONFIG, domainConfig);
+        attributes.put(PARAM_APP_CONFIG, appConfig);
         var localisationHelper = new LocalisationHelper(domainConfig, localeResolver.resolveLocale(request, response, domainConfig, appConfig));
-        attributes.put("localiser", localisationHelper);
-        attributes.put("contentType", getContentType(localisationHelper));
-        attributes.put("htmlBannerExists", localisationHelper.propertyExists("validator.bannerHtml"));
+        attributes.put(PARAM_LOCALISER, localisationHelper);
+        attributes.put(PARAM_CONTENT_TYPE, getContentType(localisationHelper));
+        attributes.put(PARAM_HTML_BANNER_EXISTS, localisationHelper.propertyExists("validator.bannerHtml"));
 
-        return new ModelAndView("uploadForm", attributes);
+        return new ModelAndView(VIEW_UPLOAD_FORM, attributes);
     }
 
     /**
@@ -372,9 +379,9 @@ public class UploadController {
         ModelAndView mv = handleUpload(domain, file, uri, string, contentType, validationType, contentSyntaxType, externalContentType, externalFiles, externalUri, externalFilesSyntaxType, loadImportsValue, contentQuery, contentQueryEndpoint, contentQueryAuthenticate, contentQueryUsername, contentQueryPassword, request, response);
 
         Map<String, Object> attributes = mv.getModel();
-        attributes.put("minimalUI", true);
+        attributes.put(PARAM_MINIMAL_UI, true);
 
-        return new ModelAndView("uploadForm", attributes);
+        return new ModelAndView(VIEW_UPLOAD_FORM, attributes);
     }
 
     /**
@@ -416,19 +423,18 @@ public class UploadController {
      * @throws IOException If an IO error occurs.
      */
     private File getInputFile(String contentType, InputStream inputStream, String uri, String string, String contentSyntaxType, File tmpFolder) throws IOException {
-        File inputFile = null;
-        switch(contentType) {
-            case CONTENT_TYPE__FILE:
-                inputFile = this.fileManager.getFileFromInputStream(tmpFolder, inputStream, contentSyntaxType, FILE_NAME__INPUT);
+        File inputFile;
+        switch (contentType) {
+            case CONTENT_TYPE_FILE:
+                inputFile = this.fileManager.getFileFromInputStream(tmpFolder, inputStream, contentSyntaxType, FILE_NAME_INPUT);
                 break;
-
-            case CONTENT_TYPE__URI:
-                inputFile = this.fileManager.getFileFromURL(tmpFolder, uri, fileManager.getFileExtension(contentSyntaxType), FILE_NAME__INPUT);
+            case CONTENT_TYPE_URI:
+                inputFile = this.fileManager.getFileFromURL(tmpFolder, uri, fileManager.getFileExtension(contentSyntaxType), FILE_NAME_INPUT);
                 break;
-
-            case CONTENT_TYPE__EDITOR:
-                inputFile = this.fileManager.getFileFromString(tmpFolder, string, contentSyntaxType, FILE_NAME__INPUT);
+            case CONTENT_TYPE_EDITOR:
+                inputFile = this.fileManager.getFileFromString(tmpFolder, string, contentSyntaxType, FILE_NAME_INPUT);
                 break;
+            default: throw new IllegalArgumentException("Unknown content type ["+contentType+"]");
         }
         return inputFile;
     }
@@ -462,47 +468,34 @@ public class UploadController {
      * @throws IOException If an IO error occurs.
      */
     private List<FileInfo> getExternalShapes(String[] externalContentType, MultipartFile[] externalFiles, String[] externalUri, String[] externalFilesSyntaxType, File parentFolder) throws IOException {
-        List<FileInfo> shaclFiles = new ArrayList<>();
-
-        if(externalContentType != null) {
-            for(int i=0; i<externalContentType.length; i++) {
+        List<FileInfo> shapeFiles = new ArrayList<>();
+        if (externalContentType != null) {
+            for (int i=0; i<externalContentType.length; i++) {
                 File inputFile = null;
                 String contentSyntaxType = "";
-                if(externalFilesSyntaxType.length > i) {
+                if (externalFilesSyntaxType.length > i) {
                     contentSyntaxType = externalFilesSyntaxType[i];
                 }
-
-                switch(externalContentType[i]) {
-                    case CONTENT_TYPE__FILE:
-                        if (!externalFiles[i].isEmpty()) {
-                            if(StringUtils.isEmpty(contentSyntaxType) || contentSyntaxType.equals("empty")) {
-                                contentSyntaxType = getExtensionContentType(externalFiles[i].getOriginalFilename());
-                            }
-                            inputFile = this.fileManager.getFileFromInputStream(parentFolder, externalFiles[i].getInputStream(), contentSyntaxType, null);
+                if (CONTENT_TYPE_FILE.equals(externalContentType[i])) {
+                    if (!externalFiles[i].isEmpty()) {
+                        if (StringUtils.isEmpty(contentSyntaxType) || contentSyntaxType.equals(EMPTY)) {
+                            contentSyntaxType = getExtensionContentType(externalFiles[i].getOriginalFilename());
                         }
-                        break;
-                    case CONTENT_TYPE__URI:
-                        if(externalUri.length>i && !externalUri[i].isEmpty()) {
-                            if(StringUtils.isEmpty(contentSyntaxType) || contentSyntaxType.equals("empty")) {
-                                contentSyntaxType = getExtensionContentType(externalUri[i]);
-                            }
-                            inputFile = this.fileManager.getFileFromURL(parentFolder, externalUri[i]);
-                        }
-                        break;
+                        inputFile = this.fileManager.getFileFromInputStream(parentFolder, externalFiles[i].getInputStream(), contentSyntaxType, null);
+                    }
+                } else if (CONTENT_TYPE_URI.equals(externalContentType[i]) && externalUri.length > i && !externalUri[i].isEmpty()) {
+                    if (StringUtils.isEmpty(contentSyntaxType) || contentSyntaxType.equals(EMPTY)) {
+                        contentSyntaxType = getExtensionContentType(externalUri[i]);
+                    }
+                    inputFile = this.fileManager.getFileFromURL(parentFolder, externalUri[i]);
                 }
-
-                if(inputFile != null) {
+                if (inputFile != null) {
                     FileInfo fi = new FileInfo(inputFile, contentSyntaxType);
-                    shaclFiles.add(fi);
+                    shapeFiles.add(fi);
                 }
             }
         }
-
-        if(shaclFiles.isEmpty()) {
-            shaclFiles = Collections.emptyList();
-        }
-
-        return shaclFiles;
+        return shapeFiles;
     }
 
     /**
@@ -517,11 +510,11 @@ public class UploadController {
     private DomainConfig validateDomain(HttpServletRequest request, String domain) {
         DomainConfig config = domainConfigs.getConfigForDomainName(domain);
         if (config == null || !config.isDefined() || !config.getChannels().contains(ValidatorChannel.REST_API)) {
-            logger.error("The following domain does not exist: " + domain);
+            logger.error("The following domain does not exist: {}", domain);
             throw new NotFoundException();
         }
-        request.setAttribute(DomainConfig.DOMAIN_CONFIG_REQUEST_ATTRIBUTE, config);
-        MDC.put("domain", domain);
+        request.setAttribute(WebDomainConfig.DOMAIN_CONFIG_REQUEST_ATTRIBUTE, config);
+        MDC.put(MDC_DOMAIN, domain);
         return config;
     }
 
@@ -533,9 +526,9 @@ public class UploadController {
      */
     private List<KeyWithLabel> getContentType(LocalisationHelper localiser){
         return List.of(
-                new KeyWithLabel(CONTENT_TYPE__FILE, localiser.localise("validator.label.optionContentFile")),
-                new KeyWithLabel(CONTENT_TYPE__URI, localiser.localise("validator.label.optionContentURI")),
-                new KeyWithLabel(CONTENT_TYPE__EDITOR, localiser.localise("validator.label.optionContentDirectInput"))
+                new KeyWithLabel(CONTENT_TYPE_FILE, localiser.localise("validator.label.optionContentFile")),
+                new KeyWithLabel(CONTENT_TYPE_URI, localiser.localise("validator.label.optionContentURI")),
+                new KeyWithLabel(CONTENT_TYPE_EDITOR, localiser.localise("validator.label.optionContentDirectInput"))
         );
     }
 
@@ -548,9 +541,9 @@ public class UploadController {
      */
     private List<KeyWithLabel> getDownloadType(LocalisationHelper localiser){
         return List.of(
-                new KeyWithLabel(DOWNLOAD_TYPE__REPORT, localiser.localise("validator.label.optionDownloadReport")),
-                new KeyWithLabel(DOWNLOAD_TYPE__SHAPES, localiser.localise("validator.label.optionDownloadShapes")),
-                new KeyWithLabel(DOWNLOAD_TYPE__CONTENT, localiser.localise("validator.label.optionDownloadContent"))
+                new KeyWithLabel(DOWNLOAD_TYPE_REPORT, localiser.localise("validator.label.optionDownloadReport")),
+                new KeyWithLabel(DOWNLOAD_TYPE_SHAPES, localiser.localise("validator.label.optionDownloadShapes")),
+                new KeyWithLabel(DOWNLOAD_TYPE_CONTENT, localiser.localise("validator.label.optionDownloadContent"))
         );
     }
 

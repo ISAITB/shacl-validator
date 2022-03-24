@@ -1,14 +1,12 @@
 package eu.europa.ec.itb.shacl;
 
 import com.gitb.core.AnyContent;
-
 import eu.europa.ec.itb.shacl.validation.FileManager;
 import eu.europa.ec.itb.shacl.validation.ValidationConstants;
 import eu.europa.ec.itb.validation.commons.BaseInputHelper;
 import eu.europa.ec.itb.validation.commons.FileContent;
 import eu.europa.ec.itb.validation.commons.artifact.ExternalArtifactSupport;
 import eu.europa.ec.itb.validation.commons.error.ValidatorException;
-
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 

@@ -9,13 +9,9 @@ import eu.europa.ec.itb.shacl.rest.model.ApiInfo;
 import eu.europa.ec.itb.shacl.rest.model.Input;
 import eu.europa.ec.itb.shacl.rest.model.Output;
 import eu.europa.ec.itb.shacl.rest.model.RuleSet;
-import eu.europa.ec.itb.shacl.util.Utils;
 import eu.europa.ec.itb.shacl.validation.FileManager;
 import eu.europa.ec.itb.shacl.validation.SHACLValidator;
-import eu.europa.ec.itb.validation.commons.FileContent;
-import eu.europa.ec.itb.validation.commons.FileInfo;
-import eu.europa.ec.itb.validation.commons.LocalisationHelper;
-import eu.europa.ec.itb.validation.commons.ValidatorChannel;
+import eu.europa.ec.itb.validation.commons.*;
 import eu.europa.ec.itb.validation.commons.error.ValidatorException;
 import eu.europa.ec.itb.validation.commons.web.errors.NotFoundException;
 import io.swagger.v3.oas.annotations.Operation;
@@ -24,7 +20,6 @@ import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.LocaleUtils;
@@ -53,6 +48,8 @@ import java.nio.charset.Charset;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static eu.europa.ec.itb.validation.commons.web.Constants.MDC_DOMAIN;
+
 /**
  * REST controller to allow triggering the validator via its REST API.
  */
@@ -79,28 +76,6 @@ public class ShaclController {
     private String hydraRootPath;
 
     /**
-     * Get the validation types supported by the current domain.
-     *
-     * @param domain The domain.
-     * @return The list of validation types.
-     */
-    @Operation(summary = "Get API information (for a given domain).", description = "Retrieve the supported validation types " +
-            "that can be requested when calling this API's validation operations.")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Success", content = { @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ApiInfo.class)) }),
-        @ApiResponse(responseCode = "500", description = "Error (If a problem occurred with processing the request)", content = @Content),
-        @ApiResponse(responseCode = "404", description = "Not found (for an invalid domain value)", content = @Content)
-    })
-    @RequestMapping(value = "/{domain}/api/info", method = RequestMethod.GET, consumes = MediaType.ALL_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ApiInfo info(
-            @Parameter(required = true, name = "domain", description = "A fixed value corresponding to the specific validation domain.")
-            @PathVariable("domain") String domain
-    ) {
-        DomainConfig domainConfig = validateDomain(domain);
-        return ApiInfo.fromDomainConfig(domainConfig);
-    }
-
-    /**
      * Get all domains configured in this validator and their supported validation types.
      *
      * @return A list of domains coupled with their validation types.
@@ -108,11 +83,9 @@ public class ShaclController {
     @Operation(summary = "Get API information (all supported domains and validation types).", description="Retrieve the supported domains " +
             "and validation types configured in this validator. These are the domain and validation types that can be used as parameters " +
             "with the API's other operations.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Success", content = { @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, array = @ArraySchema(schema = @Schema(implementation = ApiInfo.class))) }),
-            @ApiResponse(responseCode = "500", description = "Error (If a problem occurred with processing the request)", content = @Content)
-    })
-    @RequestMapping(value = "/api/info", method = RequestMethod.GET, consumes = MediaType.ALL_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @ApiResponse(responseCode = "200", description = "Success", content = { @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, array = @ArraySchema(schema = @Schema(implementation = ApiInfo.class))) })
+    @ApiResponse(responseCode = "500", description = "Error (If a problem occurred with processing the request)", content = @Content)
+    @GetMapping(value = "/api/info", consumes = MediaType.ALL_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ApiInfo[] infoAll() {
         List<DomainConfig> listDomainsConfig = domainConfigs.getAllDomainConfigurations();
         ApiInfo[] listApiInfo = new ApiInfo[listDomainsConfig.size()];
@@ -128,6 +101,26 @@ public class ShaclController {
     }
 
     /**
+     * Get the validation types supported by the current domain.
+     *
+     * @param domain The domain.
+     * @return The list of validation types.
+     */
+    @Operation(summary = "Get API information (for a given domain).", description = "Retrieve the supported validation types " +
+            "that can be requested when calling this API's validation operations.")
+    @ApiResponse(responseCode = "200", description = "Success", content = { @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ApiInfo.class)) })
+    @ApiResponse(responseCode = "500", description = "Error (If a problem occurred with processing the request)", content = @Content)
+    @ApiResponse(responseCode = "404", description = "Not found (for an invalid domain value)", content = @Content)
+    @GetMapping(value = "/{domain}/api/info", consumes = MediaType.ALL_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ApiInfo info(
+            @Parameter(required = true, name = "domain", description = "A fixed value corresponding to the specific validation domain.")
+            @PathVariable("domain") String domain
+    ) {
+        DomainConfig domainConfig = validateDomain(domain);
+        return ApiInfo.fromDomainConfig(domainConfig);
+    }
+
+    /**
      * Service to trigger one validation for the provided input and settings.
      *
      * @param domain The relevant domain for the SHACL validation.
@@ -138,12 +131,10 @@ public class ShaclController {
     @Operation(summary = "Validate one RDF instance.", description="Validate a single RDF instance. The content can be provided " +
             "either within the request as a BASE64 encoded string or remotely as a URL. The RDF syntax for the input can be " +
             "determined in the request as can the syntax to produce the resulting SHACL validation report.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Success (for successful validation)", content = @Content),
-            @ApiResponse(responseCode = "500", description = "Error (If a problem occurred with processing the request)", content = @Content),
-            @ApiResponse(responseCode = "404", description = "Not found (for an invalid domain value)", content = @Content)
-    })
-    @RequestMapping(value = "/{domain}/api/validate", method = RequestMethod.POST, consumes = {MediaType.APPLICATION_JSON_VALUE, "application/ld+json"})
+    @ApiResponse(responseCode = "200", description = "Success (for successful validation)", content = @Content)
+    @ApiResponse(responseCode = "500", description = "Error (If a problem occurred with processing the request)", content = @Content)
+    @ApiResponse(responseCode = "404", description = "Not found (for an invalid domain value)", content = @Content)
+    @PostMapping(value = "/{domain}/api/validate", consumes = {MediaType.APPLICATION_JSON_VALUE, "application/ld+json"})
     public ResponseEntity<StreamingResponseBody> validate(
             @Parameter(required = true, name = "domain", description = "A fixed value corresponding to the specific validation domain.")
             @PathVariable("domain") String domain,
@@ -253,8 +244,9 @@ public class ShaclController {
             if (in.getReportQuery() != null && !in.getReportQuery().isBlank()) {
                 // Run post-processing query on report and return based on content-type
                 Query query = QueryFactory.create(in.getReportQuery());
-                QueryExecution queryExecution = QueryExecutionFactory.create(query, validationReport);
-                return queryExecution.execConstruct();
+                try (QueryExecution queryExecution = QueryExecutionFactory.create(query, validationReport)) {
+                    return queryExecution.execConstruct();
+                }
             } else {
                 // Return the validation report according to content-type
                 return validationReport;
@@ -298,12 +290,10 @@ public class ShaclController {
     @Operation(summary = "Validate multiple RDF instances.", description="Validate multiple RDF instances. " +
             "The content for each instance can be provided either within the request as a BASE64 encoded string or remotely as a URL. " +
             "The RDF syntax for each input can be determined in the request as can the syntax to produce each resulting SHACL validation report.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Success (for successful validation)", content = { @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, array = @ArraySchema(schema = @Schema(implementation = Output.class))) }),
-            @ApiResponse(responseCode = "500", description = "Error (If a problem occurred with processing the request)", content = @Content),
-            @ApiResponse(responseCode = "404", description = "Not found (for an invalid domain value)", content = @Content)
-    })
-    @RequestMapping(value = "/{domain}/api/validateMultiple", method = RequestMethod.POST, consumes = {MediaType.APPLICATION_JSON_VALUE, "application/ld+json"}, produces = MediaType.APPLICATION_JSON_VALUE)
+    @ApiResponse(responseCode = "200", description = "Success (for successful validation)", content = { @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, array = @ArraySchema(schema = @Schema(implementation = Output.class))) })
+    @ApiResponse(responseCode = "500", description = "Error (If a problem occurred with processing the request)", content = @Content)
+    @ApiResponse(responseCode = "404", description = "Not found (for an invalid domain value)", content = @Content)
+    @PostMapping(value = "/{domain}/api/validateMultiple", consumes = {MediaType.APPLICATION_JSON_VALUE, "application/ld+json"}, produces = MediaType.APPLICATION_JSON_VALUE)
     public Output[] validateMultiple(
             @Parameter(required = true, name = "domain", description = "A fixed value corresponding to the specific validation domain.")
             @PathVariable("domain") String domain,
@@ -340,12 +330,12 @@ public class ShaclController {
      * @throws NotFoundException If the domain does not exist or it does not support a REST API.
      */
     private DomainConfig validateDomain(String domain) {
-        DomainConfig config = domainConfigs.getConfigForDomainName(domain);
-        if (config == null || !config.isDefined() || !config.getChannels().contains(ValidatorChannel.REST_API)) {
+        DomainConfig domainConfig = domainConfigs.getConfigForDomainName(domain);
+        if (domainConfig == null || !domainConfig.isDefined() || !domainConfig.getChannels().contains(ValidatorChannel.REST_API)) {
             throw new NotFoundException(domain);
         }
-        MDC.put("domain", domain);
-        return config;
+        MDC.put(MDC_DOMAIN, domain);
+        return domainConfig;
     }
 
     /**
@@ -356,7 +346,7 @@ public class ShaclController {
      * @throws IOException If an error occurs reading the documentation.
      */
     @Operation(hidden = true)
-    @RequestMapping(value = "/{domain}/api", method = RequestMethod.GET, produces = "application/ld+json")
+    @GetMapping(value = "/{domain}/api", produces = "application/ld+json")
     public ResponseEntity<String> hydraApi(@PathVariable String domain) throws IOException {
         DomainConfig domainConfig = validateDomain(domain);
         String content = FileUtils.readFileToString(new File(fileManager.getHydraDocsFolder(domainConfig.getDomainName()), "api.jsonld"), Charset.defaultCharset());
@@ -383,7 +373,7 @@ public class ShaclController {
      * @throws IOException If an error occurs reading the documentation.
      */
     @Operation(hidden = true)
-    @RequestMapping(value = "/{domain}/api/contexts/{contextName}", method = RequestMethod.GET, produces = "application/ld+json")
+    @GetMapping(value = "/{domain}/api/contexts/{contextName}", produces = "application/ld+json")
     public String hydraContexts(@PathVariable String domain, @PathVariable String contextName) throws IOException {
         DomainConfig domainConfig = validateDomain(domain);
         return FileUtils.readFileToString(new File(fileManager.getHydraDocsFolder(domainConfig.getDomainName()), "EntryPoint.jsonld"), Charset.defaultCharset());
@@ -397,7 +387,7 @@ public class ShaclController {
      * @throws IOException If an error occurs reading the documentation.
      */
     @Operation(hidden = true)
-    @RequestMapping(value = "/{domain}/api/vocab", method = RequestMethod.GET, produces = "application/ld+json")
+    @GetMapping(value = "/{domain}/api/vocab", produces = "application/ld+json")
     public String hydraVocab(@PathVariable String domain) throws IOException {
         DomainConfig domainConfig = validateDomain(domain);
         return FileUtils.readFileToString(new File(fileManager.getHydraDocsFolder(domainConfig.getDomainName()), "vocab.jsonld"), Charset.defaultCharset());

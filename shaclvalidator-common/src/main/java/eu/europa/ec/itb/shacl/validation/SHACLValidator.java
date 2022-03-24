@@ -5,14 +5,13 @@ import com.gitb.tr.TestAssertionReportType;
 import com.gitb.vs.ValidateRequest;
 import com.gitb.vs.ValidationResponse;
 import eu.europa.ec.itb.shacl.DomainConfig;
-import eu.europa.ec.itb.shacl.util.Utils;
 import eu.europa.ec.itb.validation.commons.FileInfo;
 import eu.europa.ec.itb.validation.commons.LocalisationHelper;
+import eu.europa.ec.itb.validation.commons.Utils;
 import eu.europa.ec.itb.validation.commons.config.DomainPluginConfigProvider;
 import eu.europa.ec.itb.validation.commons.error.ValidatorException;
 import eu.europa.ec.itb.validation.plugin.PluginManager;
 import eu.europa.ec.itb.validation.plugin.ValidationPlugin;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jena.ontology.OntModel;
@@ -49,7 +48,7 @@ public class SHACLValidator {
     @Autowired
     private PluginManager pluginManager = null;
     @Autowired
-    private DomainPluginConfigProvider pluginConfigProvider = null;
+    private DomainPluginConfigProvider<DomainConfig> pluginConfigProvider = null;
 
     private final File inputFileToValidate;
     private final DomainConfig domainConfig;
@@ -123,8 +122,8 @@ public class SHACLValidator {
     private ValidateRequest preparePluginInput(File pluginTmpFolder) {
         // The content to validate is provided to plugins as a copu of the content in RDF/XML (for simpler processing).
         File pluginInputFile = new File(pluginTmpFolder, UUID.randomUUID() +".rdf");
-        Lang contentSyntax = contextSyntaxToUse();
-        if (Lang.RDFXML.equals(contentSyntax)) {
+        Lang contentSyntaxToUse = contextSyntaxToUse();
+        if (Lang.RDFXML.equals(contentSyntaxToUse)) {
             // Use file as-is.
             try {
                 FileUtils.copyFile(inputFileToValidate, pluginInputFile);
@@ -135,7 +134,7 @@ public class SHACLValidator {
             // Make a converted copy.
             Model fileModel = JenaUtil.createMemoryModel();
             try (FileInputStream in = new FileInputStream(inputFileToValidate); FileWriter out = new FileWriter(pluginInputFile)) {
-                fileModel.read(in, null, contentSyntax.getContentType().getContentTypeStr());
+                fileModel.read(in, null, contentSyntaxToUse.getContentType().getContentTypeStr());
                 fileManager.writeRdfModel(out, fileModel, Lang.RDFXML.getContentType().getContentTypeStr());
             } catch (IOException e) {
                 throw new IllegalStateException("Unable to convert input file for plugin", e);
@@ -301,7 +300,7 @@ public class SHACLValidator {
     private Model getShapesModel(List<FileInfo> shaclFiles) {
         Model aggregateModel = JenaUtil.createMemoryModel();
         for (FileInfo shaclFile: shaclFiles) {
-            LOG.info("Validating against ["+shaclFile.getFile().getName()+"]");
+            LOG.info("Validating against [{}]", shaclFile.getFile().getName());
             Lang rdfLanguage = RDFLanguages.contentTypeToLang(shaclFile.getType());
             if (rdfLanguage == null) {
                 throw new ValidatorException("validator.label.exception..unableToDetermineShaclContentType");
@@ -386,13 +385,13 @@ public class SHACLValidator {
             if (this.contentSyntax != null) {
                 lang = RDFLanguages.contentTypeToLang(this.contentSyntax);
                 if (lang != null) {
-                    LOG.info("Using provided data content type ["+this.contentSyntax+"] as ["+lang.getName()+"]");
+                    LOG.info("Using provided data content type [{}] as [{}]", this.contentSyntax, lang.getName());
                 }
             }
             if (lang == null) {
                 lang = RDFLanguages.contentTypeToLang(RDFLanguages.guessContentType(inputFileToValidate.getName()));
                 if (lang != null) {
-                    LOG.info("Guessed lang ["+lang.getName()+"] from file ["+inputFileToValidate.getName()+"]");
+                    LOG.info("Guessed lang [{}] from file [{}]", lang.getName(), inputFileToValidate.getName());
                 }
             }
             if (lang == null) {

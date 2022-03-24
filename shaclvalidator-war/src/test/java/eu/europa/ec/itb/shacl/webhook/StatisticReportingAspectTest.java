@@ -14,7 +14,7 @@ import javax.servlet.http.HttpServletResponse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class StatisticReportingAspectTest {
+class StatisticReportingAspectTest {
 
     @Test
     void testUploadPointcut() {

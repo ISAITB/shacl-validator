@@ -40,7 +40,7 @@ public class ValidationServiceConfig {
      * @return The bean.
      */
     @Bean
-    public ServletRegistrationBean servletRegistrationBean(ApplicationContext context) {
+    public ServletRegistrationBean<CXFServlet> servletRegistrationBean(ApplicationContext context) {
         ServletRegistrationBean<CXFServlet> srb = new ServletRegistrationBean<>(new CXFServlet(), "/"+ CXF_ROOT +"/*");
         srb.addInitParameter("hide-service-list-page", "true");
         return srb;

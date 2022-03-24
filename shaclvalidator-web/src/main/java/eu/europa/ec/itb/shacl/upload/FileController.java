@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.util.List;
 
 import static eu.europa.ec.itb.shacl.upload.UploadController.*;
+import static eu.europa.ec.itb.validation.commons.web.Constants.MDC_DOMAIN;
 
 /**
  * REST controller used for the manipulation of user inputs and produced reports.
@@ -77,22 +78,25 @@ public class FileController {
         if (domainConfig == null || !domainConfig.getChannels().contains(ValidatorChannel.FORM)) {
             throw new NotFoundException();
         }
-        MDC.put("domain", domain);
+        MDC.put(MDC_DOMAIN, domain);
 
         File tmpFolder = new File(fileManager.getWebTmpFolder(), id);
+        if (!tmpFolder.toPath().normalize().startsWith(fileManager.getWebTmpFolder().toPath())) {
+            throw new IllegalStateException("Invalid value provided for parameter [id]");
+        }
         syntax = syntax.replace("_", "/");
 
         // Determine base file name.
         String baseFileName;
         switch (type) {
-            case UploadController.DOWNLOAD_TYPE__CONTENT:
-                baseFileName = FILE_NAME__INPUT;
+            case UploadController.DOWNLOAD_TYPE_CONTENT:
+                baseFileName = FILE_NAME_INPUT;
                 break;
-            case UploadController.DOWNLOAD_TYPE__REPORT:
-                baseFileName = FILE_NAME__REPORT;
+            case UploadController.DOWNLOAD_TYPE_REPORT:
+                baseFileName = FILE_NAME_REPORT;
                 break;
-            case UploadController.DOWNLOAD_TYPE__SHAPES:
-                baseFileName = FILE_NAME__SHAPES;
+            case UploadController.DOWNLOAD_TYPE_SHAPES:
+                baseFileName = FILE_NAME_SHAPES;
                 break;
             default: throw new IllegalArgumentException("Invalid file type ["+type+"]");
         }
@@ -101,13 +105,13 @@ public class FileController {
         String extension;
         if (syntax.equals("pdfType")) {
             extension = "pdf";
-            if (!UploadController.DOWNLOAD_TYPE__REPORT.equals(type)) {
+            if (!UploadController.DOWNLOAD_TYPE_REPORT.equals(type)) {
                 throw new IllegalArgumentException("A PDF report can only be requested for the validation report");
             }
-            targetFile = new File(tmpFolder, FILE_NAME__PDF_REPORT +".pdf");
+            targetFile = new File(tmpFolder, FILE_NAME_PDF_REPORT +".pdf");
             if (!targetFile.exists()) {
                 // Generate the requested PDF report from the TAR XML report.
-                File xmlReport = new File(tmpFolder, FILE_NAME__TAR +".xml");
+                File xmlReport = new File(tmpFolder, FILE_NAME_TAR +".xml");
                 if (xmlReport.exists()) {
                     reportGenerator.writeReport(
                             xmlReport,
@@ -115,7 +119,7 @@ public class FileController {
                             new LocalisationHelper(domainConfig, localeResolver.resolveLocale(request, response, domainConfig, appConfig))
                     );
                 } else {
-                    LOG.error(String.format("Unable to produce PDF report because of missing XML report (validation ID was [%s])", id));
+                    LOG.error("Unable to produce PDF report because of missing XML report");
                     throw new NotFoundException();
                 }
             }
@@ -123,12 +127,15 @@ public class FileController {
             extension = fileManager.getFileExtension(syntax);
             targetFile = new File(tmpFolder, baseFileName+"."+extension);
         }
+        if (!targetFile.toPath().normalize().startsWith(tmpFolder.toPath())) {
+            throw new IllegalStateException("Requested invalid file path");
+        }
         if (!targetFile.exists()) {
             // File doesn't exist. Create it based on an existing file.
             File existingFileOfRequestedType = getFileByType(tmpFolder, type);
             Lang lang = RDFLanguages.filenameToLang(existingFileOfRequestedType.getName());
             if (lang == null || lang.getContentType() == null) {
-                LOG.error(String.format("Unable to determine RDF language from existing file [%s] of type [%s] (validation ID was [%s])", existingFileOfRequestedType.getName(), type, id));
+                LOG.error("Unable to determine RDF language from existing file [{}]", existingFileOfRequestedType.getName());
                 throw new NotFoundException();
             }
             String existingSyntax = lang.getContentType().getContentTypeStr();
@@ -157,14 +164,14 @@ public class FileController {
      * @param domain The domain name.
      * @param id The report files' ID.
      */
-    @RequestMapping(value = "/{domain}/delete/{id}", method = RequestMethod.POST)
+    @PostMapping(value = "/{domain}/delete/{id}")
     @ResponseBody
     public void deleteReport(@PathVariable String domain, @PathVariable String id) {
         var domainConfig = domainConfigCache.getConfigForDomainName(domain);
         if (domainConfig == null || !domainConfig.getChannels().contains(ValidatorChannel.FORM)) {
             throw new NotFoundException();
         }
-        MDC.put("domain", domain);
+        MDC.put(MDC_DOMAIN, domain);
         File tmpFolder = new File(fileManager.getWebTmpFolder(), id);
         if (tmpFolder.exists() && tmpFolder.isDirectory()) {
             FileUtils.deleteQuietly(tmpFolder);
@@ -184,21 +191,22 @@ public class FileController {
         for(File fileTmp : files) {
             String filename = FilenameUtils.removeExtension(fileTmp.getName());
             switch(type) {
-                case UploadController.DOWNLOAD_TYPE__CONTENT:
-                    if (filename.equals(FILE_NAME__INPUT)) {
+                case UploadController.DOWNLOAD_TYPE_CONTENT:
+                    if (filename.equals(FILE_NAME_INPUT)) {
                         file = fileTmp;
                     }
                     break;
-                case UploadController.DOWNLOAD_TYPE__REPORT:
-                    if (filename.equals(FILE_NAME__REPORT)) {
+                case UploadController.DOWNLOAD_TYPE_REPORT:
+                    if (filename.equals(FILE_NAME_REPORT)) {
                         file = fileTmp;
                     }
                     break;
-                case UploadController.DOWNLOAD_TYPE__SHAPES:
-                    if (filename.equals(UploadController.FILE_NAME__SHAPES)) {
+                case UploadController.DOWNLOAD_TYPE_SHAPES:
+                    if (filename.equals(UploadController.FILE_NAME_SHAPES)) {
                         file = fileTmp;
                     }
                     break;
+                default: throw new IllegalArgumentException("Unknown download type ["+type+"]");
             }
             if (file != null) {
                 break;

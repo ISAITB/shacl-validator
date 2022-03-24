@@ -6,11 +6,12 @@ import eu.europa.ec.itb.shacl.ApplicationConfig;
 import eu.europa.ec.itb.shacl.DomainConfig;
 import eu.europa.ec.itb.shacl.InputHelper;
 import eu.europa.ec.itb.shacl.SparqlQueryConfig;
-import eu.europa.ec.itb.shacl.util.Utils;
+import eu.europa.ec.itb.shacl.util.ShaclValidatorUtils;
 import eu.europa.ec.itb.shacl.validation.FileManager;
 import eu.europa.ec.itb.shacl.validation.SHACLValidator;
 import eu.europa.ec.itb.validation.commons.FileInfo;
 import eu.europa.ec.itb.validation.commons.LocalisationHelper;
+import eu.europa.ec.itb.validation.commons.Utils;
 import eu.europa.ec.itb.validation.commons.artifact.ExternalArtifactSupport;
 import eu.europa.ec.itb.validation.commons.error.ValidatorException;
 import eu.europa.ec.itb.validation.commons.jar.BaseValidationRunner;
@@ -33,7 +34,6 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import java.io.*;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -82,7 +82,7 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
     @Override
     protected void bootstrapInternal(String[] args, File parentFolder) {
         // Process input arguments
-        List<ValidationInput> inputs = new ArrayList<>();
+        List<ShaclValidationInput> inputs = new ArrayList<>();
         List<FileInfo> externalShapesList = new ArrayList<>();
         boolean noReports = false;
         boolean cliReports = false;
@@ -138,7 +138,7 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
                                     contentSyntax = args[++i];
                                 }
                                 File inputFile = getContent(contentToValidate, contentSyntax, parentFolder, "inputFile."+inputs.size());
-                                inputs.add(new ValidationInput(inputFile, type, contentToValidate, contentSyntax));
+                                inputs.add(new ShaclValidationInput(inputFile, contentToValidate, contentSyntax));
                             }
                         } else if (FLAG_EXTERNAL_SHAPES.equalsIgnoreCase(args[i])) {
                             String file;
@@ -200,7 +200,7 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
                         throw new ValidatorException("validator.label.exception.unknownValidationType", String.join("|", domainConfig.getType()));
                     }
                     boolean hasExternalShapes = domainConfig.getShapeInfo(type).getExternalArtifactSupport() != ExternalArtifactSupport.NONE;
-                    if (!hasExternalShapes && externalShapesList.size() > 0) {
+                    if (!hasExternalShapes && !externalShapesList.isEmpty()) {
                         throw new ValidatorException("validator.label.exception.externalShapeLoadingNotSupported", type, domainConfig.getDomainName());
                     }
                     loadImports = inputHelper.validateLoadInputs(domainConfig, loadImports, type);
@@ -210,14 +210,14 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
                         } else {
                             queryConfig = inputHelper.validateSparqlConfiguration(domainConfig, queryConfig);
                             var inputFile = fileManager.getContentFromSparqlEndpoint(queryConfig, parentFolder, "queryResult").toFile();
-                            inputs.add(new ValidationInput(inputFile, type, inputFile.getName(), queryConfig.getPreferredContentType()));
+                            inputs.add(new ShaclValidationInput(inputFile, inputFile.getName(), queryConfig.getPreferredContentType()));
                         }
                     }
                 } catch (ValidatorException e) {
-                    LOGGER_FEEDBACK.info("\nInvalid arguments provided: "+e.getMessageForDisplay(new LocalisationHelper(Locale.ENGLISH))+"\n");
+                    LOGGER_FEEDBACK.info("\nInvalid arguments provided: {}\n", e.getMessageForDisplay(new LocalisationHelper(Locale.ENGLISH)));
                     inputs.clear();
                 } catch (Exception e) {
-                    LOGGER_FEEDBACK.info("\nInvalid arguments provided: "+e.getMessage()+"\n");
+                    LOGGER_FEEDBACK.info("\nInvalid arguments provided: {}\n", e.getMessage());
                     inputs.clear();
                 }
                 if (inputs.isEmpty()) {
@@ -231,15 +231,15 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
                     summary.append("\n");
                     int i=0;
                     var localiser = new LocalisationHelper(domainConfig, Utils.getSupportedLocale(LocaleUtils.toLocale(locale), domainConfig));
-                    for (ValidationInput input: inputs) {
-                        LOGGER_FEEDBACK.info("\nValidating ["+input.getFileName()+"]...");
+                    for (ShaclValidationInput input: inputs) {
+                        LOGGER_FEEDBACK.info("\nValidating [{}]...", input.getFileName());
 
                         File inputFile = input.getInputFile();
                         try {
                             SHACLValidator validator = applicationContext.getBean(SHACLValidator.class, inputFile, type, input.getContentSyntax(), externalShapesList, loadImports, domainConfig, localiser);
                             Model report = validator.validateAll();
                             // Output summary results.
-                            TAR tarReport = Utils.getTAR(report, domainConfig, Utils.getDefaultReportLabels(domainConfig), localiser);
+                            TAR tarReport = ShaclValidatorUtils.getTAR(report, domainConfig, ShaclValidatorUtils.getDefaultReportLabels(domainConfig), localiser);
                             FileReport reporter = new FileReport(input.getFileName(), tarReport, requireType, type);
                             summary.append("\n").append(reporter).append("\n");
                             if (!noReports || cliReports) {
@@ -265,21 +265,22 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
                                 }
                             }
                         } catch (ValidatorException e) {
-                            LOGGER_FEEDBACK.info("\nAn error occurred while executing the validation: "+e.getMessageForDisplay(localiser));
-                            LOGGER.error("An error occurred while executing the validation: "+e.getMessageForLog(), e);
+                            LOGGER_FEEDBACK.info("\nAn error occurred while executing the validation: {}", e.getMessageForDisplay(localiser));
+                            LOGGER.error(String.format("An error occurred while executing the validation: %s", e.getMessageForLog()), e);
                             break;
 
                         } catch (Exception e) {
                             LOGGER_FEEDBACK.info("\nAn error occurred while executing the validation.");
-                            LOGGER.error("An error occurred while executing the validation: "+e.getMessage(), e);
+                            LOGGER.error(String.format("An error occurred while executing the validation: %s", e.getMessage()), e);
                             break;
 
                         }
                         i++;
                         LOGGER_FEEDBACK.info(" Done.\n");
                     }
-                    LOGGER_FEEDBACK.info(summary.toString());
-                    LOGGER_FEEDBACK_FILE.info(summary.toString());
+                    var summaryString = summary.toString();
+                    LOGGER_FEEDBACK.info(summaryString);
+                    LOGGER_FEEDBACK_FILE.info(summaryString);
                 }
             }
         } finally {
@@ -302,7 +303,7 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
      * Print how to call the validation JAR.
      */
     private void printUsage() {
-        StringBuilder usageStr = new StringBuilder(String.format("\nExpected usage: java -jar validator.jar %s FILE_1/URI_1 CONTENT_SYNTAX_1 ... [%s FILE_N/URI_N CONTENT_SYNTAX_N] [%s] [%s] [%s] [%s REPORT_SYNTAX] [%s REPORT_QUERY] [%s LOCALE]", FLAG_CONTENT_TO_VALIDATE, FLAG_CONTENT_TO_VALIDATE, FLAG_NO_OUTPUT, FLAG_NO_LOG, FLAG_NO_REPORTS, FLAG_REPORT_SYNTAX, FLAG_REPORT_QUERY, FLAG_LOCALE));
+        StringBuilder usageStr = new StringBuilder(String.format("%nExpected usage: java -jar validator.jar %s FILE_1/URI_1 CONTENT_SYNTAX_1 ... [%s FILE_N/URI_N CONTENT_SYNTAX_N] [%s] [%s] [%s] [%s REPORT_SYNTAX] [%s REPORT_QUERY] [%s LOCALE]", FLAG_CONTENT_TO_VALIDATE, FLAG_CONTENT_TO_VALIDATE, FLAG_NO_OUTPUT, FLAG_NO_LOG, FLAG_NO_REPORTS, FLAG_REPORT_SYNTAX, FLAG_REPORT_QUERY, FLAG_LOCALE));
         StringBuilder detailsStr = new StringBuilder("\n").append(PAD).append("Where:");
         detailsStr.append("\n").append(PAD).append(PAD).append(String.format("- FILE_X or URI_X is the full file path or URI to the content to validate, optionally followed by CONTENT_SYNTAX_X as the content's mime type (one of %s).", appConfig.getContentSyntax()));
         detailsStr.append("\n").append(PAD).append(PAD).append(String.format("- REPORT_SYNTAX is the mime type for the validation report(s) (one of %s).", appConfig.getContentSyntax()));
@@ -372,34 +373,26 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
      */
     private File getContent(String file, String contentType, File parentFolder, String filename) {
         File inputFile = new File(file);
-        
     	try {
-        	contentType = getContentType(file, contentType);
-        	boolean validSyntax = validRDFSyntax(contentType);
-			Lang langExtension = RDFLanguages.contentTypeToLang(contentType);
-			
-            if(!inputFile.exists() || !inputFile.isFile() || !inputFile.canRead()) {           	
-            	
-            	if(validSyntax && langExtension!=null) {
-            	    try {
-            	        new URL(file);
-                        inputFile = this.fileManager.getFileFromURL(parentFolder, file, langExtension.getFileExtensions().get(0), filename);
-                    } catch (MalformedURLException e) {
-                        throw new IllegalArgumentException("Unable to load content from ["+file+"]");
-                    }
-            	}else {
-                    throw new IllegalArgumentException("Unknown content syntax ["+contentType+"]");
-            	}
-            }else {
-            	inputFile = this.fileManager.getFileFromInputStream(parentFolder, new FileInputStream(inputFile), contentType, FilenameUtils.removeExtension(inputFile.getName()));
+            contentType = getContentType(file, contentType);
+            boolean validSyntax = validRDFSyntax(contentType);
+            Lang langExtension = RDFLanguages.contentTypeToLang(contentType);
+            if (!inputFile.exists() || !inputFile.isFile() || !inputFile.canRead()) {
+                if (validSyntax && langExtension != null) {
+                    new URL(file);
+                    inputFile = this.fileManager.getFileFromURL(parentFolder, file, langExtension.getFileExtensions().get(0), filename);
+                } else {
+                    throw new IllegalArgumentException("Unknown content syntax [" + contentType + "]");
+                }
+            } else {
+                inputFile = this.fileManager.getFileFromInputStream(parentFolder, new FileInputStream(inputFile), contentType, FilenameUtils.removeExtension(inputFile.getName()));
             }
             if (!inputFile.exists() || !inputFile.isFile() || !inputFile.canRead()) {
-                throw new IllegalArgumentException("Unable to read file or URL ["+file+"]");
+                throw new IllegalArgumentException("Unable to read file or URL [" + file + "]");
             }
-        }catch(IOException e) {
+        } catch (IOException e) {
             throw new IllegalArgumentException("Unable to read file or URL ["+file+"]");
         }
-    	
     	return inputFile;
     }
 

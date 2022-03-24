@@ -4,8 +4,8 @@ import com.gitb.core.AnyContent;
 import com.gitb.core.ValueEmbeddingEnumeration;
 import com.gitb.tr.*;
 import eu.europa.ec.itb.shacl.DomainConfig;
-import eu.europa.ec.itb.shacl.util.Utils;
 import eu.europa.ec.itb.validation.commons.LocalisationHelper;
+import eu.europa.ec.itb.validation.commons.Utils;
 import org.apache.commons.lang3.LocaleUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jena.rdf.model.*;
@@ -155,7 +155,7 @@ public class SHACLReportHandler {
 		if(this.shaclReport != null) {
             NodeIterator niResult = this.shaclReport.listObjectsOfProperty(this.shaclReport.getProperty("http://www.w3.org/ns/shacl#conforms"));
             NodeIterator niValidationResult = this.shaclReport.listObjectsOfProperty(this.shaclReport.getProperty("http://www.w3.org/ns/shacl#result"));
-            ArrayList reports = new ArrayList();
+            var reports = new ArrayList<JAXBElement<TestAssertionReportType>>();
 
             if(niResult.hasNext() && !niResult.next().asLiteral().getBoolean()) {
             	while(niValidationResult.hasNext()) {
@@ -195,7 +195,7 @@ public class SHACLReportHandler {
                     error.setDescription(getErrorDescription(messageMap, detectedInvalidLanguageCodes));
             		error.setLocation(createStringMessageFromParts(new String[] {labels.getFocusNode(), labels.getResultPath()}, new String[] {focusNode, resultPath}));
                     error.setTest(createStringMessageFromParts(new String[] {labels.getShape(), labels.getValue()}, new String[] {shape, value}));
-                    JAXBElement element;
+                    JAXBElement<TestAssertionReportType> element;
                     if (severity.equals("http://www.w3.org/ns/shacl#Info")) {
                         element = this.objectFactory.createTestAssertionGroupReportsTypeInfo(error);
                         infos += 1;
@@ -210,14 +210,14 @@ public class SHACLReportHandler {
                     messageMap.clear();
             	}
                 if (!detectedInvalidLanguageCodes.isEmpty()) {
-                    logger.warn("Detected invalid languages codes for shape messages: "+detectedInvalidLanguageCodes);
+                    logger.warn("Detected invalid languages codes for shape messages: {}", detectedInvalidLanguageCodes);
                 }
                 this.report.getReports().getInfoOrWarningOrError().addAll(reports);
             }
 		} else {
             BAR error1 = new BAR();
             error1.setDescription(localiser.localise("validator.label.exception.unableToGenerateReportDueToContentProblem"));
-            JAXBElement element1 = this.objectFactory.createTestAssertionGroupReportsTypeError(error1);
+            var element1 = this.objectFactory.createTestAssertionGroupReportsTypeError(error1);
             this.report.getReports().getInfoOrWarningOrError().add(element1);
             
             errors += 1;
@@ -272,7 +272,7 @@ public class SHACLReportHandler {
                 // Exact match.
                 messageToReturn = localeMap.get(localiser.getLocale());
             } else {
-                var matchedLanguage = localeMap.entrySet().stream().filter((entry) -> entry.getKey().getLanguage().equals(localiser.getLocale().getLanguage())).findFirst();
+                var matchedLanguage = localeMap.entrySet().stream().filter(entry -> entry.getKey().getLanguage().equals(localiser.getLocale().getLanguage())).findFirst();
                 if (matchedLanguage.isPresent()) {
                     // Message for same language.
                     messageToReturn = matchedLanguage.get().getValue();

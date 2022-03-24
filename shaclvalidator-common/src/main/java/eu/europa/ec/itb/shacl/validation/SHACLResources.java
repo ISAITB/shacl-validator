@@ -8,6 +8,11 @@ import org.apache.jena.rdf.model.ResourceFactory;
  */
 public class SHACLResources {
 
+    /**
+     * Constructor to prevent instantiation.
+     */
+    private SHACLResources() { throw new IllegalStateException("Utility class"); }
+
     /** The SHACL namespace. */
     static final String NS_SHACL = "http://www.w3.org/ns/shacl#";
     /** The SHACL information message namespace. */
