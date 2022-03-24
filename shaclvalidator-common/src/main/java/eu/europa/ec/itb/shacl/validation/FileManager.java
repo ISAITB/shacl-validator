@@ -184,16 +184,13 @@ public class FileManager extends BaseFileManager<ApplicationConfig> {
     public Path getContentFromSparqlEndpoint(SparqlQueryConfig queryConfig, File parentFolder, String fileName) {
         Query query = getQuery(queryConfig.getQuery());
         HttpClient httpclient = getHttpClient(queryConfig.getUsername(), queryConfig.getPassword());
-        QueryEngineHTTP qEngine = new QueryEngineHTTP(queryConfig.getEndpoint(), query);
         Model resultModel;
-        try {
+        try (QueryEngineHTTP qEngine = new QueryEngineHTTP(queryConfig.getEndpoint(), query)) {
             qEngine.setClient(httpclient);
             qEngine.setModelContentType(queryConfig.getPreferredContentType());
             resultModel = qEngine.execConstruct();
         } catch (Exception e) {
             throw new ValidatorException("validator.label.exception.sparqlQueryError", e, e.getMessage());
-        } finally {
-            qEngine.close();
         }
         Path modelPath = null;
         if (resultModel != null) {

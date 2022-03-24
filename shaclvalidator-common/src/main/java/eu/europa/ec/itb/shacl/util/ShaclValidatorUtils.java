@@ -14,7 +14,7 @@ import java.util.Locale;
 /**
  * Class with utility methods.
  */
-public class Utils extends eu.europa.ec.itb.validation.commons.Utils {
+public class ShaclValidatorUtils {
 
     /**
      * Create a TAR validation report from the provided SHACL validation report.

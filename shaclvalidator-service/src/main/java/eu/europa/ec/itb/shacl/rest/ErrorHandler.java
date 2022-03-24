@@ -29,7 +29,7 @@ import java.util.Locale;
 @ControllerAdvice(assignableTypes = {ShaclController.class})
 public class ErrorHandler extends ResponseEntityExceptionHandler {
 
-    private static final Logger logger = LoggerFactory.getLogger(ErrorHandler.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ErrorHandler.class);
 
     /**
      * Handle the "not found" errors. These typically link to a domain being requested that is not configured or
@@ -41,7 +41,9 @@ public class ErrorHandler extends ResponseEntityExceptionHandler {
      */
     @ExceptionHandler(value = {NotFoundException.class})
     protected ResponseEntity<Object> handleNotFound(NotFoundException ex, WebRequest request) {
-        logger.warn(String.format("Caught NotFoundException for domain [%s]", ex.getRequestedDomain()), ex);
+        if (LOG.isWarnEnabled()) {
+            LOG.warn(String.format("Caught NotFoundException for domain [%s]", ex.getRequestedDomain()), ex);
+        }
         return handleExceptionInternal(ex, new ErrorInfo("The requested resource could not be found"), new HttpHeaders(), HttpStatus.NOT_FOUND, request);
     }
 
@@ -54,7 +56,9 @@ public class ErrorHandler extends ResponseEntityExceptionHandler {
      */
     @ExceptionHandler(value = {ValidatorException.class})
     protected ResponseEntity<Object> handleValidatorException(ValidatorException ex, WebRequest request) {
-        logger.error(String.format("Caught ValidatorException: %s", ex.getMessageForLog()), ex);
+        if (LOG.isErrorEnabled()) {
+            LOG.error(String.format("Caught ValidatorException: %s", ex.getMessageForLog()), ex);
+        }
         return handleExceptionInternal(ex, new ErrorInfo(ex.getMessageForDisplay(new LocalisationHelper(Locale.ENGLISH))), new HttpHeaders(), HttpStatus.INTERNAL_SERVER_ERROR, request);
     }
 
@@ -67,7 +71,7 @@ public class ErrorHandler extends ResponseEntityExceptionHandler {
      */
     @ExceptionHandler(value = {Exception.class})
     protected ResponseEntity<Object> handleUnexpectedErrors(Exception ex, WebRequest request) {
-        logger.error("Caught Exception", ex);
+        LOG.error("Caught Exception", ex);
         return handleExceptionInternal(ex, new ErrorInfo("An unexpected error occurred during validation"), new HttpHeaders(), HttpStatus.INTERNAL_SERVER_ERROR, request);
     }
 

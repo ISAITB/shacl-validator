@@ -4,7 +4,6 @@ import eu.europa.ec.itb.validation.commons.ValidatorChannel;
 import eu.europa.ec.itb.validation.commons.artifact.ExternalArtifactSupport;
 import eu.europa.ec.itb.validation.commons.config.WebDomainConfigCache;
 import org.apache.commons.configuration2.Configuration;
-import org.apache.commons.configuration2.ex.ConfigurationException;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -22,6 +21,7 @@ public class DomainConfigCache extends WebDomainConfigCache<DomainConfig> {
     @Autowired
     private ApplicationConfig appConfig = null;
 
+    @Override
     @PostConstruct
     public void init() {
         super.init();

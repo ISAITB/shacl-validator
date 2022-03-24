@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.*;
 
-public class FileControllerTest extends BaseTest {
+class FileControllerTest extends BaseTest {
 
     FileManager fileManager;
     DomainConfigCache domainConfigCache;
@@ -57,9 +57,9 @@ public class FileControllerTest extends BaseTest {
         doReturn("xml").when(fileManager).getFileExtension(anyString());
         var httpRequest = mock(HttpServletRequest.class);
         var httpResponse = mock(HttpServletResponse.class);
-        var testFile = createFileWithContents(Path.of(tmpFolder.toString(), "id1", UploadController.FILE_NAME__INPUT+".xml"), "CONTENT");
+        var testFile = createFileWithContents(Path.of(tmpFolder.toString(), "id1", UploadController.FILE_NAME_INPUT +".xml"), "CONTENT");
         var controller = createFileController();
-        var result = controller.getReport("domain1", "id1", UploadController.DOWNLOAD_TYPE__CONTENT, "application/rdf+xml", httpRequest, httpResponse);
+        var result = controller.getReport("domain1", "id1", UploadController.DOWNLOAD_TYPE_CONTENT, "application/rdf+xml", httpRequest, httpResponse);
         assertNotNull(result);
         assertNotNull(result.getFile());
         assertEquals(testFile, result.getFile().toPath());
