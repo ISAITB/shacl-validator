@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.util.List;
 
 import static eu.europa.ec.itb.shacl.upload.UploadController.*;
+import static eu.europa.ec.itb.validation.commons.web.Constants.MDC_DOMAIN;
 
 /**
  * REST controller used for the manipulation of user inputs and produced reports.
@@ -77,9 +78,12 @@ public class FileController {
         if (domainConfig == null || !domainConfig.getChannels().contains(ValidatorChannel.FORM)) {
             throw new NotFoundException();
         }
-        MDC.put("domain", domain);
+        MDC.put(MDC_DOMAIN, domain);
 
         File tmpFolder = new File(fileManager.getWebTmpFolder(), id);
+        if (!tmpFolder.toPath().normalize().startsWith(fileManager.getWebTmpFolder().toPath())) {
+            throw new IllegalStateException("Invalid value provided for parameter [id]");
+        }
         syntax = syntax.replace("_", "/");
 
         // Determine base file name.
@@ -167,7 +171,7 @@ public class FileController {
         if (domainConfig == null || !domainConfig.getChannels().contains(ValidatorChannel.FORM)) {
             throw new NotFoundException();
         }
-        MDC.put("domain", domain);
+        MDC.put(MDC_DOMAIN, domain);
         File tmpFolder = new File(fileManager.getWebTmpFolder(), id);
         if (tmpFolder.exists() && tmpFolder.isDirectory()) {
             FileUtils.deleteQuietly(tmpFolder);
