@@ -131,7 +131,7 @@ public class FileController {
             File existingFileOfRequestedType = getFileByType(tmpFolder, type);
             Lang lang = RDFLanguages.filenameToLang(existingFileOfRequestedType.getName());
             if (lang == null || lang.getContentType() == null) {
-                LOG.error("Unable to determine RDF language from existing file [{}] of type [{}]", existingFileOfRequestedType.getName(), type);
+                LOG.error("Unable to determine RDF language from existing file [{}]", existingFileOfRequestedType.getName());
                 throw new NotFoundException();
             }
             String existingSyntax = lang.getContentType().getContentTypeStr();
