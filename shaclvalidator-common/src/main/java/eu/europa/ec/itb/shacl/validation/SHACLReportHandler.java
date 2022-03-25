@@ -4,6 +4,7 @@ import com.gitb.core.AnyContent;
 import com.gitb.core.ValueEmbeddingEnumeration;
 import com.gitb.tr.*;
 import eu.europa.ec.itb.shacl.DomainConfig;
+import eu.europa.ec.itb.shacl.ModelPair;
 import eu.europa.ec.itb.validation.commons.LocalisationHelper;
 import eu.europa.ec.itb.validation.commons.Utils;
 import org.apache.commons.lang3.LocaleUtils;
@@ -25,7 +26,7 @@ public class SHACLReportHandler {
     private static final Logger logger = LoggerFactory.getLogger(SHACLReportHandler.class);
 
 	private final TAR report;
-	private final Model shaclReport;
+	private final ModelPair models;
 	private final DomainConfig domainConfig;
     private final ObjectFactory objectFactory = new ObjectFactory();
     private final ReportLabels labels;
@@ -34,13 +35,13 @@ public class SHACLReportHandler {
     /**
      * Constructor.
      *
-     * @param shaclReport The RDF report.
+     * @param models The RDF models for the input and report.
      * @param domainConfig The domain configuration.
      * @param labels The labels to use for fixed texts.
      * @param localiser Helper class to lookup translations.
      */
-    public SHACLReportHandler(Model shaclReport, DomainConfig domainConfig, ReportLabels labels, LocalisationHelper localiser) {
-        this(null, null, shaclReport, null, domainConfig, labels, localiser);
+    public SHACLReportHandler(ModelPair models, DomainConfig domainConfig, ReportLabels labels, LocalisationHelper localiser) {
+        this(null, null, models, null, domainConfig, labels, localiser);
     }
 
     /**
@@ -48,14 +49,14 @@ public class SHACLReportHandler {
      *
      * @param inputFile The validated RDF content as a string.
      * @param shapes The shapes used for the validation.
-     * @param shaclReport The RDF report.
+     * @param models The RDF models for the input and report.
      * @param reportContentToInclude The content for the validation report to add as context to the TAR report.
      * @param domainConfig The domain configuration.
      * @param labels The labels to use for fixed texts.
      * @param localiser Helper class to lookup translations.
      */
-	public SHACLReportHandler(String inputFile, Model shapes, Model shaclReport, String reportContentToInclude, DomainConfig domainConfig, ReportLabels labels, LocalisationHelper localiser) {
-		this.shaclReport = shaclReport;
+	public SHACLReportHandler(String inputFile, Model shapes, ModelPair models, String reportContentToInclude, DomainConfig domainConfig, ReportLabels labels, LocalisationHelper localiser) {
+		this.models = models;
 		this.domainConfig = domainConfig;
         this.labels = labels;
         this.localiser = localiser;
@@ -151,16 +152,16 @@ public class SHACLReportHandler {
         int errors = 0;
         var messageMap = new LinkedHashMap<String, String>();
         var detectedInvalidLanguageCodes = new HashSet<String>();
-
-		if(this.shaclReport != null) {
-            NodeIterator niResult = this.shaclReport.listObjectsOfProperty(this.shaclReport.getProperty("http://www.w3.org/ns/shacl#conforms"));
-            NodeIterator niValidationResult = this.shaclReport.listObjectsOfProperty(this.shaclReport.getProperty("http://www.w3.org/ns/shacl#result"));
+        var additionalInfoTemplate = new AdditionalInfoTemplate(this.localiser, this.models.getInputModel());
+		if (this.models.getReportModel() != null) {
+            NodeIterator niResult = this.models.getReportModel().listObjectsOfProperty(this.models.getReportModel().getProperty("http://www.w3.org/ns/shacl#conforms"));
+            NodeIterator niValidationResult = this.models.getReportModel().listObjectsOfProperty(this.models.getReportModel().getProperty("http://www.w3.org/ns/shacl#result"));
             var reports = new ArrayList<JAXBElement<TestAssertionReportType>>();
 
-            if(niResult.hasNext() && !niResult.next().asLiteral().getBoolean()) {
+            if (niResult.hasNext() && !niResult.next().asLiteral().getBoolean()) {
             	while(niValidationResult.hasNext()) {
             		RDFNode node = niValidationResult.next();
-            		StmtIterator it = this.shaclReport.listStatements(node.asResource(), null, (RDFNode)null);
+            		StmtIterator it = this.models.getReportModel().listStatements(node.asResource(), null, (RDFNode)null);
 
         			BAR error = new BAR();
         			String focusNode = "";
@@ -192,6 +193,9 @@ public class SHACLReportHandler {
                             value = getStatementSafe(statement);
                         }
             		}
+                    if (focusNode != null && additionalInfoTemplate.isEnabled()) {
+                        error.setAssertionID(additionalInfoTemplate.apply(focusNode));
+                    }
                     error.setDescription(getErrorDescription(messageMap, detectedInvalidLanguageCodes));
             		error.setLocation(createStringMessageFromParts(new String[] {labels.getFocusNode(), labels.getResultPath()}, new String[] {focusNode, resultPath}));
                     error.setTest(createStringMessageFromParts(new String[] {labels.getShape(), labels.getValue()}, new String[] {shape, value}));

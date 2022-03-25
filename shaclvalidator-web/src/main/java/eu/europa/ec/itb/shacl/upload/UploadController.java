@@ -240,8 +240,8 @@ public class UploadController {
                     }
                     loadImportsValue = inputHelper.validateLoadInputs(domainConfig, loadImportsValue, validationType);
                     SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile, validationType, contentSyntaxType, userProvidedShapes, loadImportsValue, domainConfig, localisationHelper);
-                    org.apache.jena.rdf.model.Model reportModel = validator.validateAll();
-                    TAR tarReport = ShaclValidatorUtils.getTAR(reportModel, domainConfig, ShaclValidatorUtils.getReportLabels(localisationHelper), localisationHelper);
+                    ModelPair models = validator.validateAll();
+                    TAR tarReport = ShaclValidatorUtils.getTAR(models, null, null, null, domainConfig, ShaclValidatorUtils.getReportLabels(localisationHelper), localisationHelper);
                     if (tarReport.getReports().getInfoOrWarningOrError().size() <= domainConfig.getMaximumReportsForDetailedOutput()) {
                         fileManager.saveReport(tarReport, fileManager.createFile(parentFolder, ".xml", FILE_NAME_TAR).toFile(), domainConfig);
                     }
@@ -256,7 +256,7 @@ public class UploadController {
                     }
                     String extension = fileManager.getFileExtension(domainConfig.getDefaultReportSyntax());
                     try (FileWriter out = new FileWriter(fileManager.createFile(parentFolder, extension, FILE_NAME_REPORT).toFile())) {
-                        fileManager.writeRdfModel(out, reportModel, domainConfig.getDefaultReportSyntax());
+                        fileManager.writeRdfModel(out, models.getReportModel(), domainConfig.getDefaultReportSyntax());
                     }
                     try (FileWriter out = new FileWriter(fileManager.createFile(parentFolder, extension, FILE_NAME_SHAPES).toFile())) {
                         fileManager.writeRdfModel(out, validator.getAggregatedShapes(), domainConfig.getDefaultReportSyntax());

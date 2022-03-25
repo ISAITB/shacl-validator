@@ -12,6 +12,8 @@ import javax.annotation.PostConstruct;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
+import static eu.europa.ec.itb.validation.commons.config.ParseUtils.*;
+
 /**
  * Component to load, record and share the domain configurations.
  */

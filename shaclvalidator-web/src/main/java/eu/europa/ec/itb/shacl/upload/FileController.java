@@ -113,10 +113,11 @@ public class FileController {
                 // Generate the requested PDF report from the TAR XML report.
                 File xmlReport = new File(tmpFolder, FILE_NAME_TAR +".xml");
                 if (xmlReport.exists()) {
+                    var helper = new LocalisationHelper(domainConfig, localeResolver.resolveLocale(request, response, domainConfig, appConfig));
                     reportGenerator.writeReport(
                             xmlReport,
                             targetFile,
-                            new LocalisationHelper(domainConfig, localeResolver.resolveLocale(request, response, domainConfig, appConfig))
+                            (tar) -> reportGenerator.getReportLabels(helper, tar.getResult())
                     );
                 } else {
                     LOG.error("Unable to produce PDF report because of missing XML report");
