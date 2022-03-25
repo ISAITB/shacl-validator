@@ -1,10 +1,7 @@
 package eu.europa.ec.itb.shacl.rest;
 
 import com.gitb.core.ValueEmbeddingEnumeration;
-import eu.europa.ec.itb.shacl.ApplicationConfig;
-import eu.europa.ec.itb.shacl.DomainConfig;
-import eu.europa.ec.itb.shacl.DomainConfigCache;
-import eu.europa.ec.itb.shacl.InputHelper;
+import eu.europa.ec.itb.shacl.*;
 import eu.europa.ec.itb.shacl.rest.model.ApiInfo;
 import eu.europa.ec.itb.shacl.rest.model.Input;
 import eu.europa.ec.itb.shacl.rest.model.Output;
@@ -240,16 +237,16 @@ public class ShaclController {
             Boolean loadImports = inputHelper.validateLoadInputs(domainConfig, in.isLoadImports(), validationType);
             // Execute validation
             SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile, validationType, contentSyntax, externalShapes, loadImports, domainConfig, new LocalisationHelper(domainConfig, Utils.getSupportedLocale(LocaleUtils.toLocale(in.getLocale()), domainConfig)));
-            Model validationReport = validator.validateAll();
+            ModelPair models = validator.validateAll();
             if (in.getReportQuery() != null && !in.getReportQuery().isBlank()) {
                 // Run post-processing query on report and return based on content-type
                 Query query = QueryFactory.create(in.getReportQuery());
-                try (QueryExecution queryExecution = QueryExecutionFactory.create(query, validationReport)) {
+                try (QueryExecution queryExecution = QueryExecutionFactory.create(query, models.getReportModel())) {
                     return queryExecution.execConstruct();
                 }
             } else {
                 // Return the validation report according to content-type
-                return validationReport;
+                return models.getReportModel();
             }
         } catch (ValidatorException | NotFoundException e) {
             // Localisation of the ValidatorException takes place in the ErrorHandler.

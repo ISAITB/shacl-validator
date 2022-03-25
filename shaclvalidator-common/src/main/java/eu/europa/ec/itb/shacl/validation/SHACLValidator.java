@@ -5,6 +5,7 @@ import com.gitb.tr.TestAssertionReportType;
 import com.gitb.vs.ValidateRequest;
 import com.gitb.vs.ValidationResponse;
 import eu.europa.ec.itb.shacl.DomainConfig;
+import eu.europa.ec.itb.shacl.ModelPair;
 import eu.europa.ec.itb.validation.commons.FileInfo;
 import eu.europa.ec.itb.validation.commons.LocalisationHelper;
 import eu.europa.ec.itb.validation.commons.Utils;
@@ -60,6 +61,7 @@ public class SHACLValidator {
     private Model aggregatedShapes;
     private Model importedShapes;
     private final boolean loadImports;
+    private Model dataModel;
 
     /**
      * Constructor to start the SHACL validator.
@@ -103,11 +105,11 @@ public class SHACLValidator {
      *
      * @return The Jena model with the report.
      */
-    public Model validateAll() {
+    public ModelPair validateAll() {
     	LOG.info("Starting validation..");
     	try {
-            Model validationReport = validateAgainstShacl();
-            return validateAgainstPlugins(validationReport);
+            Model validationReport = validateAgainstPlugins(validateAgainstShacl());
+            return new ModelPair(dataModel, validationReport);
         } finally {
     	    LOG.info("Completed validation.");
         }
@@ -279,11 +281,12 @@ public class SHACLValidator {
         Model reportModel;
         if (shaclFiles.isEmpty()) {
             reportModel = emptyValidationReport();
+            this.dataModel = ModelFactory.createDefaultModel();
             this.aggregatedShapes = ModelFactory.createDefaultModel();
         } else {
             // Get data to validate from file
             this.aggregatedShapes = getShapesModel(shaclFiles);
-            Model dataModel = getDataModel(inputFileToValidate, this.aggregatedShapes);
+            this.dataModel = getDataModel(inputFileToValidate, this.aggregatedShapes);
             // Perform the validation of data, using the shapes model. Do not validate any shapes inside the data model.
             Resource resource = ValidationUtil.validateModel(dataModel, this.aggregatedShapes, false);
             reportModel = resource.getModel();
