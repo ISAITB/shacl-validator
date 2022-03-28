@@ -62,6 +62,8 @@
         <version.jaxb>2.3.1</version.jaxb>
         <version.commonsBeanutils>1.9.4</version.commonsBeanutils>
         <version.aspectjWeaver>1.9.6</version.aspectjWeaver>
+        <!-- Used to override default from Spring Boot -->
+        <jackson-bom.version>2.13.2.20220324</jackson-bom.version>
     </properties>
     <packaging>pom</packaging>
 
