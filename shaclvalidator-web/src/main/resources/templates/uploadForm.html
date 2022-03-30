@@ -103,6 +103,7 @@
                         <label for="downloadSyntaxType" style="padding-right:10px;" th:text="${localiser.localise('validator.label.saveAs')}">as</label>
                         <select class="form-control downloadSelect" id="downloadSyntaxType" name="downloadSyntaxType">
                             <option th:if="${report.reports == null || report.reports.infoOrWarningOrError == null || report.reports.infoOrWarningOrError.size() <= config.maximumReportsForDetailedOutput}" value="pdfType">PDF</option>
+                            <option th:if="${report.reports == null || report.reports.infoOrWarningOrError == null || report.reports.infoOrWarningOrError.size() <= config.maximumReportsForDetailedOutput}" value="csvType">CSV</option>
                             <option th:if="${report.reports == null || report.reports.infoOrWarningOrError == null || report.reports.infoOrWarningOrError.size() <= config.maximumReportsForDetailedOutput}" value="notSelect">----------------------------</option>
                             <option th:each="type : ${contentSyntax}" th:text="${type.key}" th:attr="value=${type.label}">Type</option>
                         </select>

@@ -230,7 +230,6 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
                     var localiser = new LocalisationHelper(domainConfig, Utils.getSupportedLocale(LocaleUtils.toLocale(locale), domainConfig));
                     for (ShaclValidationInput input: inputs) {
                         LOGGER_FEEDBACK.info("\nValidating [{}]...", input.getFileName());
-
                         File inputFile = input.getInputFile();
                         try {
                             SHACLValidator validator = applicationContext.getBean(SHACLValidator.class, inputFile, type, input.getContentSyntax(), externalShapesList, loadImports, domainConfig, localiser);

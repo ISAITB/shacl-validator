@@ -249,13 +249,15 @@ function downloadTypeChange(){
 	var dSyntaxType = document.getElementById("downloadSyntaxType");
     if (reportItemCount <= reportItemDetailMax) {
         dSyntaxType = removeOption(dSyntaxType, 'pdfType');
+        dSyntaxType = removeOption(dSyntaxType, 'csvType');
         dSyntaxType = removeOption(dSyntaxType, 'notSelect');
     }
 	if(dType == "reportType"){
 	    if (reportItemCount <= reportItemDetailMax) {
             dSyntaxType.add(createOption("PDF", "pdfType"),0);
+            dSyntaxType.add(createOption("CSV", "csvType"),1);
             dSyntaxType.selectedIndex = 0;
-            dSyntaxType.add(createOption("-----------------------", "notSelect"),1);
+            dSyntaxType.add(createOption("-----------------------", "notSelect"),2);
 	    }
 	}
 }

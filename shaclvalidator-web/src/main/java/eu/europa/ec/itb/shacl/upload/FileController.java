@@ -4,6 +4,7 @@ import eu.europa.ec.itb.shacl.ApplicationConfig;
 import eu.europa.ec.itb.shacl.DomainConfig;
 import eu.europa.ec.itb.shacl.DomainConfigCache;
 import eu.europa.ec.itb.shacl.validation.FileManager;
+import eu.europa.ec.itb.validation.commons.CsvReportGenerator;
 import eu.europa.ec.itb.validation.commons.LocalisationHelper;
 import eu.europa.ec.itb.validation.commons.ValidatorChannel;
 import eu.europa.ec.itb.validation.commons.report.ReportGeneratorBean;
@@ -48,7 +49,9 @@ public class FileController {
     @Autowired
     private DomainConfigCache domainConfigCache;
     @Autowired
-    private ReportGeneratorBean reportGenerator;
+    private ReportGeneratorBean pdfReportGenerator;
+    @Autowired
+    private CsvReportGenerator csvReportGenerator;
     @Autowired
     private CustomLocaleResolver localeResolver;
     @Autowired
@@ -79,14 +82,58 @@ public class FileController {
             throw new NotFoundException();
         }
         MDC.put(MDC_DOMAIN, domain);
-
         File tmpFolder = new File(fileManager.getWebTmpFolder(), id);
         if (!tmpFolder.toPath().normalize().startsWith(fileManager.getWebTmpFolder().toPath())) {
             throw new IllegalStateException("Invalid value provided for parameter [id]");
         }
         syntax = syntax.replace("_", "/");
+        ReportFileInfo reportFileInfo;
+        if (syntax.equals("pdfType") || syntax.equals("csvType")) {
+            if (!UploadController.DOWNLOAD_TYPE_REPORT.equals(type)) {
+                throw new IllegalArgumentException("This report type can only be requested for the validation report");
+            }
+            reportFileInfo = produceReport(syntax, tmpFolder, new LocalisationHelper(domainConfig, localeResolver.resolveLocale(request, response, domainConfig, appConfig)), domainConfig);
+        } else {
+            String extension = fileManager.getFileExtension(syntax);
+            reportFileInfo = new ReportFileInfo(extension, new File(tmpFolder, getBaseReportNameForRdfReport(type)+"."+extension));
+        }
+        if (!reportFileInfo.getFile().toPath().normalize().startsWith(tmpFolder.toPath())) {
+            throw new IllegalStateException("Requested invalid file path");
+        }
+        if (!reportFileInfo.getFile().exists()) {
+            // File doesn't exist. Create it based on an existing file.
+            File existingFileOfRequestedType = getFileByType(tmpFolder, type);
+            Lang lang = RDFLanguages.filenameToLang(existingFileOfRequestedType.getName());
+            if (lang == null || lang.getContentType() == null) {
+                LOG.error("Unable to determine RDF language from existing file [{}]", existingFileOfRequestedType.getName());
+                throw new NotFoundException();
+            }
+            String existingSyntax = lang.getContentType().getContentTypeStr();
+            Model fileModel = JenaUtil.createMemoryModel();
+            try (FileInputStream in = new FileInputStream(existingFileOfRequestedType); FileWriter out = new FileWriter(reportFileInfo.getFile())) {
+                fileModel.read(in, null, existingSyntax);
+                fileManager.writeRdfModel(out, fileModel, syntax);
+            } catch (IOException e) {
+                // Delete the target file (if produced) to make sure we don't cache it for future requests.
+                FileUtils.deleteQuietly(reportFileInfo.getFile());
+                throw new NotFoundException();
+            } catch (RuntimeException e) {
+                // Delete the target file (if produced) to make sure we don't cache it for future requests.
+                FileUtils.deleteQuietly(reportFileInfo.getFile());
+                throw e;
+            }
+        }
+        response.setHeader("Content-Disposition", "attachment; filename=" + type.replace("Type", "") +"."+reportFileInfo.getExtension());
+        return new FileSystemResource(reportFileInfo.getFile());
+    }
 
-        // Determine base file name.
+    /**
+     * Get the base name for the given report type.
+     *
+     * @param type The report type.
+     * @return The base name.
+     */
+    private String getBaseReportNameForRdfReport(String type) {
         String baseFileName;
         switch (type) {
             case UploadController.DOWNLOAD_TYPE_CONTENT:
@@ -100,62 +147,50 @@ public class FileController {
                 break;
             default: throw new IllegalArgumentException("Invalid file type ["+type+"]");
         }
-        // Determine extension.
-        File targetFile;
+        return baseFileName;
+    }
+
+    /**
+     * Construct the report (PDF or CSV).
+     *
+     * @param reportSyntax The report syntax.
+     * @param tmpFolder The temporary folder to use for generated files.
+     * @param localiser The localisation helper.
+     * @param domainConfig The domain configuration.
+     * @return The information reltated to the generated report.
+     */
+    private ReportFileInfo produceReport(String reportSyntax, File tmpFolder, LocalisationHelper localiser, DomainConfig domainConfig) {
         String extension;
-        if (syntax.equals("pdfType")) {
+        String baseFileName;
+        if (reportSyntax.equals("pdfType")) {
             extension = "pdf";
-            if (!UploadController.DOWNLOAD_TYPE_REPORT.equals(type)) {
-                throw new IllegalArgumentException("A PDF report can only be requested for the validation report");
-            }
-            targetFile = new File(tmpFolder, FILE_NAME_PDF_REPORT +".pdf");
-            if (!targetFile.exists()) {
-                // Generate the requested PDF report from the TAR XML report.
-                File xmlReport = new File(tmpFolder, FILE_NAME_TAR +".xml");
-                if (xmlReport.exists()) {
-                    var helper = new LocalisationHelper(domainConfig, localeResolver.resolveLocale(request, response, domainConfig, appConfig));
-                    reportGenerator.writeReport(
+            baseFileName = FILE_NAME_PDF_REPORT;
+        } else if (reportSyntax.equals("csvType")) {
+            extension = "csv";
+            baseFileName = FILE_NAME_CSV_REPORT;
+        } else {
+            throw new IllegalArgumentException("Unknown report syntax ["+reportSyntax+"]");
+        }
+        File targetFile = new File(tmpFolder, baseFileName + "." + extension);
+        if (!targetFile.exists()) {
+            // Generate the requested PDF report from the TAR XML report.
+            File xmlReport = new File(tmpFolder, FILE_NAME_TAR + ".xml");
+            if (xmlReport.exists()) {
+                if (reportSyntax.equals("pdfType")) {
+                    pdfReportGenerator.writeReport(
                             xmlReport,
                             targetFile,
-                            (tar) -> reportGenerator.getReportLabels(helper, tar.getResult())
+                            (tar) -> pdfReportGenerator.getReportLabels(localiser, tar.getResult())
                     );
                 } else {
-                    LOG.error("Unable to produce PDF report because of missing XML report");
-                    throw new NotFoundException();
+                    csvReportGenerator.writeReport(xmlReport, targetFile, localiser, domainConfig);
                 }
-            }
-        } else {
-            extension = fileManager.getFileExtension(syntax);
-            targetFile = new File(tmpFolder, baseFileName+"."+extension);
-        }
-        if (!targetFile.toPath().normalize().startsWith(tmpFolder.toPath())) {
-            throw new IllegalStateException("Requested invalid file path");
-        }
-        if (!targetFile.exists()) {
-            // File doesn't exist. Create it based on an existing file.
-            File existingFileOfRequestedType = getFileByType(tmpFolder, type);
-            Lang lang = RDFLanguages.filenameToLang(existingFileOfRequestedType.getName());
-            if (lang == null || lang.getContentType() == null) {
-                LOG.error("Unable to determine RDF language from existing file [{}]", existingFileOfRequestedType.getName());
+            } else {
+                LOG.error("Unable to produce report because of missing XML report");
                 throw new NotFoundException();
             }
-            String existingSyntax = lang.getContentType().getContentTypeStr();
-            Model fileModel = JenaUtil.createMemoryModel();
-            try (FileInputStream in = new FileInputStream(existingFileOfRequestedType); FileWriter out = new FileWriter(targetFile)) {
-                fileModel.read(in, null, existingSyntax);
-                fileManager.writeRdfModel(out, fileModel, syntax);
-            } catch (IOException e) {
-                // Delete the target file (if produced) to make sure we don't cache it for future requests.
-                FileUtils.deleteQuietly(targetFile);
-                throw new NotFoundException();
-            } catch (RuntimeException e) {
-                // Delete the target file (if produced) to make sure we don't cache it for future requests.
-                FileUtils.deleteQuietly(targetFile);
-                throw e;
-            }
         }
-        response.setHeader("Content-Disposition", "attachment; filename=" + type.replace("Type", "") +"."+extension);
-        return new FileSystemResource(targetFile);
+        return new ReportFileInfo(extension, targetFile);
     }
 
     /**
@@ -219,4 +254,37 @@ public class FileController {
         return file;
     }
 
+    /**
+     * Wrapper class to communicate information on a generated report.
+     */
+    private static class ReportFileInfo {
+
+        private final String extension;
+        private final File file;
+
+        /**
+         * Constructor.
+         *
+         * @param extension The report's file extension.
+         * @param file The report.
+         */
+        private ReportFileInfo(String extension, File file) {
+            this.extension = extension;
+            this.file = file;
+        }
+
+        /**
+         * @return The file extension.
+         */
+        public String getExtension() {
+            return extension;
+        }
+
+        /**
+         * @return The file.
+         */
+        public File getFile() {
+            return file;
+        }
+    }
 }
