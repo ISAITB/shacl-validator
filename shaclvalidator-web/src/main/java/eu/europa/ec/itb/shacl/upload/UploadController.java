@@ -67,6 +67,7 @@ public class UploadController {
     static final String FILE_NAME_INPUT = "inputFile";
     static final String FILE_NAME_REPORT = "reportFile";
     static final String FILE_NAME_PDF_REPORT = "pdfReportFile";
+    static final String FILE_NAME_CSV_REPORT = "csvReportFile";
     static final String FILE_NAME_SHAPES = "shapesFile";
     static final String FILE_NAME_TAR = "tarFile";
 
