@@ -1,15 +1,12 @@
 package eu.europa.ec.itb.shacl.gitb;
 
 import com.gitb.core.*;
-import com.gitb.tr.TAR;
 import com.gitb.vs.Void;
 import com.gitb.vs.*;
-import eu.europa.ec.itb.shacl.DomainConfig;
-import eu.europa.ec.itb.shacl.InputHelper;
-import eu.europa.ec.itb.shacl.ModelPair;
-import eu.europa.ec.itb.shacl.SparqlQueryConfig;
+import eu.europa.ec.itb.shacl.*;
 import eu.europa.ec.itb.shacl.util.ShaclValidatorUtils;
 import eu.europa.ec.itb.shacl.validation.FileManager;
+import eu.europa.ec.itb.shacl.validation.ReportSpecs;
 import eu.europa.ec.itb.shacl.validation.SHACLValidator;
 import eu.europa.ec.itb.shacl.validation.ValidationConstants;
 import eu.europa.ec.itb.validation.commons.FileInfo;
@@ -156,17 +153,13 @@ public class ValidationServiceImpl implements ValidationService {
             boolean addRdfReportToReport = getInputAsBoolean(validateRequest, ValidationConstants.INPUT_ADD_RDF_REPORT_TO_REPORT, false);
 			SHACLValidator validator = ctx.getBean(SHACLValidator.class, contentToValidate, validationType, contentSyntax, externalShapes, loadImports, domainConfig, localiser);
 			ModelPair models = validator.validateAll();
-			TAR report = ShaclValidatorUtils.getTAR(
-                    models,
-                    addRdfReportToReport?getRdfReportToInclude(models.getReportModel(), validateRequest):null,
-                    addInputToReport?contentToValidate.toPath():null,
-                    addShapesToReport?validator.getAggregatedShapes():null,
-                    domainConfig,
-                    ShaclValidatorUtils.getDefaultReportLabels(domainConfig),
-                    localiser
-            );
+            var reportSpecs = ReportSpecs.builder(models.getInputModel(), models.getReportModel(), localiser, domainConfig);
+            if (addRdfReportToReport) reportSpecs = reportSpecs.withReportContentToInclude(getRdfReportToInclude(models.getReportModel(), validateRequest));
+            if (addInputToReport) reportSpecs = reportSpecs.withInputContentToInclude(contentToValidate.toPath());
+            if (addShapesToReport) reportSpecs = reportSpecs.withShapesToInclude(validator.getAggregatedShapes());
+			ReportPair report = ShaclValidatorUtils.getTAR(reportSpecs.build());
 			ValidationResponse result = new ValidationResponse();
-			result.setReport(report);
+			result.setReport(report.getDetailedReport());
 			return result;
 		} catch (ValidatorException e) {
     		logger.error(e.getMessageForLog(), e);

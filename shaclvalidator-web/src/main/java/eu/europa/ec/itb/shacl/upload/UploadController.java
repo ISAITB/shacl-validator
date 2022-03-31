@@ -1,9 +1,9 @@
 package eu.europa.ec.itb.shacl.upload;
 
-import com.gitb.tr.TAR;
 import eu.europa.ec.itb.shacl.*;
 import eu.europa.ec.itb.shacl.util.ShaclValidatorUtils;
 import eu.europa.ec.itb.shacl.validation.FileManager;
+import eu.europa.ec.itb.shacl.validation.ReportSpecs;
 import eu.europa.ec.itb.shacl.validation.SHACLValidator;
 import eu.europa.ec.itb.validation.commons.FileInfo;
 import eu.europa.ec.itb.validation.commons.LocalisationHelper;
@@ -60,16 +60,21 @@ public class UploadController {
     private static final String PARAM_CONTENT_TYPE = "contentType";
     private static final String PARAM_DOWNLOAD_TYPE = "downloadType";
     private static final String PARAM_REPORT_ID = "reportID";
+    private static final String PARAM_AGGREGATE_REPORT = "aggregateReport";
+    private static final String PARAM_SHOW_AGGREGATE_REPORT = "showAggregateReport";
     private static final String EMPTY = "empty";
     static final String DOWNLOAD_TYPE_REPORT = "reportType";
     static final String DOWNLOAD_TYPE_SHAPES = "shapesType";
     static final String DOWNLOAD_TYPE_CONTENT = "contentType";
     static final String FILE_NAME_INPUT = "inputFile";
     static final String FILE_NAME_REPORT = "reportFile";
-    static final String FILE_NAME_PDF_REPORT = "pdfReportFile";
-    static final String FILE_NAME_CSV_REPORT = "csvReportFile";
+    static final String FILE_NAME_PDF_REPORT_DETAILED = "pdfReportFileDetailed";
+    static final String FILE_NAME_CSV_REPORT_DETAILED = "csvReportFileDetailed";
+    static final String FILE_NAME_PDF_REPORT_AGGREGATED = "pdfReportFileAggregated";
+    static final String FILE_NAME_CSV_REPORT_AGGREGATED = "csvReportFileAggregated";
     static final String FILE_NAME_SHAPES = "shapesFile";
     static final String FILE_NAME_TAR = "tarFile";
+    static final String FILE_NAME_TAR_AGGREGATE = "tarAggregateFile";
 
     @Autowired
     private FileManager fileManager = null;
@@ -242,9 +247,14 @@ public class UploadController {
                     loadImportsValue = inputHelper.validateLoadInputs(domainConfig, loadImportsValue, validationType);
                     SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile, validationType, contentSyntaxType, userProvidedShapes, loadImportsValue, domainConfig, localisationHelper);
                     ModelPair models = validator.validateAll();
-                    TAR tarReport = ShaclValidatorUtils.getTAR(models, null, null, null, domainConfig, ShaclValidatorUtils.getReportLabels(localisationHelper), localisationHelper);
-                    if (tarReport.getReports().getInfoOrWarningOrError().size() <= domainConfig.getMaximumReportsForDetailedOutput()) {
-                        fileManager.saveReport(tarReport, fileManager.createFile(parentFolder, ".xml", FILE_NAME_TAR).toFile(), domainConfig);
+                    ReportPair tarReport = ShaclValidatorUtils.getTAR(ReportSpecs
+                            .builder(models.getInputModel(), models.getReportModel(), localisationHelper, domainConfig)
+                            .produceAggregateReport()
+                            .build()
+                    );
+                    if (tarReport.getDetailedReport().getReports().getInfoOrWarningOrError().size() <= domainConfig.getMaximumReportsForDetailedOutput()) {
+                        fileManager.saveReport(tarReport.getDetailedReport(), fileManager.createFile(parentFolder, ".xml", FILE_NAME_TAR).toFile(), domainConfig);
+                        fileManager.saveReport(tarReport.getAggregateReport(), fileManager.createFile(parentFolder, ".xml", FILE_NAME_TAR_AGGREGATE).toFile(), domainConfig);
                     }
                     String fileName;
                     if (CONTENT_TYPE_FILE.equals(contentType)) {
@@ -265,8 +275,10 @@ public class UploadController {
                     // All ok - add attributes for the UI.
                     attributes.put(PARAM_REPORT_ID, parentFolder.getName());
                     attributes.put(PARAM_FILE_NAME, fileName);
-                    attributes.put(PARAM_REPORT, tarReport);
-                    attributes.put(PARAM_DATE, tarReport.getDate().toString());
+                    attributes.put(PARAM_REPORT, tarReport.getDetailedReport());
+                    attributes.put(PARAM_AGGREGATE_REPORT, tarReport.getAggregateReport());
+                    attributes.put(PARAM_SHOW_AGGREGATE_REPORT, showAggregateReport(tarReport));
+                    attributes.put(PARAM_DATE, tarReport.getDetailedReport().getDate().toString());
                 }
             }
         } catch (ValidatorException e) {
@@ -292,6 +304,18 @@ public class UploadController {
             }
         }
         return new ModelAndView(VIEW_UPLOAD_FORM, attributes);
+    }
+
+    /**
+     * Check whether the aggregated report should be displayed.
+     *
+     * @param tarReport The TAR reports' pair.
+     * @return The check result.
+     */
+    private boolean showAggregateReport(ReportPair tarReport) {
+        return tarReport.getDetailedReport() != null && tarReport.getAggregateReport() != null &&
+            tarReport.getDetailedReport().getReports() != null && tarReport.getAggregateReport().getReports() != null &&
+            tarReport.getDetailedReport().getReports().getInfoOrWarningOrError().size() != tarReport.getAggregateReport().getReports().getInfoOrWarningOrError().size();
     }
 
     /**

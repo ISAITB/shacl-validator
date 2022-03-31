@@ -43,6 +43,14 @@ import static eu.europa.ec.itb.validation.commons.web.Constants.MDC_DOMAIN;
 public class FileController {
 
     private static final Logger LOG = LoggerFactory.getLogger(FileController.class);
+    /** Constant for the detailed PDF report syntax. */
+    public static final String SYNTAX_TYPE_PDF_DETAILED = "pdfTypeDetailed";
+    /** Constant for the aggregated PDF report syntax. */
+    public static final String SYNTAX_TYPE_PDF_AGGREGATED = "pdfTypeAggregated";
+    /** Constant for the detailed CSV report syntax. */
+    public static final String SYNTAX_TYPE_CSV_DETAILED = "csvTypeDetailed";
+    /** Constant for the aggregated PDF report syntax. */
+    public static final String SYNTAX_TYPE_CSV_AGGREGATED = "csvTypeAggregated";
 
     @Autowired
     private FileManager fileManager;
@@ -88,7 +96,7 @@ public class FileController {
         }
         syntax = syntax.replace("_", "/");
         ReportFileInfo reportFileInfo;
-        if (syntax.equals("pdfType") || syntax.equals("csvType")) {
+        if (syntax.equals(SYNTAX_TYPE_PDF_DETAILED) || syntax.equals(SYNTAX_TYPE_CSV_DETAILED) || syntax.equals(SYNTAX_TYPE_PDF_AGGREGATED) || syntax.equals(SYNTAX_TYPE_CSV_AGGREGATED)) {
             if (!UploadController.DOWNLOAD_TYPE_REPORT.equals(type)) {
                 throw new IllegalArgumentException("This report type can only be requested for the validation report");
             }
@@ -162,27 +170,36 @@ public class FileController {
     private ReportFileInfo produceReport(String reportSyntax, File tmpFolder, LocalisationHelper localiser, DomainConfig domainConfig) {
         String extension;
         String baseFileName;
-        if (reportSyntax.equals("pdfType")) {
-            extension = "pdf";
-            baseFileName = FILE_NAME_PDF_REPORT;
-        } else if (reportSyntax.equals("csvType")) {
-            extension = "csv";
-            baseFileName = FILE_NAME_CSV_REPORT;
-        } else {
-            throw new IllegalArgumentException("Unknown report syntax ["+reportSyntax+"]");
+        switch (reportSyntax) {
+            case SYNTAX_TYPE_PDF_DETAILED:
+                extension = "pdf";
+                baseFileName = FILE_NAME_PDF_REPORT_DETAILED;
+                break;
+            case SYNTAX_TYPE_PDF_AGGREGATED:
+                extension = "pdf";
+                baseFileName = FILE_NAME_PDF_REPORT_AGGREGATED;
+                break;
+            case SYNTAX_TYPE_CSV_DETAILED:
+                extension = "csv";
+                baseFileName = FILE_NAME_CSV_REPORT_DETAILED;
+                break;
+            case SYNTAX_TYPE_CSV_AGGREGATED:
+                extension = "csv";
+                baseFileName = FILE_NAME_CSV_REPORT_AGGREGATED;
+                break;
+            default:
+                throw new IllegalArgumentException("Unknown report syntax [" + reportSyntax + "]");
         }
         File targetFile = new File(tmpFolder, baseFileName + "." + extension);
         if (!targetFile.exists()) {
-            // Generate the requested PDF report from the TAR XML report.
-            File xmlReport = new File(tmpFolder, FILE_NAME_TAR + ".xml");
+            // Generate the requested report from the TAR XML report.
+            File xmlReport = new File(tmpFolder, ((reportSyntax.equals(SYNTAX_TYPE_PDF_DETAILED) || reportSyntax.equals(SYNTAX_TYPE_CSV_DETAILED))?FILE_NAME_TAR:FILE_NAME_TAR_AGGREGATE) + ".xml");
             if (xmlReport.exists()) {
-                if (reportSyntax.equals("pdfType")) {
-                    pdfReportGenerator.writeReport(
-                            xmlReport,
-                            targetFile,
-                            (tar) -> pdfReportGenerator.getReportLabels(localiser, tar.getResult())
-                    );
+                if (reportSyntax.equals(SYNTAX_TYPE_PDF_DETAILED) || reportSyntax.equals(SYNTAX_TYPE_PDF_AGGREGATED)) {
+                    // PDF generation
+                    pdfReportGenerator.writeReport(xmlReport,targetFile, (tar) -> pdfReportGenerator.getReportLabels(localiser, tar.getResult()));
                 } else {
+                    // CSV generation
                     csvReportGenerator.writeReport(xmlReport, targetFile, localiser, domainConfig);
                 }
             } else {
