@@ -1,5 +1,6 @@
 package eu.europa.ec.itb.shacl.webhook;
 
+import eu.europa.ec.itb.shacl.ModelPair;
 import eu.europa.ec.itb.shacl.gitb.ValidationServiceImpl;
 import eu.europa.ec.itb.shacl.validation.SHACLValidator;
 import eu.europa.ec.itb.validation.commons.war.webhook.StatisticReporting;
@@ -132,9 +133,9 @@ public class StatisticReportingAspect extends StatisticReporting {
             String validationType = validator.getValidationType();
             String api = usageParams.get("api");
             String ip = usageParams.get("ip");
-            Model reportModel = (Model) report;
+            ModelPair reportModel = (ModelPair) report;
             // Obtain the result of the model
-            UsageData.Result result = extractResult(reportModel);
+            UsageData.Result result = extractResult(reportModel.getReportModel());
             // Send the usage data
             sendUsageData(validatorId, domain, api, validationType, result, ip);
         } catch (Exception ex) {
