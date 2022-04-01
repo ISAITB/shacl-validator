@@ -3,9 +3,7 @@ package eu.europa.ec.itb.shacl.validation;
 import com.gitb.core.AnyContent;
 import com.gitb.core.ValueEmbeddingEnumeration;
 import com.gitb.tr.*;
-import eu.europa.ec.itb.shacl.DomainConfig;
-import eu.europa.ec.itb.shacl.ModelPair;
-import eu.europa.ec.itb.validation.commons.LocalisationHelper;
+import eu.europa.ec.itb.shacl.ReportPair;
 import eu.europa.ec.itb.validation.commons.Utils;
 import org.apache.commons.lang3.LocaleUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -25,78 +23,45 @@ public class SHACLReportHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(SHACLReportHandler.class);
 
-	private final TAR report;
-	private final ModelPair models;
-	private final DomainConfig domainConfig;
     private final ObjectFactory objectFactory = new ObjectFactory();
-    private final ReportLabels labels;
-    private final LocalisationHelper localiser;
+    private final AnyContent reportContext;
+    private final ReportSpecs reportSpecs;
 
     /**
      * Constructor.
      *
-     * @param models The RDF models for the input and report.
-     * @param domainConfig The domain configuration.
-     * @param labels The labels to use for fixed texts.
-     * @param localiser Helper class to lookup translations.
+     * @param reportSpecs The specification of how to generate the report.
      */
-    public SHACLReportHandler(ModelPair models, DomainConfig domainConfig, ReportLabels labels, LocalisationHelper localiser) {
-        this(null, null, models, null, domainConfig, labels, localiser);
-    }
-
-    /**
-     * Constructor.
-     *
-     * @param inputFile The validated RDF content as a string.
-     * @param shapes The shapes used for the validation.
-     * @param models The RDF models for the input and report.
-     * @param reportContentToInclude The content for the validation report to add as context to the TAR report.
-     * @param domainConfig The domain configuration.
-     * @param labels The labels to use for fixed texts.
-     * @param localiser Helper class to lookup translations.
-     */
-	public SHACLReportHandler(String inputFile, Model shapes, ModelPair models, String reportContentToInclude, DomainConfig domainConfig, ReportLabels labels, LocalisationHelper localiser) {
-		this.models = models;
-		this.domainConfig = domainConfig;
-        this.labels = labels;
-        this.localiser = localiser;
-		report = new TAR();
-        report.setResult(TestResultType.SUCCESS);
-        report.setDate(Utils.getXMLGregorianCalendarDateTime());
-        this.report.setName("SHACL Validation");
-        this.report.setReports(new TestAssertionGroupReportsType());
-
-        AnyContent attachment = new AnyContent();
-        attachment.setType("map");
-
-        if (inputFile != null) {
-            AnyContent inputAttachment = new AnyContent();
-            inputAttachment.setName("input");
-            inputAttachment.setType("string");
-            inputAttachment.setEmbeddingMethod(ValueEmbeddingEnumeration.STRING);
-            inputAttachment.setValue(inputFile);
-            attachment.getItem().add(inputAttachment);
+	public SHACLReportHandler(ReportSpecs reportSpecs) {
+		this.reportSpecs = reportSpecs;
+        reportContext = new AnyContent();
+        if (reportSpecs.getInputContentToInclude() != null || reportSpecs.getShapesModel() != null || reportSpecs.getReportContentToInclude() != null) {
+            reportContext.setType("map");
+            if (reportSpecs.getInputContentToInclude() != null) {
+                AnyContent inputAttachment = new AnyContent();
+                inputAttachment.setName("input");
+                inputAttachment.setType("string");
+                inputAttachment.setEmbeddingMethod(ValueEmbeddingEnumeration.STRING);
+                inputAttachment.setValue(reportSpecs.getInputContentToInclude());
+                reportContext.getItem().add(inputAttachment);
+            }
+            if (reportSpecs.getShapesModel() != null) {
+                AnyContent shapeAttachment = new AnyContent();
+                shapeAttachment.setName("shapes");
+                shapeAttachment.setType("string");
+                shapeAttachment.setEmbeddingMethod(ValueEmbeddingEnumeration.STRING);
+                shapeAttachment.setValue(modelToString(reportSpecs.getShapesModel()));
+                reportContext.getItem().add(shapeAttachment);
+            }
+            if (reportSpecs.getReportContentToInclude() != null) {
+                AnyContent reportAttachment = new AnyContent();
+                reportAttachment.setName("report");
+                reportAttachment.setType("string");
+                reportAttachment.setEmbeddingMethod(ValueEmbeddingEnumeration.STRING);
+                reportAttachment.setValue(reportSpecs.getReportContentToInclude());
+                reportContext.getItem().add(reportAttachment);
+            }
         }
-
-        if (shapes != null) {
-            AnyContent shapeAttachment = new AnyContent();
-            shapeAttachment.setName("shapes");
-            shapeAttachment.setType("string");
-            shapeAttachment.setEmbeddingMethod(ValueEmbeddingEnumeration.STRING);
-            shapeAttachment.setValue(modelToString(shapes));
-            attachment.getItem().add(shapeAttachment);
-        }
-
-        if (reportContentToInclude != null) {
-            AnyContent reportAttachment = new AnyContent();
-            reportAttachment.setName("report");
-            reportAttachment.setType("string");
-            reportAttachment.setEmbeddingMethod(ValueEmbeddingEnumeration.STRING);
-            reportAttachment.setValue(reportContentToInclude);
-            attachment.getItem().add(reportAttachment);
-        }
-
-        this.report.setContext(attachment);
 	}
 
     /**
@@ -146,22 +111,32 @@ public class SHACLReportHandler {
      *
      * @return The TAR report.
      */
-	public TAR createReport() {
+	public ReportPair createReport() {
+        var report = new TAR();
+        report.setResult(TestResultType.SUCCESS);
+        report.setDate(Utils.getXMLGregorianCalendarDateTime());
+        report.setName("SHACL Validation");
+        report.setReports(new TestAssertionGroupReportsType());
+        report.setContext(reportContext);
         int infos = 0;
         int warnings = 0;
         int errors = 0;
         var messageMap = new LinkedHashMap<String, String>();
         var detectedInvalidLanguageCodes = new HashSet<String>();
-        var additionalInfoTemplate = new AdditionalInfoTemplate(this.localiser, this.models.getInputModel());
-		if (this.models.getReportModel() != null) {
-            NodeIterator niResult = this.models.getReportModel().listObjectsOfProperty(this.models.getReportModel().getProperty("http://www.w3.org/ns/shacl#conforms"));
-            NodeIterator niValidationResult = this.models.getReportModel().listObjectsOfProperty(this.models.getReportModel().getProperty("http://www.w3.org/ns/shacl#result"));
+        var additionalInfoTemplate = new AdditionalInfoTemplate(reportSpecs.getLocalisationHelper(), reportSpecs.getInputModel());
+        AggregateReportItems aggregateReportItems = null;
+        if (reportSpecs.isProduceAggregateReport()) {
+            aggregateReportItems = new AggregateReportItems(objectFactory, reportSpecs.getLocalisationHelper());
+        }
+		if (reportSpecs.getReportModel() != null) {
+            NodeIterator niResult = reportSpecs.getReportModel().listObjectsOfProperty(reportSpecs.getReportModel().getProperty("http://www.w3.org/ns/shacl#conforms"));
+            NodeIterator niValidationResult = reportSpecs.getReportModel().listObjectsOfProperty(reportSpecs.getReportModel().getProperty("http://www.w3.org/ns/shacl#result"));
             var reports = new ArrayList<JAXBElement<TestAssertionReportType>>();
 
             if (niResult.hasNext() && !niResult.next().asLiteral().getBoolean()) {
             	while(niValidationResult.hasNext()) {
             		RDFNode node = niValidationResult.next();
-            		StmtIterator it = this.models.getReportModel().listStatements(node.asResource(), null, (RDFNode)null);
+            		StmtIterator it = reportSpecs.getReportModel().listStatements(node.asResource(), null, (RDFNode)null);
 
         			BAR error = new BAR();
         			String focusNode = "";
@@ -197,51 +172,65 @@ public class SHACLReportHandler {
                         error.setAssertionID(additionalInfoTemplate.apply(focusNode));
                     }
                     error.setDescription(getErrorDescription(messageMap, detectedInvalidLanguageCodes));
-            		error.setLocation(createStringMessageFromParts(new String[] {labels.getFocusNode(), labels.getResultPath()}, new String[] {focusNode, resultPath}));
-                    error.setTest(createStringMessageFromParts(new String[] {labels.getShape(), labels.getValue()}, new String[] {shape, value}));
+            		error.setLocation(createStringMessageFromParts(new String[] {reportSpecs.getReportLabels().getFocusNode(), reportSpecs.getReportLabels().getResultPath()}, new String[] {focusNode, resultPath}));
+                    error.setTest(createStringMessageFromParts(new String[] {reportSpecs.getReportLabels().getShape(), reportSpecs.getReportLabels().getValue()}, new String[] {shape, value}));
                     JAXBElement<TestAssertionReportType> element;
                     if (severity.equals("http://www.w3.org/ns/shacl#Info")) {
                         element = this.objectFactory.createTestAssertionGroupReportsTypeInfo(error);
                         infos += 1;
+                        if (aggregateReportItems != null) aggregateReportItems.updateForReportItem(shape, AggregateReportItems.Severity.MESSAGE, element);
                     } else if (severity.equals("http://www.w3.org/ns/shacl#Warning")) {
                         element = this.objectFactory.createTestAssertionGroupReportsTypeWarning(error);
                         warnings += 1;
+                        if (aggregateReportItems != null) aggregateReportItems.updateForReportItem(shape, AggregateReportItems.Severity.WARNING, element);
                     } else { // ERROR, FATAL_ERROR
                         element = this.objectFactory.createTestAssertionGroupReportsTypeError(error);
                         errors += 1;
-                    }   
+                        if (aggregateReportItems != null) aggregateReportItems.updateForReportItem(shape, AggregateReportItems.Severity.ERROR, element);
+                    }
                     reports.add(element);
                     messageMap.clear();
             	}
                 if (!detectedInvalidLanguageCodes.isEmpty()) {
                     logger.warn("Detected invalid languages codes for shape messages: {}", detectedInvalidLanguageCodes);
                 }
-                this.report.getReports().getInfoOrWarningOrError().addAll(reports);
+                report.getReports().getInfoOrWarningOrError().addAll(reports);
             }
 		} else {
             BAR error1 = new BAR();
-            error1.setDescription(localiser.localise("validator.label.exception.unableToGenerateReportDueToContentProblem"));
+            error1.setDescription(reportSpecs.getLocalisationHelper().localise("validator.label.exception.unableToGenerateReportDueToContentProblem"));
             var element1 = this.objectFactory.createTestAssertionGroupReportsTypeError(error1);
-            this.report.getReports().getInfoOrWarningOrError().add(element1);
-            
+            report.getReports().getInfoOrWarningOrError().add(element1);
             errors += 1;
         }
-		
         report.setCounters(new ValidationCounters());
         report.getCounters().setNrOfErrors(BigInteger.valueOf(errors));
         report.getCounters().setNrOfAssertions(BigInteger.valueOf(infos));
         report.getCounters().setNrOfWarnings(BigInteger.valueOf(warnings));
-
-        if (domainConfig.isReportsOrdered()) {
-            this.report.getReports().getInfoOrWarningOrError().sort(new ReportItemComparator());
+        if (errors > 0) {
+            report.setResult(TestResultType.FAILURE);
+        } else {
+            report.setResult(TestResultType.SUCCESS);
         }
-        if(errors > 0) {
-            this.report.setResult(TestResultType.FAILURE);
-        }else {
-            this.report.setResult(TestResultType.SUCCESS);
+        if (reportSpecs.isReportItemsOrdered()) {
+            report.getReports().getInfoOrWarningOrError().sort(new ReportItemComparator());
         }
-        
-		return this.report;
+        // Create the aggregate report if needed.
+        TAR aggregateReport = null;
+        if (aggregateReportItems != null) {
+            aggregateReport = new TAR();
+            aggregateReport.setContext(new AnyContent());
+            aggregateReport.setResult(report.getResult());
+            aggregateReport.setCounters(report.getCounters());
+            aggregateReport.setDate(report.getDate());
+            aggregateReport.setName(report.getName());
+            aggregateReport.setReports(new TestAssertionGroupReportsType());
+            aggregateReport.getReports().getInfoOrWarningOrError().addAll(aggregateReportItems.getReportItems());
+            if (reportSpecs.isReportItemsOrdered()) {
+                aggregateReport.getReports().getInfoOrWarningOrError().sort(new ReportItemComparator());
+            }
+        }
+		return new ReportPair(report, aggregateReport);
 	}
 
     /**
@@ -272,11 +261,11 @@ public class SHACLReportHandler {
                 }
             }
             String messageToReturn = null;
-            if (localeMap.containsKey(localiser.getLocale())) {
+            if (localeMap.containsKey(reportSpecs.getLocalisationHelper().getLocale())) {
                 // Exact match.
-                messageToReturn = localeMap.get(localiser.getLocale());
+                messageToReturn = localeMap.get(reportSpecs.getLocalisationHelper().getLocale());
             } else {
-                var matchedLanguage = localeMap.entrySet().stream().filter(entry -> entry.getKey().getLanguage().equals(localiser.getLocale().getLanguage())).findFirst();
+                var matchedLanguage = localeMap.entrySet().stream().filter(entry -> entry.getKey().getLanguage().equals(reportSpecs.getLocalisationHelper().getLocale().getLanguage())).findFirst();
                 if (matchedLanguage.isPresent()) {
                     // Message for same language.
                     messageToReturn = matchedLanguage.get().getValue();

@@ -199,44 +199,38 @@ function downloadResult () {
 	if (syntaxType != 'notSelect') {
         var selectedIndex = document.getElementById("downloadSyntaxType").selectedIndex;
         var selectedSyntax = document.getElementById("downloadSyntaxType")[selectedIndex].text;
-        
         var xhr = new XMLHttpRequest();
         var params = '?id='+encodeURIComponent(resultFormId)+'&type='+encodeURIComponent(resultFormType)+'&syntax='+encodeURIComponent(resultFormSyntax);
-
         xhr.open("GET", "report"+params, true);
         xhr.setRequestHeader("X-Requested-With", "XmlHttpRequest");
         xhr.onreadystatechange = function (){
-        	if(xhr.readyState === 2){
+        	if (xhr.readyState === 2) {
         		if (xhr.status == 200) {
         			xhr.responseType = 'blob'
         		} else {
         			xhr.responseType = 'text'
         		}
         	}
-        	if(xhr.readyState === 4){
-        		if(xhr.status === 200){
+        	if (xhr.readyState === 4) {
+        		if (xhr.status === 200) {
         			$(".alert.alert-danger.ajax-error").remove();
         			var responseData;
         			var fileName = xhr.getResponseHeader('Content-Disposition').split("filename=")[1];
-        			if(resultFormSyntax === "pdfType"){
+        			if (resultFormSyntax === "pdfType") {
         				responseData = new Blob([xhr.response], {type: "application/octet-stream"});
-        			}else{	
+        			} else {
         				responseData = new Blob([xhr.response], {type: syntaxType});
         			}
         			saveAs(responseData, fileName);
-        		}else{
-        			raiseAlert(getAjaxErrorMessage());
+        		} else {
+        			raiseAlert(labelDownloadErrorMessage);
         		}
         	}
         }
         xhr.send(null);
 	}
 }
-function getAjaxErrorMessage(){
-	var selectedDownloadType = $("#downloadType option:selected").text();
-	var selectedDownloadSyntaxType = $("#downloadSyntaxType option:selected").text();
-	return "Error downloading " + selectedDownloadType + " in " + selectedDownloadSyntaxType + " format.";
-}
+
 function raiseAlert(errorMessage){
 	$(".alert.alert-danger.ajax-error").remove();
 	const alertDiv = $("<div class='alert alert-danger ajax-error'></div>");
@@ -244,20 +238,46 @@ function raiseAlert(errorMessage){
 	alertDiv.insertAfter("#bannerSection");
 }
 
+function reportTypeChange() {
+	var rType = $('#reportTypeSelect').val();
+	if (rType == "detailed") {
+        $('#reportItemsAggregated').addClass('hidden');
+        $('#reportItemsDetailed').removeClass('hidden');
+	} else {
+        $('#reportItemsAggregated').removeClass('hidden');
+        $('#reportItemsDetailed').addClass('hidden');
+	}
+}
+
 function downloadTypeChange(){
 	var dType = $('#downloadType').val();
 	var dSyntaxType = document.getElementById("downloadSyntaxType");
     if (reportItemCount <= reportItemDetailMax) {
-        dSyntaxType = removeOption(dSyntaxType, 'pdfType');
-        dSyntaxType = removeOption(dSyntaxType, 'csvType');
+        if (showAggregateReport) {
+            dSyntaxType = removeOption(dSyntaxType, 'pdfTypeDetailed');
+            dSyntaxType = removeOption(dSyntaxType, 'pdfTypeAggregated');
+            dSyntaxType = removeOption(dSyntaxType, 'csvTypeDetailed');
+            dSyntaxType = removeOption(dSyntaxType, 'csvTypeAggregated');
+        } else {
+            dSyntaxType = removeOption(dSyntaxType, 'pdfTypeDetailed');
+            dSyntaxType = removeOption(dSyntaxType, 'csvTypeDetailed');
+        }
         dSyntaxType = removeOption(dSyntaxType, 'notSelect');
     }
-	if(dType == "reportType"){
+	if (dType == "reportType"){
 	    if (reportItemCount <= reportItemDetailMax) {
-            dSyntaxType.add(createOption("PDF", "pdfType"),0);
-            dSyntaxType.add(createOption("CSV", "csvType"),1);
+            if (showAggregateReport) {
+                dSyntaxType.add(createOption(labelReportDetailedPDF, "pdfTypeDetailed"),0);
+                dSyntaxType.add(createOption(labelReportAggregatedPDF, "pdfTypeAggregated"),1);
+                dSyntaxType.add(createOption(labelReportDetailedCSV, "csvTypeDetailed"),2);
+                dSyntaxType.add(createOption(labelReportAggregatedCSV, "csvTypeAggregated"),3);
+                dSyntaxType.add(createOption("----------------------------", "notSelect"),4);
+            } else {
+                dSyntaxType.add(createOption("PDF", "pdfTypeDetailed"),0);
+                dSyntaxType.add(createOption("CSV", "csvTypeDetailed"),1);
+                dSyntaxType.add(createOption("----------------------------", "notSelect"),2);
+            }
             dSyntaxType.selectedIndex = 0;
-            dSyntaxType.add(createOption("-----------------------", "notSelect"),2);
 	    }
 	}
 }

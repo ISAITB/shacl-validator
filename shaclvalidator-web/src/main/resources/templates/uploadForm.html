@@ -24,6 +24,12 @@
 		var labelQueryUsernameInputPlaceholder = [[${localiser.localise('validator.label.queryUsernameInputPlaceholder')}]];
 		var labelQueryPasswordInputPlaceholder = [[${localiser.localise('validator.label.queryPasswordInputPlaceholder')}]];
 		var labelQueryAuthenticateLabel = [[${localiser.localise('validator.label.queryAuthenticateLabel')}]];
+        var labelReportDetailedPDF = [[${localiser.localise('validator.label.reportDetailedPDF')}]];
+        var labelReportDetailedCSV = [[${localiser.localise('validator.label.reportDetailedCSV')}]];
+        var labelReportAggregatedPDF = [[${localiser.localise('validator.label.reportAggregatedPDF')}]];
+        var labelReportAggregatedCSV = [[${localiser.localise('validator.label.reportAggregatedCSV')}]];
+        var labelDownloadErrorMessage = [[${localiser.localise('validator.label.exception.downloadError')}]];
+        var showAggregateReport = [[${showAggregateReport}]];
 		var externalArtifacts = {};
 		var loadImportsArtifacts = {};
 		[# th:each="artifactInfoEntry : ${externalArtifactInfo}"]
@@ -102,8 +108,10 @@
                     <div class="form-group" style="padding-right:10px;">
                         <label for="downloadSyntaxType" style="padding-right:10px;" th:text="${localiser.localise('validator.label.saveAs')}">as</label>
                         <select class="form-control downloadSelect" id="downloadSyntaxType" name="downloadSyntaxType">
-                            <option th:if="${report.reports == null || report.reports.infoOrWarningOrError == null || report.reports.infoOrWarningOrError.size() <= config.maximumReportsForDetailedOutput}" value="pdfType">PDF</option>
-                            <option th:if="${report.reports == null || report.reports.infoOrWarningOrError == null || report.reports.infoOrWarningOrError.size() <= config.maximumReportsForDetailedOutput}" value="csvType">CSV</option>
+                            <option th:if="${report.reports == null || report.reports.infoOrWarningOrError == null || report.reports.infoOrWarningOrError.size() <= config.maximumReportsForDetailedOutput}" value="pdfTypeDetailed" th:text="${showAggregateReport?localiser.localise('validator.label.reportDetailedPDF'):'PDF'}">PDF (detailed report)</option>
+                            <option th:if="${showAggregateReport && (report.reports == null || report.reports.infoOrWarningOrError == null || report.reports.infoOrWarningOrError.size() <= config.maximumReportsForDetailedOutput)}" value="pdfTypeAggregated" th:text="${localiser.localise('validator.label.reportAggregatedPDF')}">PDF (aggregated report)</option>
+                            <option th:if="${report.reports == null || report.reports.infoOrWarningOrError == null || report.reports.infoOrWarningOrError.size() <= config.maximumReportsForDetailedOutput}" value="csvTypeDetailed" th:text="${showAggregateReport?localiser.localise('validator.label.reportDetailedCSV'):'CSV'}">CSV (detailed report)</option>
+                            <option th:if="${showAggregateReport && (report.reports == null || report.reports.infoOrWarningOrError == null || report.reports.infoOrWarningOrError.size() <= config.maximumReportsForDetailedOutput)}" value="csvTypeAggregated" th:text="${localiser.localise('validator.label.reportAggregatedCSV')}">CSV (aggregated report)</option>
                             <option th:if="${report.reports == null || report.reports.infoOrWarningOrError == null || report.reports.infoOrWarningOrError.size() <= config.maximumReportsForDetailedOutput}" value="notSelect">----------------------------</option>
                             <option th:each="type : ${contentSyntax}" th:text="${type.key}" th:attr="value=${type.label}">Type</option>
                         </select>
@@ -117,7 +125,30 @@
                 </div>
             </div>
         </div>
-        <div th:replace="fragments/output :: reportDetails(${config}, ${minimalUI}, false)"/>
+        <div>
+            <div class="panel panel-default" th:style="${minimalUI}?'display:none':''" th:classappend="${minimalUI} ? remove : ''" th:if="${report.reports != null && report.reports.infoOrWarningOrError != null && report.reports.infoOrWarningOrError.size() > 0}">
+                <div class="panel-heading panel-heading-details">
+                    <div class="panel-heading-details-title">
+                        <h3 class="panel-title" th:text="${localiser.localise('validator.label.resultSubSectionDetailsTitle')}">Details</h3>
+                    </div>
+                    <div th:if="${showAggregateReport}" class="panel-heading-details-control">
+                        <select class="form-control reportTypeSelect" id="reportTypeSelect" onchange="reportTypeChange()">
+                            <option value="detailed" th:text="${localiser.localise('validator.label.viewReportItemsDetailed')}">Detailed report</option>
+                            <option value="aggregated" th:text="${localiser.localise('validator.label.viewReportItemsAggregated')}">Aggregated report</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="panel-body result-details-panel">
+                    <div id="reportItemsDetailed">
+                        <th:block th:replace="fragments/output :: reportItems(${report.reports}, ${config}, false)"/>
+                    </div>
+                    <div th:if="${showAggregateReport}" id="reportItemsAggregated" class="hidden">
+                        <th:block th:replace="fragments/output :: reportItems(${aggregateReport.reports}, ${config}, false)"/>
+                    </div>
+                </div>
+            </div>
+            <div th:replace="fragments/output :: reportInputModal()"></div>
+        </div>
     </div>
     <div th:replace="fragments/common :: localeSelector(${config}, ${localiser.getLocale()})"/>
     <div th:replace="fragments/common :: footer(${config}, ${minimalUI})"/>
