@@ -1,4 +1,4 @@
-FROM openjdk:11.0.2-jre
+FROM openjdk:11.0.14-jre
 
 RUN mkdir /validator
 COPY validator.jar /validator
