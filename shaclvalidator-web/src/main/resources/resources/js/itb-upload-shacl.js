@@ -190,45 +190,51 @@ function getReportData(reportID) {
 	resultReportID = reportID;
 }
 
-function downloadResult () {
-	var type = $('#downloadType').val();
-	var syntaxType = $('#downloadSyntaxType').val();
-	var resultFormId = $('#resultFormId').val(resultReportID).val();
-    var resultFormType = $('#resultFormType').val(type).val();
-    var resultFormSyntax = $('#resultFormSyntax').val(syntaxType.replace("/", "_")).val();
-	if (syntaxType != 'notSelect') {
-        var selectedIndex = document.getElementById("downloadSyntaxType").selectedIndex;
-        var selectedSyntax = document.getElementById("downloadSyntaxType")[selectedIndex].text;
-        var xhr = new XMLHttpRequest();
-        var params = '?id='+encodeURIComponent(resultFormId)+'&type='+encodeURIComponent(resultFormType)+'&syntax='+encodeURIComponent(resultFormSyntax);
-        xhr.open("GET", "report"+params, true);
-        xhr.setRequestHeader("X-Requested-With", "XmlHttpRequest");
-        xhr.onreadystatechange = function (){
-        	if (xhr.readyState === 2) {
-        		if (xhr.status == 200) {
-        			xhr.responseType = 'blob'
-        		} else {
-        			xhr.responseType = 'text'
-        		}
-        	}
-        	if (xhr.readyState === 4) {
-        		if (xhr.status === 200) {
-        			$(".alert.alert-danger.ajax-error").remove();
-        			var responseData;
-        			var fileName = xhr.getResponseHeader('Content-Disposition').split("filename=")[1];
-        			if (resultFormSyntax === "pdfType") {
-        				responseData = new Blob([xhr.response], {type: "application/octet-stream"});
-        			} else {
-        				responseData = new Blob([xhr.response], {type: syntaxType});
-        			}
-        			saveAs(responseData, fileName);
-        		} else {
-        			raiseAlert(labelDownloadErrorMessage);
-        		}
-        	}
+function downloadShapes(syntaxType) {
+    doDownload('shapesType', syntaxType, 'downloadShapesButton');
+}
+
+function downloadReport(syntaxType) {
+    doDownload('reportType', syntaxType, 'downloadReportButton');
+}
+
+function downloadContent(syntaxType) {
+    doDownload('contentType', syntaxType, 'downloadInputButton');
+}
+
+function doDownload(downloadType, syntaxType, buttonId) {
+    $('#'+buttonId).prop('disabled', true);
+    $('#'+buttonId+'Spinner').removeClass('hidden');
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", "report?id="+encodeURIComponent(resultReportID)+'&type='+encodeURIComponent(downloadType)+'&syntax='+encodeURIComponent(syntaxType), true);
+    xhr.setRequestHeader("X-Requested-With", "XmlHttpRequest");
+    xhr.onreadystatechange = function (){
+        if (xhr.readyState === 2) {
+            if (xhr.status == 200) {
+                xhr.responseType = 'blob'
+            } else {
+                xhr.responseType = 'text'
+            }
         }
-        xhr.send(null);
-	}
+        if (xhr.readyState === 4) {
+            if (xhr.status === 200) {
+                $(".alert.alert-danger.ajax-error").remove();
+                var responseData;
+                var fileName = xhr.getResponseHeader('Content-Disposition').split("filename=")[1];
+                if (syntaxType === "pdfType") {
+                    responseData = new Blob([xhr.response], {type: "application/octet-stream"});
+                } else {
+                    responseData = new Blob([xhr.response], {type: syntaxType});
+                }
+                saveAs(responseData, fileName);
+            } else {
+                raiseAlert(labelDownloadErrorMessage);
+            }
+            $('#'+buttonId).prop('disabled', false);
+            $('#'+buttonId+'Spinner').addClass('hidden');
+        }
+    }
+    xhr.send(null);
 }
 
 function raiseAlert(errorMessage){
@@ -236,60 +242,6 @@ function raiseAlert(errorMessage){
 	const alertDiv = $("<div class='alert alert-danger ajax-error'></div>");
 	alertDiv.text(errorMessage);
 	alertDiv.insertAfter("#bannerSection");
-}
-
-function reportTypeChange() {
-	var rType = $('#reportTypeSelect').val();
-	if (rType == "detailed") {
-        $('#reportItemsAggregated').addClass('hidden');
-        $('#reportItemsDetailed').removeClass('hidden');
-	} else {
-        $('#reportItemsAggregated').removeClass('hidden');
-        $('#reportItemsDetailed').addClass('hidden');
-	}
-}
-
-function downloadTypeChange(){
-	var dType = $('#downloadType').val();
-	var dSyntaxType = document.getElementById("downloadSyntaxType");
-    if (reportItemCount <= reportItemDetailMax) {
-        if (showAggregateReport) {
-            dSyntaxType = removeOption(dSyntaxType, 'pdfTypeDetailed');
-            dSyntaxType = removeOption(dSyntaxType, 'pdfTypeAggregated');
-            dSyntaxType = removeOption(dSyntaxType, 'csvTypeDetailed');
-            dSyntaxType = removeOption(dSyntaxType, 'csvTypeAggregated');
-        } else {
-            dSyntaxType = removeOption(dSyntaxType, 'pdfTypeDetailed');
-            dSyntaxType = removeOption(dSyntaxType, 'csvTypeDetailed');
-        }
-        dSyntaxType = removeOption(dSyntaxType, 'notSelect');
-    }
-	if (dType == "reportType"){
-	    if (reportItemCount <= reportItemDetailMax) {
-            if (showAggregateReport) {
-                dSyntaxType.add(createOption(labelReportDetailedPDF, "pdfTypeDetailed"),0);
-                dSyntaxType.add(createOption(labelReportAggregatedPDF, "pdfTypeAggregated"),1);
-                dSyntaxType.add(createOption(labelReportDetailedCSV, "csvTypeDetailed"),2);
-                dSyntaxType.add(createOption(labelReportAggregatedCSV, "csvTypeAggregated"),3);
-                dSyntaxType.add(createOption("----------------------------", "notSelect"),4);
-            } else {
-                dSyntaxType.add(createOption("PDF", "pdfTypeDetailed"),0);
-                dSyntaxType.add(createOption("CSV", "csvTypeDetailed"),1);
-                dSyntaxType.add(createOption("----------------------------", "notSelect"),2);
-            }
-            dSyntaxType.selectedIndex = 0;
-	    }
-	}
-}
-
-function removeOption(options, value){
-	for (var i=0; i<options.length; i++){
-		 if (options[i].value == value){
-			 options.remove(i);
-		 }
-	}
-	
-	return options;
 }
 
 function createOption(text, value){

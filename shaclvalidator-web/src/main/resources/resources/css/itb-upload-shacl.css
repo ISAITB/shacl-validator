@@ -18,15 +18,3 @@
 #queryToValidate .CodeMirror {
     height: 250px;
 }
-.panel-heading-overview {
-    height: 55px;
-    display: flex;
-    align-items: center;
-}
-.panel-heading-details {
-    display: flex;
-    align-items: center;
-}
-.panel-heading-details-title {
-    flex-grow: 1;
-}

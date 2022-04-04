@@ -5,9 +5,7 @@ import eu.europa.ec.itb.shacl.util.ShaclValidatorUtils;
 import eu.europa.ec.itb.shacl.validation.FileManager;
 import eu.europa.ec.itb.shacl.validation.ReportSpecs;
 import eu.europa.ec.itb.shacl.validation.SHACLValidator;
-import eu.europa.ec.itb.validation.commons.FileInfo;
-import eu.europa.ec.itb.validation.commons.LocalisationHelper;
-import eu.europa.ec.itb.validation.commons.ValidatorChannel;
+import eu.europa.ec.itb.validation.commons.*;
 import eu.europa.ec.itb.validation.commons.artifact.ExternalArtifactSupport;
 import eu.europa.ec.itb.validation.commons.config.WebDomainConfig;
 import eu.europa.ec.itb.validation.commons.error.ValidatorException;
@@ -58,10 +56,7 @@ public class UploadController {
     private static final String PARAM_CONTENT_SYNTAX = "contentSyntax";
     private static final String PARAM_LOAD_IMPORTS_INFO = "loadImportsInfo";
     private static final String PARAM_CONTENT_TYPE = "contentType";
-    private static final String PARAM_DOWNLOAD_TYPE = "downloadType";
     private static final String PARAM_REPORT_ID = "reportID";
-    private static final String PARAM_AGGREGATE_REPORT = "aggregateReport";
-    private static final String PARAM_SHOW_AGGREGATE_REPORT = "showAggregateReport";
     private static final String EMPTY = "empty";
     static final String DOWNLOAD_TYPE_REPORT = "reportType";
     static final String DOWNLOAD_TYPE_SHAPES = "shapesType";
@@ -193,7 +188,6 @@ public class UploadController {
         attributes.put(PARAM_APP_CONFIG, appConfig);
         attributes.put(PARAM_LOCALISER, localisationHelper);
         attributes.put(PARAM_CONTENT_TYPE, getContentType(localisationHelper));
-        attributes.put(PARAM_DOWNLOAD_TYPE, getDownloadType(localisationHelper));
         attributes.put(PARAM_HTML_BANNER_EXISTS, localisationHelper.propertyExists("validator.bannerHtml"));
 
         if (StringUtils.isNotBlank(validationType)) {
@@ -277,7 +271,7 @@ public class UploadController {
                     attributes.put(PARAM_FILE_NAME, fileName);
                     attributes.put(PARAM_REPORT, tarReport.getDetailedReport());
                     attributes.put(PARAM_AGGREGATE_REPORT, tarReport.getAggregateReport());
-                    attributes.put(PARAM_SHOW_AGGREGATE_REPORT, showAggregateReport(tarReport));
+                    attributes.put(PARAM_SHOW_AGGREGATE_REPORT, Utils.aggregateDiffers(tarReport.getDetailedReport(), tarReport.getAggregateReport()));
                     attributes.put(PARAM_DATE, tarReport.getDetailedReport().getDate().toString());
                 }
             }
@@ -304,18 +298,6 @@ public class UploadController {
             }
         }
         return new ModelAndView(VIEW_UPLOAD_FORM, attributes);
-    }
-
-    /**
-     * Check whether the aggregated report should be displayed.
-     *
-     * @param tarReport The TAR reports' pair.
-     * @return The check result.
-     */
-    private boolean showAggregateReport(ReportPair tarReport) {
-        return tarReport.getDetailedReport() != null && tarReport.getAggregateReport() != null &&
-            tarReport.getDetailedReport().getReports() != null && tarReport.getAggregateReport().getReports() != null &&
-            tarReport.getDetailedReport().getReports().getInfoOrWarningOrError().size() != tarReport.getAggregateReport().getReports().getInfoOrWarningOrError().size();
     }
 
     /**
@@ -554,21 +536,6 @@ public class UploadController {
                 new KeyWithLabel(CONTENT_TYPE_FILE, localiser.localise("validator.label.optionContentFile")),
                 new KeyWithLabel(CONTENT_TYPE_URI, localiser.localise("validator.label.optionContentURI")),
                 new KeyWithLabel(CONTENT_TYPE_EDITOR, localiser.localise("validator.label.optionContentDirectInput"))
-        );
-    }
-
-    /**
-     * The list of supported targets for the result page's download option as key and label pairs for
-     * display on the UI.
-     *
-     * @param localiser The localisation helper.
-     * @return The list of options.
-     */
-    private List<KeyWithLabel> getDownloadType(LocalisationHelper localiser){
-        return List.of(
-                new KeyWithLabel(DOWNLOAD_TYPE_REPORT, localiser.localise("validator.label.optionDownloadReport")),
-                new KeyWithLabel(DOWNLOAD_TYPE_SHAPES, localiser.localise("validator.label.optionDownloadShapes")),
-                new KeyWithLabel(DOWNLOAD_TYPE_CONTENT, localiser.localise("validator.label.optionDownloadContent"))
         );
     }
 

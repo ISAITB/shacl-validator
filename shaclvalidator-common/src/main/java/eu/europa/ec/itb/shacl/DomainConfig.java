@@ -14,7 +14,6 @@ import java.util.Map;
 public class DomainConfig extends WebDomainConfig {
 
     private String defaultReportSyntax;
-    private boolean reportsOrdered;
     private boolean mergeModelsBeforeValidation;
     Map<String, Boolean> defaultLoadImportsType;
     Map<String, ExternalArtifactSupport> userInputForLoadImportsType;
@@ -114,20 +113,6 @@ public class DomainConfig extends WebDomainConfig {
      */
     public void setDefaultReportSyntax(String defaultReportSyntax) {
         this.defaultReportSyntax = defaultReportSyntax;
-    }
-
-    /**
-     * @return True if validation reports should be ordered.
-     */
-	public boolean isReportsOrdered() {
-        return reportsOrdered;
-    }
-
-    /**
-     * @param reportsOrdered True if validation reports should be ordered.
-     */
-    public void setReportsOrdered(boolean reportsOrdered) {
-        this.reportsOrdered = reportsOrdered;
     }
 
     /**
