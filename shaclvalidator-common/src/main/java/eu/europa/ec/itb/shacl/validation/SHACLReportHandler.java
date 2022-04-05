@@ -17,6 +17,7 @@ import javax.xml.bind.JAXBElement;
 import java.io.StringWriter;
 import java.math.BigInteger;
 import java.util.*;
+import java.util.function.Function;
 
 /**
  * Class to handle a SHACL validation report and produce a TAR report.
@@ -178,18 +179,19 @@ public class SHACLReportHandler {
                     error.setTest(createStringMessageFromParts(new String[] {reportSpecs.getReportLabels().getShape(), reportSpecs.getReportLabels().getValue()}, new String[] {shape, value}));
                     JAXBElement<TestAssertionReportType> element;
                     String shapeFinal = shape;
+                    Function<JAXBElement<TestAssertionReportType>, String> classifierFn = e -> String.format("%s|%s|%s", shapeFinal, e.getName().getLocalPart(), ((BAR)e.getValue()).getDescription());
                     if (severity.equals("http://www.w3.org/ns/shacl#Info")) {
                         element = this.objectFactory.createTestAssertionGroupReportsTypeInfo(error);
                         infos += 1;
-                        if (aggregateReportItems != null) aggregateReportItems.updateForReportItem(element, e -> shapeFinal);
+                        if (aggregateReportItems != null) aggregateReportItems.updateForReportItem(element, classifierFn);
                     } else if (severity.equals("http://www.w3.org/ns/shacl#Warning")) {
                         element = this.objectFactory.createTestAssertionGroupReportsTypeWarning(error);
                         warnings += 1;
-                        if (aggregateReportItems != null) aggregateReportItems.updateForReportItem(element, e -> shapeFinal);
+                        if (aggregateReportItems != null) aggregateReportItems.updateForReportItem(element, classifierFn);
                     } else { // ERROR, FATAL_ERROR
                         element = this.objectFactory.createTestAssertionGroupReportsTypeError(error);
                         errors += 1;
-                        if (aggregateReportItems != null) aggregateReportItems.updateForReportItem(element, e -> shapeFinal);
+                        if (aggregateReportItems != null) aggregateReportItems.updateForReportItem(element, classifierFn);
                     }
                     reports.add(element);
                     messageMap.clear();

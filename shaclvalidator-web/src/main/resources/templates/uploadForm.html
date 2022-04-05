@@ -8,8 +8,6 @@
     <script th:src="@{/js/itb-upload-shacl.js}"></script>
     <script th:if="${report}" th:inline="text">
     /*<![CDATA[*/
-    	var reportItemCount = [[${report.reports.infoOrWarningOrError.size()}]];
-    	var reportItemDetailMax = [[${config.maximumReportsForDetailedOutput}]];
         getReportData("[[${reportID}]]");
         registerCleanup("[[${reportID}]]");
     /*]]>*/
