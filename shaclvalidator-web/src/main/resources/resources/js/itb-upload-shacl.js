@@ -9,8 +9,10 @@ function onFormReady() {
     loadImportInputs();
     if (supportQuery) {
     	var selectContentTypeElement = document.getElementById("contentType");
-    	selectContentTypeElement.add(createOption(labelOptionContentQuery, 'queryType'));
-    	createQueryFields();
+    	if (selectContentTypeElement) {
+        	selectContentTypeElement.add(createOption(labelOptionContentQuery, 'queryType'));
+        	createQueryFields();
+    	}
     }
 }
 
