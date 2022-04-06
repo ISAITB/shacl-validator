@@ -8,8 +8,6 @@
     <script th:src="@{/js/itb-upload-shacl.js}"></script>
     <script th:if="${report}" th:inline="text">
     /*<![CDATA[*/
-    	var reportItemCount = [[${report.reports.infoOrWarningOrError.size()}]];
-    	var reportItemDetailMax = [[${config.maximumReportsForDetailedOutput}]];
         getReportData("[[${reportID}]]");
         registerCleanup("[[${reportID}]]");
     /*]]>*/
@@ -24,12 +22,7 @@
 		var labelQueryUsernameInputPlaceholder = [[${localiser.localise('validator.label.queryUsernameInputPlaceholder')}]];
 		var labelQueryPasswordInputPlaceholder = [[${localiser.localise('validator.label.queryPasswordInputPlaceholder')}]];
 		var labelQueryAuthenticateLabel = [[${localiser.localise('validator.label.queryAuthenticateLabel')}]];
-        var labelReportDetailedPDF = [[${localiser.localise('validator.label.reportDetailedPDF')}]];
-        var labelReportDetailedCSV = [[${localiser.localise('validator.label.reportDetailedCSV')}]];
-        var labelReportAggregatedPDF = [[${localiser.localise('validator.label.reportAggregatedPDF')}]];
-        var labelReportAggregatedCSV = [[${localiser.localise('validator.label.reportAggregatedCSV')}]];
         var labelDownloadErrorMessage = [[${localiser.localise('validator.label.exception.downloadError')}]];
-        var showAggregateReport = [[${showAggregateReport}]];
 		var externalArtifacts = {};
 		var loadImportsArtifacts = {};
 		[# th:each="artifactInfoEntry : ${externalArtifactInfo}"]
@@ -64,7 +57,7 @@
         <form method="POST" enctype="multipart/form-data" th:action="@{${not minimalUI ? 'upload' : 'uploadm'}}" class="form-horizontal" th:fragment="form">
             <div th:class="${minimalUI} ? panel-default : ''" th:classappend="${minimalUI} ? panel : ''">
                 <div th:replace="fragments/input :: formHeader(${config}, ${minimalUI})"/>
-                <div th:class="${minimalUI} ? panel-body : ''">
+                <div th:class="${minimalUI}?'panel-body panel-body-minimal':''">
                     <div th:replace="fragments/input :: mainForm(${config})"/>
                     <div id="contentSyntaxTypeDiv" class="form-group">
                         <label for="contentSyntaxType" class="col-sm-2 control-label"><span th:text="${localiser.localise('validator.label.contentSyntaxLabel')}">Content syntax of the input</span><span data-toggle="tooltip" data-container="body" data-placement="right" th:attr="title=${localiser.localise('validator.label.contentSyntaxTooltip')}"> <i class="far fa-question-circle"></i></span></label>
@@ -96,61 +89,49 @@
         <div th:replace="fragments/output :: reportTitle(${config}, ${minimalUI})"/>
         <div class="panel-default panel">
             <div th:replace="fragments/output :: reportHeader(${config}, ${minimalUI})"/>
-            <div th:replace="fragments/output :: reportSummary(${config}, false)"/>
-            <div class="panel-footer">
-                <div class="form-inline">
-                    <div class="form-group" style="padding-right:10px;">
-                        <label for="downloadType" style="padding-right:10px;" th:text="${localiser.localise('validator.label.saveDownload')}">Download</label>
-                        <select class="form-control downloadSelect" id="downloadType" name="downloadType" onchange="downloadTypeChange()">
-                            <option th:each="type : ${downloadType}" th:text="${type.label}" th:attr="value=${type.key}">Download Type</option>
-                        </select>
+            <div th:replace="fragments/output :: reportSummary(${config})"/>
+            <div class="panel-footer overview-button-row">
+                <div class="btn-toolbar">
+                    <div class="btn-group">
+                        <button type="button" id="downloadReportButton" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <span id="downloadReportButtonSpinner" class="hidden"> <i class="fa fa-spinner fa-spin fa-fw"></i></span>
+                            <span th:text="${localiser.localise('validator.label.downloadReportButton')}">Download report</span> <span class="caret"></span>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a href="#" onclick="downloadReport('pdfTypeDetailed');return false;"><span th:text="${localiser.localise('validator.label.reportDetailedPDF')}">PDF</span></a></li>
+                            <li th:if="${showAggregateReport}"><a href="#" onclick="downloadReport('pdfTypeAggregated');return false;"><span th:text="${localiser.localise('validator.label.reportAggregatedPDF')}">PDF (aggregated)</span></a></li>
+                            <li><a href="#" onclick="downloadReport('csvTypeDetailed');return false;"><span th:text="${localiser.localise('validator.label.reportDetailedCSV')}">CSV</span></a></li>
+                            <li th:if="${showAggregateReport}"><a href="#" onclick="downloadReport('csvTypeAggregated');return false;"><span th:text="${localiser.localise('validator.label.reportAggregatedCSV')}">CSV (aggregated)</span></a></li>
+                            <li role="separator" class="divider"></li>
+                            <li th:each="type : ${contentSyntax}"><a href="#" th:attr="onclick=|downloadReport('${type.label}');return false;|"><span th:text="${type.key}">RDF/XML</span></a></li>
+                        </ul>
                     </div>
-                    <div class="form-group" style="padding-right:10px;">
-                        <label for="downloadSyntaxType" style="padding-right:10px;" th:text="${localiser.localise('validator.label.saveAs')}">as</label>
-                        <select class="form-control downloadSelect" id="downloadSyntaxType" name="downloadSyntaxType">
-                            <option th:if="${report.reports == null || report.reports.infoOrWarningOrError == null || report.reports.infoOrWarningOrError.size() <= config.maximumReportsForDetailedOutput}" value="pdfTypeDetailed" th:text="${showAggregateReport?localiser.localise('validator.label.reportDetailedPDF'):'PDF'}">PDF (detailed report)</option>
-                            <option th:if="${showAggregateReport && (report.reports == null || report.reports.infoOrWarningOrError == null || report.reports.infoOrWarningOrError.size() <= config.maximumReportsForDetailedOutput)}" value="pdfTypeAggregated" th:text="${localiser.localise('validator.label.reportAggregatedPDF')}">PDF (aggregated report)</option>
-                            <option th:if="${report.reports == null || report.reports.infoOrWarningOrError == null || report.reports.infoOrWarningOrError.size() <= config.maximumReportsForDetailedOutput}" value="csvTypeDetailed" th:text="${showAggregateReport?localiser.localise('validator.label.reportDetailedCSV'):'CSV'}">CSV (detailed report)</option>
-                            <option th:if="${showAggregateReport && (report.reports == null || report.reports.infoOrWarningOrError == null || report.reports.infoOrWarningOrError.size() <= config.maximumReportsForDetailedOutput)}" value="csvTypeAggregated" th:text="${localiser.localise('validator.label.reportAggregatedCSV')}">CSV (aggregated report)</option>
-                            <option th:if="${report.reports == null || report.reports.infoOrWarningOrError == null || report.reports.infoOrWarningOrError.size() <= config.maximumReportsForDetailedOutput}" value="notSelect">----------------------------</option>
-                            <option th:each="type : ${contentSyntax}" th:text="${type.key}" th:attr="value=${type.label}">Type</option>
-                        </select>
+                    <div class="btn-group">
+                        <button type="button" id="downloadShapesButton" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <span id="downloadShapesButtonSpinner" class="hidden"> <i class="fa fa-spinner fa-spin fa-fw"></i></span>
+                            <span th:text="${localiser.localise('validator.label.downloadShapesButton')}">Download shapes</span> <span class="caret"></span>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li th:each="type : ${contentSyntax}"><a href="#" th:attr="onclick=|downloadShapes('${type.label}');return false;|"><span th:text="${type.key}">RDF/XML</span></a></li>
+                        </ul>
                     </div>
-                    <button class="btn btn-default" type="button" id="downloadButton" onclick="downloadResult()"><i class="fas fa-download"></i></button>
-                    <form id="resultForm" name="resultForm" method="GET" th:action="report">
-                        <input id="resultFormId" name="id" type="hidden"/>
-                        <input id="resultFormType" name="type" type="hidden"/>
-                        <input id="resultFormSyntax" name="syntax" type="hidden"/>
-                    </form>
-                </div>
-            </div>
-        </div>
-        <div>
-            <div class="panel panel-default" th:style="${minimalUI}?'display:none':''" th:classappend="${minimalUI} ? remove : ''" th:if="${report.reports != null && report.reports.infoOrWarningOrError != null && report.reports.infoOrWarningOrError.size() > 0}">
-                <div class="panel-heading panel-heading-details">
-                    <div class="panel-heading-details-title">
-                        <h3 class="panel-title" th:text="${localiser.localise('validator.label.resultSubSectionDetailsTitle')}">Details</h3>
-                    </div>
-                    <div th:if="${showAggregateReport}" class="panel-heading-details-control">
-                        <select class="form-control reportTypeSelect" id="reportTypeSelect" onchange="reportTypeChange()">
-                            <option value="detailed" th:text="${localiser.localise('validator.label.viewReportItemsDetailed')}">Detailed report</option>
-                            <option value="aggregated" th:text="${localiser.localise('validator.label.viewReportItemsAggregated')}">Aggregated report</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="panel-body result-details-panel">
-                    <div id="reportItemsDetailed">
-                        <th:block th:replace="fragments/output :: reportItems(${report.reports}, ${config}, false)"/>
-                    </div>
-                    <div th:if="${showAggregateReport}" id="reportItemsAggregated" class="hidden">
-                        <th:block th:replace="fragments/output :: reportItems(${aggregateReport.reports}, ${config}, false)"/>
+                    <div class="btn-group">
+                        <button type="button" id="downloadInputButton" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <span id="downloadInputButtonSpinner" class="hidden"> <i class="fa fa-spinner fa-spin fa-fw"></i></span>
+                            <span th:text="${localiser.localise('validator.label.downloadInputButton')}">Download input</span> <span class="caret"></span>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li th:each="type : ${contentSyntax}"><a href="#" th:attr="onclick=|downloadContent('${type.label}');return false;|"><span th:text="${type.key}">RDF/XML</span></a></li>
+                        </ul>
                     </div>
                 </div>
             </div>
-            <div th:replace="fragments/output :: reportInputModal()"></div>
         </div>
+        <div th:replace="fragments/output :: reportDetails(${config}, ${minimalUI}, false)"/>
     </div>
-    <div th:replace="fragments/common :: localeSelector(${config}, ${localiser.getLocale()})"/>
+    <th:block th:if="${!minimalUI}">
+        <div th:replace="fragments/common :: localeSelector(${config}, ${localiser.getLocale()})"/>
+    </th:block>
     <div th:replace="fragments/common :: footer(${config}, ${minimalUI})"/>
 </div>
 <div th:replace="fragments/common :: about">About</div>

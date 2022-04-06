@@ -1,9 +1,9 @@
 package eu.europa.ec.itb.shacl.util;
 
-import eu.europa.ec.itb.shacl.ReportPair;
 import eu.europa.ec.itb.shacl.validation.ReportSpecs;
 import eu.europa.ec.itb.shacl.validation.SHACLReportHandler;
 import eu.europa.ec.itb.validation.commons.LocalisationHelper;
+import eu.europa.ec.itb.validation.commons.ReportPair;
 
 /**
  * Class with utility methods.
