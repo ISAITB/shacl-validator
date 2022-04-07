@@ -246,10 +246,8 @@ public class UploadController {
                             .produceAggregateReport()
                             .build()
                     );
-                    if (tarReport.getDetailedReport().getReports().getInfoOrWarningOrError().size() <= domainConfig.getMaximumReportsForDetailedOutput()) {
-                        fileManager.saveReport(tarReport.getDetailedReport(), fileManager.createFile(parentFolder, ".xml", FILE_NAME_TAR).toFile(), domainConfig);
-                        fileManager.saveReport(tarReport.getAggregateReport(), fileManager.createFile(parentFolder, ".xml", FILE_NAME_TAR_AGGREGATE).toFile(), domainConfig);
-                    }
+                    fileManager.saveReport(tarReport.getDetailedReport(), fileManager.createFile(parentFolder, ".xml", FILE_NAME_TAR).toFile(), domainConfig);
+                    fileManager.saveReport(tarReport.getAggregateReport(), fileManager.createFile(parentFolder, ".xml", FILE_NAME_TAR_AGGREGATE).toFile(), domainConfig);
                     String fileName;
                     if (CONTENT_TYPE_FILE.equals(contentType)) {
                         fileName = file.getOriginalFilename();

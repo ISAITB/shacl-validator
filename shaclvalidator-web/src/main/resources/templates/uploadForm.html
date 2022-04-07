@@ -98,8 +98,10 @@
                             <span th:text="${localiser.localise('validator.label.downloadReportButton')}">Download report</span> <span class="caret"></span>
                         </button>
                         <ul class="dropdown-menu">
-                            <li><a href="#" onclick="downloadReport('pdfTypeDetailed');return false;"><span th:text="${localiser.localise('validator.label.reportDetailedPDF')}">PDF</span></a></li>
-                            <li th:if="${showAggregateReport}"><a href="#" onclick="downloadReport('pdfTypeAggregated');return false;"><span th:text="${localiser.localise('validator.label.reportAggregatedPDF')}">PDF (aggregated)</span></a></li>
+                            <th:block th:if="${report.reports == null || report.reports.infoOrWarningOrError == null || report.reports.infoOrWarningOrError.size() <= config.maximumReportsForDetailedOutput}">
+                                <li><a href="#" onclick="downloadReport('pdfTypeDetailed');return false;"><span th:text="${localiser.localise('validator.label.reportDetailedPDF')}">PDF</span></a></li>
+                                <li th:if="${showAggregateReport}"><a href="#" onclick="downloadReport('pdfTypeAggregated');return false;"><span th:text="${localiser.localise('validator.label.reportAggregatedPDF')}">PDF (aggregated)</span></a></li>
+                            </th:block>
                             <li><a href="#" onclick="downloadReport('csvTypeDetailed');return false;"><span th:text="${localiser.localise('validator.label.reportDetailedCSV')}">CSV</span></a></li>
                             <li th:if="${showAggregateReport}"><a href="#" onclick="downloadReport('csvTypeAggregated');return false;"><span th:text="${localiser.localise('validator.label.reportAggregatedCSV')}">CSV (aggregated)</span></a></li>
                             <li role="separator" class="divider"></li>
