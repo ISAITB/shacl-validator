@@ -1,11 +1,13 @@
 package eu.europa.ec.itb.shacl.upload;
 
+import com.gitb.tr.TAR;
 import eu.europa.ec.itb.shacl.ApplicationConfig;
 import eu.europa.ec.itb.shacl.DomainConfig;
 import eu.europa.ec.itb.shacl.DomainConfigCache;
 import eu.europa.ec.itb.shacl.validation.FileManager;
 import eu.europa.ec.itb.validation.commons.CsvReportGenerator;
 import eu.europa.ec.itb.validation.commons.LocalisationHelper;
+import eu.europa.ec.itb.validation.commons.Utils;
 import eu.europa.ec.itb.validation.commons.ValidatorChannel;
 import eu.europa.ec.itb.validation.commons.report.ReportGeneratorBean;
 import eu.europa.ec.itb.validation.commons.web.errors.NotFoundException;
@@ -197,7 +199,13 @@ public class FileController {
             if (xmlReport.exists()) {
                 if (reportSyntax.equals(SYNTAX_TYPE_PDF_DETAILED) || reportSyntax.equals(SYNTAX_TYPE_PDF_AGGREGATED)) {
                     // PDF generation
-                    pdfReportGenerator.writeReport(xmlReport,targetFile, (tar) -> pdfReportGenerator.getReportLabels(localiser, tar.getResult()));
+                    var tar = Utils.toTAR(xmlReport);
+                    if (checkOkToProducePDF(tar, domainConfig)) {
+                        pdfReportGenerator.writeReport(tar,targetFile, (t) -> pdfReportGenerator.getReportLabels(localiser, t.getResult()));
+                    } else {
+                        LOG.error("Unable to produce PDF report because of too many report items");
+                        throw new NotFoundException();
+                    }
                 } else {
                     // CSV generation
                     csvReportGenerator.writeReport(xmlReport, targetFile, localiser, domainConfig);
@@ -208,6 +216,17 @@ public class FileController {
             }
         }
         return new ReportFileInfo(extension, targetFile);
+    }
+
+    /**
+     * Check to see if we can produce a PDF report.
+     *
+     * @param tar The TAR report.
+     * @param domainConfig The domain configuration.
+     * @return The check result.
+     */
+    private boolean checkOkToProducePDF(TAR tar, DomainConfig domainConfig) {
+        return tar.getReports() == null || tar.getReports().getInfoOrWarningOrError().size() <= domainConfig.getMaximumReportsForDetailedOutput();
     }
 
     /**
