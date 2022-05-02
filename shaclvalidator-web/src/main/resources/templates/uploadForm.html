@@ -23,6 +23,7 @@
 		var labelQueryPasswordInputPlaceholder = [[${localiser.localise('validator.label.queryPasswordInputPlaceholder')}]];
 		var labelQueryAuthenticateLabel = [[${localiser.localise('validator.label.queryAuthenticateLabel')}]];
         var labelDownloadErrorMessage = [[${localiser.localise('validator.label.exception.downloadError')}]];
+        var labelContextSyntaxDefault = [[${localiser.localise('validator.label.contentSyntaxDefault')}]];
 		var externalArtifacts = {};
 		var loadImportsArtifacts = {};
 		[# th:each="artifactInfoEntry : ${externalArtifactInfo}"]
@@ -63,7 +64,7 @@
                         <label for="contentSyntaxType" class="col-sm-2 control-label"><span th:text="${localiser.localise('validator.label.contentSyntaxLabel')}">Content syntax of the input</span><span data-toggle="tooltip" data-container="body" data-placement="right" th:attr="title=${localiser.localise('validator.label.contentSyntaxTooltip')}"> <i class="far fa-question-circle"></i></span></label>
                         <div class="col-sm-3">
                             <select class="form-control" id="contentSyntaxType" name="contentSyntaxType">
-                                <option value="empty" selected="true"></option>
+                                <option value="empty" selected="true" th:text="${localiser.localise('validator.label.contentSyntaxDefault')}"></option>
                                 <option th:each="type : ${contentSyntax}" th:text="${type.key}" th:attr="value=${type.label}">Type</option>
                             </select>
                         </div>

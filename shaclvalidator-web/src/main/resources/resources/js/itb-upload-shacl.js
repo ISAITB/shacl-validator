@@ -131,7 +131,7 @@ function inputContentTypeChanged() {
         $('#contentSyntaxType option[value="empty"]').remove();
     } else {
         if ($('#contentSyntaxType option[value="empty"]').length == 0) {
-            $('#contentSyntaxType').prepend('<option value="empty" selected="selected"></option>');
+            $('#contentSyntaxType').prepend('<option value="empty" selected="selected">'+labelContextSyntaxDefault+'</option>');
         }
     }
 	// Show or hide query fields
