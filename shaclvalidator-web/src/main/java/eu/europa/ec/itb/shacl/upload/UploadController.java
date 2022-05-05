@@ -36,6 +36,8 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -177,7 +179,7 @@ public class UploadController {
         // Temporary folder for the request.
         File parentFolder = fileManager.createTemporaryFolderPath();
         var localisationHelper = new LocalisationHelper(domainConfig, localeResolver.resolveLocale(request, response, domainConfig, appConfig));
-        File inputFile;
+        File inputFile = null;
         List<FileInfo> userProvidedShapes = null;
         Map<String, Object> attributes = new HashMap<>();
         attributes.put(PARAM_CONTENT_SYNTAX, getContentSyntax(domainConfig));
@@ -189,89 +191,84 @@ public class UploadController {
         attributes.put(PARAM_LOCALISER, localisationHelper);
         attributes.put(PARAM_CONTENT_TYPE, getContentType(localisationHelper));
         attributes.put(PARAM_HTML_BANNER_EXISTS, localisationHelper.propertyExists("validator.bannerHtml"));
-
         if (StringUtils.isNotBlank(validationType)) {
             attributes.put(PARAM_VALIDATION_TYPE_LABEL, domainConfig.getCompleteTypeOptionLabel(validationType, localisationHelper));
         }
         boolean forceCleanup = false;
         try {
-            if (CONTENT_TYPE_QUERY.equals(contentType)) {
-                contentSyntaxType = domainConfig.getQueryContentType();
-            } else {
-                if (contentSyntaxType.isEmpty() || contentSyntaxType.equals(EMPTY)) {
-                    if (!contentType.equals(CONTENT_TYPE_EDITOR)) {
-                        contentSyntaxType = getExtensionContentType((contentType.equals(CONTENT_TYPE_FILE) ? file.getOriginalFilename() : uri));
-                    } else {
-                        logger.error("Provided content syntax type is not valid");
-                        attributes.put(PARAM_MESSAGE, "Provided content syntax type is not valid");
-                    }
-                }
-            }
-            if (!contentQuery.isEmpty() || !contentQueryEndpoint.isEmpty() || !contentQueryUsername.isEmpty() || !contentQueryPassword.isEmpty()) {
-                // Load input using SPARQL query.
-                if (!domainConfig.isQueryAuthenticationMandatory() && Boolean.FALSE.equals(contentQueryAuthenticate)) {
-                    // Empty the optional credentials
-                    contentQueryUsername = null;
-                    contentQueryPassword = null;
-                }
-                SparqlQueryConfig queryConfig = new SparqlQueryConfig(contentQueryEndpoint, contentQuery, contentQueryUsername, contentQueryPassword, contentSyntaxType);
-                queryConfig = inputHelper.validateSparqlConfiguration(domainConfig, queryConfig);
-                inputFile = fileManager.getContentFromSparqlEndpoint(queryConfig, parentFolder, FILE_NAME_INPUT).toFile();
-            } else {
-                // Load input using file, URI or editor.
-                inputFile = getInputFile(contentType, file.getInputStream(), uri, string, contentSyntaxType, parentFolder);
-            }
+            // Check validation type.
             if (validationType.isBlank()) {
                 validationType = null;
             }
             if (domainConfig.hasMultipleValidationTypes() && (validationType == null || !domainConfig.getType().contains(validationType))) {
                 // A validation type is required.
-                attributes.put(PARAM_MESSAGE, "Provided validation type is not valid");
+                attributes.put(PARAM_MESSAGE, localisationHelper.localise("validator.label.exception.providedValidationTypeInvalid"));
             } else {
-                if (inputFile != null) {
-                    if (hasExternalShapes(domainConfig, validationType)) {
-                        userProvidedShapes = getExternalShapes(externalContentType, externalFiles, externalUri, externalFilesSyntaxType, parentFolder);
+                // Check provided content type.
+                if (CONTENT_TYPE_QUERY.equals(contentType)) {
+                    // Load input using SPARQL query.
+                    contentSyntaxType = domainConfig.getQueryContentType();
+                    if (!domainConfig.isQueryAuthenticationMandatory() && Boolean.FALSE.equals(contentQueryAuthenticate)) {
+                        // Empty the optional credentials
+                        contentQueryUsername = null;
+                        contentQueryPassword = null;
+                    }
+                    SparqlQueryConfig queryConfig = new SparqlQueryConfig(contentQueryEndpoint, contentQuery, contentQueryUsername, contentQueryPassword, contentSyntaxType);
+                    queryConfig = inputHelper.validateSparqlConfiguration(domainConfig, queryConfig);
+                    inputFile = fileManager.getContentFromSparqlEndpoint(queryConfig, parentFolder, FILE_NAME_INPUT).toFile();
+                } else {
+                    // Load input using file, URI or editor.
+                    if ((contentSyntaxType.isEmpty() || contentSyntaxType.equals(EMPTY)) && contentType.equals(CONTENT_TYPE_EDITOR)) {
+                        logger.error("Provided content syntax type is not valid");
+                        attributes.put(PARAM_MESSAGE, localisationHelper.localise("validator.label.exception.providedContentSyntaxInvalid"));
                     } else {
-                        userProvidedShapes = Collections.emptyList();
+                        inputFile = getInputFile(contentType, file.getInputStream(), uri, string, contentSyntaxType, parentFolder);
                     }
-
-                    if(domainConfig.getUserInputForLoadImportsType().get(validationType) == ExternalArtifactSupport.NONE) {
-                        loadImportsValue = null;
-                    }
-                    loadImportsValue = inputHelper.validateLoadInputs(domainConfig, loadImportsValue, validationType);
-                    SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile, validationType, contentSyntaxType, userProvidedShapes, loadImportsValue, domainConfig, localisationHelper);
-                    ModelPair models = validator.validateAll();
-                    ReportPair tarReport = ShaclValidatorUtils.getTAR(ReportSpecs
-                            .builder(models.getInputModel(), models.getReportModel(), localisationHelper, domainConfig)
-                            .produceAggregateReport()
-                            .build()
-                    );
-                    fileManager.saveReport(tarReport.getDetailedReport(), fileManager.createFile(parentFolder, ".xml", FILE_NAME_TAR).toFile(), domainConfig);
-                    fileManager.saveReport(tarReport.getAggregateReport(), fileManager.createFile(parentFolder, ".xml", FILE_NAME_TAR_AGGREGATE).toFile(), domainConfig);
-                    String fileName;
-                    if (CONTENT_TYPE_FILE.equals(contentType)) {
-                        fileName = file.getOriginalFilename();
-                    } else if (CONTENT_TYPE_URI.equals(contentType)) {
-                        fileName = uri;
-                    } else {
-                        // Query or editor.
-                        fileName = "-";
-                    }
-                    String extension = fileManager.getFileExtension(domainConfig.getDefaultReportSyntax());
-                    try (FileWriter out = new FileWriter(fileManager.createFile(parentFolder, extension, FILE_NAME_REPORT).toFile())) {
-                        fileManager.writeRdfModel(out, models.getReportModel(), domainConfig.getDefaultReportSyntax());
-                    }
-                    try (FileWriter out = new FileWriter(fileManager.createFile(parentFolder, extension, FILE_NAME_SHAPES).toFile())) {
-                        fileManager.writeRdfModel(out, validator.getAggregatedShapes(), domainConfig.getDefaultReportSyntax());
-                    }
-                    // All ok - add attributes for the UI.
-                    attributes.put(PARAM_REPORT_ID, parentFolder.getName());
-                    attributes.put(PARAM_FILE_NAME, fileName);
-                    attributes.put(PARAM_REPORT, tarReport.getDetailedReport());
-                    attributes.put(PARAM_AGGREGATE_REPORT, tarReport.getAggregateReport());
-                    attributes.put(PARAM_SHOW_AGGREGATE_REPORT, Utils.aggregateDiffers(tarReport.getDetailedReport(), tarReport.getAggregateReport()));
-                    attributes.put(PARAM_DATE, tarReport.getDetailedReport().getDate().toString());
                 }
+            }
+            if (inputFile != null) {
+                // Proceed with the validation.
+                if (hasExternalShapes(domainConfig, validationType)) {
+                    userProvidedShapes = getExternalShapes(externalContentType, externalFiles, externalUri, externalFilesSyntaxType, parentFolder);
+                } else {
+                    userProvidedShapes = Collections.emptyList();
+                }
+                if (domainConfig.getUserInputForLoadImportsType().get(validationType) == ExternalArtifactSupport.NONE) {
+                    loadImportsValue = null;
+                }
+                loadImportsValue = inputHelper.validateLoadInputs(domainConfig, loadImportsValue, validationType);
+                SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile, validationType, contentSyntaxType, userProvidedShapes, loadImportsValue, domainConfig, localisationHelper);
+                ModelPair models = validator.validateAll();
+                ReportPair tarReport = ShaclValidatorUtils.getTAR(ReportSpecs
+                        .builder(models.getInputModel(), models.getReportModel(), localisationHelper, domainConfig)
+                        .produceAggregateReport()
+                        .build()
+                );
+                fileManager.saveReport(tarReport.getDetailedReport(), fileManager.createFile(parentFolder, ".xml", FILE_NAME_TAR).toFile(), domainConfig);
+                fileManager.saveReport(tarReport.getAggregateReport(), fileManager.createFile(parentFolder, ".xml", FILE_NAME_TAR_AGGREGATE).toFile(), domainConfig);
+                String fileName;
+                if (CONTENT_TYPE_FILE.equals(contentType)) {
+                    fileName = file.getOriginalFilename();
+                } else if (CONTENT_TYPE_URI.equals(contentType)) {
+                    fileName = uri;
+                } else {
+                    // Query or editor.
+                    fileName = "-";
+                }
+                String extension = fileManager.getFileExtension(domainConfig.getDefaultReportSyntax());
+                try (FileWriter out = new FileWriter(fileManager.createFile(parentFolder, extension, FILE_NAME_REPORT).toFile())) {
+                    fileManager.writeRdfModel(out, models.getReportModel(), domainConfig.getDefaultReportSyntax());
+                }
+                try (FileWriter out = new FileWriter(fileManager.createFile(parentFolder, extension, FILE_NAME_SHAPES).toFile())) {
+                    fileManager.writeRdfModel(out, validator.getAggregatedShapes(), domainConfig.getDefaultReportSyntax());
+                }
+                // All ok - add attributes for the UI.
+                attributes.put(PARAM_REPORT_ID, parentFolder.getName());
+                attributes.put(PARAM_FILE_NAME, fileName);
+                attributes.put(PARAM_REPORT, tarReport.getDetailedReport());
+                attributes.put(PARAM_AGGREGATE_REPORT, tarReport.getAggregateReport());
+                attributes.put(PARAM_SHOW_AGGREGATE_REPORT, Utils.aggregateDiffers(tarReport.getDetailedReport(), tarReport.getAggregateReport()));
+                attributes.put(PARAM_DATE, tarReport.getDetailedReport().getDate().toString());
             }
         } catch (ValidatorException e) {
             logger.error(e.getMessageForLog(), e);
@@ -450,15 +447,30 @@ public class UploadController {
      * @param filename The file name to check.
      * @return The extracted mime type.
      */
-    private String getExtensionContentType(String filename) {
+    private String getExtensionContentTypeForFileName(String filename) {
         String contentType = null;
         Lang lang = RDFLanguages.filenameToLang(filename);
-
         if(lang != null) {
             contentType = lang.getContentType().getContentTypeStr();
         }
-
         return contentType;
+    }
+
+
+    /**
+     * Determine the RDF content type (mime type) from the provided URL.
+     *
+     * @param urlString The URL to check.
+     * @return The extracted mime type.
+     */
+    private String getExtensionContentTypeForURL(String urlString) {
+        URL url;
+        try {
+            url = new URL(urlString);
+        } catch (MalformedURLException e) {
+            throw new ValidatorException("validator.label.exception.unableToProcessURI");
+        }
+        return getExtensionContentTypeForFileName(url.getPath());
     }
 
     /**
@@ -484,13 +496,13 @@ public class UploadController {
                 if (CONTENT_TYPE_FILE.equals(externalContentType[i])) {
                     if (!externalFiles[i].isEmpty()) {
                         if (StringUtils.isEmpty(contentSyntaxType) || contentSyntaxType.equals(EMPTY)) {
-                            contentSyntaxType = getExtensionContentType(externalFiles[i].getOriginalFilename());
+                            contentSyntaxType = getExtensionContentTypeForFileName(externalFiles[i].getOriginalFilename());
                         }
                         inputFile = this.fileManager.getFileFromInputStream(parentFolder, externalFiles[i].getInputStream(), contentSyntaxType, null);
                     }
                 } else if (CONTENT_TYPE_URI.equals(externalContentType[i]) && externalUri.length > i && !externalUri[i].isEmpty()) {
                     if (StringUtils.isEmpty(contentSyntaxType) || contentSyntaxType.equals(EMPTY)) {
-                        contentSyntaxType = getExtensionContentType(externalUri[i]);
+                        contentSyntaxType = getExtensionContentTypeForURL(externalUri[i]);
                     }
                     inputFile = this.fileManager.getFileFromURL(parentFolder, externalUri[i]);
                 }
