@@ -217,10 +217,19 @@ public class UploadController {
                     queryConfig = inputHelper.validateSparqlConfiguration(domainConfig, queryConfig);
                     inputFile = fileManager.getContentFromSparqlEndpoint(queryConfig, parentFolder, FILE_NAME_INPUT).toFile();
                 } else {
-                    // Load input using file, URI or editor.
-                    if ((contentSyntaxType.isEmpty() || contentSyntaxType.equals(EMPTY)) && contentType.equals(CONTENT_TYPE_EDITOR)) {
-                        logger.error("Provided content syntax type is not valid");
-                        attributes.put(PARAM_MESSAGE, localisationHelper.localise("validator.label.exception.providedContentSyntaxInvalid"));
+                    var noContentSyntaxProvided = contentSyntaxType.isEmpty() || contentSyntaxType.equals(EMPTY);
+                    if (noContentSyntaxProvided) {
+                        if (contentType.equals(CONTENT_TYPE_EDITOR)) {
+                            logger.error("Provided content syntax type is not valid");
+                            attributes.put(PARAM_MESSAGE, localisationHelper.localise("validator.label.exception.providedContentSyntaxInvalid"));
+                        } else {
+                            if (contentType.equals(CONTENT_TYPE_FILE)) {
+                                contentSyntaxType = getExtensionContentTypeForFileName(file.getOriginalFilename());
+                            } else if (contentType.equals(CONTENT_TYPE_URI)) {
+                                contentSyntaxType = getExtensionContentTypeForURL(uri);
+                            }
+                            inputFile = getInputFile(contentType, file.getInputStream(), uri, string, contentSyntaxType, parentFolder);
+                        }
                     } else {
                         inputFile = getInputFile(contentType, file.getInputStream(), uri, string, contentSyntaxType, parentFolder);
                     }
