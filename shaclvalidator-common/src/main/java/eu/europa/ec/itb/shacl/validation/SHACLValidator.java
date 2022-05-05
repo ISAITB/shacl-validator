@@ -306,7 +306,7 @@ public class SHACLValidator {
             LOG.info("Validating against [{}]", shaclFile.getFile().getName());
             Lang rdfLanguage = RDFLanguages.contentTypeToLang(shaclFile.getType());
             if (rdfLanguage == null) {
-                throw new ValidatorException("validator.label.exception..unableToDetermineShaclContentType");
+                throw new ValidatorException("validator.label.exception.unableToDetermineShaclContentType");
             }
             try (InputStream dataStream = new FileInputStream(shaclFile.getFile())) {
                 Model fileModel = JenaUtil.createMemoryModel();
