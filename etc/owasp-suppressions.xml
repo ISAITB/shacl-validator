@@ -28,4 +28,11 @@
         <packageUrl regex="true">^pkg:maven/org\.springframework\.security/spring\-security\-core@.*$</packageUrl>
         <vulnerabilityName>CWE-862: Missing Authorization</vulnerabilityName>
     </suppress>
+    <suppress>
+        <notes><![CDATA[
+   file name: grunt-cli:1.4.3
+   ]]></notes>
+        <packageUrl regex="true">^pkg:npm/grunt\-cli@.*$</packageUrl>
+        <cpe>cpe:/a:gruntcli_project:gruntcli</cpe>
+    </suppress>
 </suppressions>
