@@ -1,0 +1,11 @@
+{
+  "name": "shaclvalidator-web",
+  "version": "1.0.0",
+  "devDependencies": {
+    "grunt": "1.5.2",
+    "grunt-contrib-concat": "2.1.0",
+    "grunt-contrib-cssmin": "4.0.0",
+    "grunt-contrib-handlebars": "3.0.0",
+    "grunt-contrib-uglify": "5.2.1"
+  }
+}
