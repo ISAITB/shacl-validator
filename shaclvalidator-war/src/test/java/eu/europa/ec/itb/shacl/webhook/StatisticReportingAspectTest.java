@@ -1,12 +1,11 @@
 package eu.europa.ec.itb.shacl.webhook;
 
 import eu.europa.ec.itb.shacl.upload.UploadController;
+import eu.europa.ec.itb.shacl.upload.UploadResult;
 import org.aspectj.lang.JoinPoint;
 import org.junit.jupiter.api.Test;
 import org.springframework.aop.aspectj.annotation.AspectJProxyFactory;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.servlet.ModelAndView;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -23,7 +22,7 @@ class StatisticReportingAspectTest {
         // Use subclasses as AspectJ proxies cannot be made over Mockito mocks and spies.
         var target = new UploadController() {
             @Override
-            public ModelAndView handleUpload(String domain, MultipartFile file, String uri, String string, String contentType, String validationType, String contentSyntaxType, String[] externalContentType, MultipartFile[] externalFiles, String[] externalUri, String[] externalFilesSyntaxType, Boolean loadImportsValue, String contentQuery, String contentQueryEndpoint, Boolean contentQueryAuthenticate, String contentQueryUsername, String contentQueryPassword, HttpServletRequest request, HttpServletResponse response) {
+            public UploadResult handleUpload(String domain, MultipartFile file, String uri, String string, String contentType, String validationType, String contentSyntaxType, String[] externalContentType, MultipartFile[] externalFiles, String[] externalUri, String[] externalFilesSyntaxType, Boolean loadImportsValue, String contentQuery, String contentQueryEndpoint, Boolean contentQueryAuthenticate, String contentQueryUsername, String contentQueryPassword, HttpServletRequest request, HttpServletResponse response) {
                 assertEquals("domain1", domain);
                 assertTrue(aspectCalled[0]); // We expect the aspect to have been called before the method.
                 // We only want to check if this was called.
@@ -53,7 +52,7 @@ class StatisticReportingAspectTest {
         // Use subclasses as AspectJ proxies cannot be made over Mockito mocks and spies.
         var target = new UploadController() {
             @Override
-            public ModelAndView handleUploadM(String domain, MultipartFile file, String uri, String string, String contentType, String validationType, String contentSyntaxType, String[] externalContentType, MultipartFile[] externalFiles, String[] externalUri, String[] externalFilesSyntaxType, Boolean loadImportsValue, String contentQuery, String contentQueryEndpoint, Boolean contentQueryAuthenticate, String contentQueryUsername, String contentQueryPassword, HttpServletRequest request, HttpServletResponse response) {
+            public UploadResult handleUploadM(String domain, MultipartFile file, String uri, String string, String contentType, String validationType, String contentSyntaxType, String[] externalContentType, MultipartFile[] externalFiles, String[] externalUri, String[] externalFilesSyntaxType, Boolean loadImportsValue, String contentQuery, String contentQueryEndpoint, Boolean contentQueryAuthenticate, String contentQueryUsername, String contentQueryPassword, HttpServletRequest request, HttpServletResponse response) {
                 assertEquals("domain1", domain);
                 assertTrue(aspectCalled[0]); // We expect the aspect to have been called before the method.
                 // We only want to check if this was called.

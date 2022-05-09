@@ -1,11 +1,15 @@
 package eu.europa.ec.itb.shacl.upload;
 
+import com.gitb.tr.TAR;
 import eu.europa.ec.itb.shacl.*;
 import eu.europa.ec.itb.shacl.util.ShaclValidatorUtils;
 import eu.europa.ec.itb.shacl.validation.FileManager;
 import eu.europa.ec.itb.shacl.validation.ReportSpecs;
 import eu.europa.ec.itb.shacl.validation.SHACLValidator;
-import eu.europa.ec.itb.validation.commons.*;
+import eu.europa.ec.itb.validation.commons.FileInfo;
+import eu.europa.ec.itb.validation.commons.LocalisationHelper;
+import eu.europa.ec.itb.validation.commons.ReportPair;
+import eu.europa.ec.itb.validation.commons.ValidatorChannel;
 import eu.europa.ec.itb.validation.commons.artifact.ExternalArtifactSupport;
 import eu.europa.ec.itb.validation.commons.config.WebDomainConfig;
 import eu.europa.ec.itb.validation.commons.error.ValidatorException;
@@ -23,10 +27,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.ModelAndView;
 
@@ -47,6 +48,7 @@ import static eu.europa.ec.itb.validation.commons.web.Constants.*;
  * Controller to manage the validator's web user interface.
  */
 @Controller
+@RestController
 public class UploadController {
 
     private static final Logger logger = LoggerFactory.getLogger(UploadController.class);
@@ -58,7 +60,6 @@ public class UploadController {
     private static final String PARAM_CONTENT_SYNTAX = "contentSyntax";
     private static final String PARAM_LOAD_IMPORTS_INFO = "loadImportsInfo";
     private static final String PARAM_CONTENT_TYPE = "contentType";
-    private static final String PARAM_REPORT_ID = "reportID";
     private static final String EMPTY = "empty";
     static final String DOWNLOAD_TYPE_REPORT = "reportType";
     static final String DOWNLOAD_TYPE_SHAPES = "shapesType";
@@ -150,25 +151,26 @@ public class UploadController {
      * @return The model and view information.
      */
     @PostMapping(value = "/{domain}/upload")
-    public ModelAndView handleUpload(@PathVariable("domain") String domain,
-                                     @RequestParam("file") MultipartFile file,
-                                     @RequestParam(value = "uri", defaultValue = "") String uri,
-                                     @RequestParam(value = "text-editor", defaultValue = "") String string,
-                                     @RequestParam(value = "contentType", defaultValue = "") String contentType,
-                                     @RequestParam(value = "validationType", defaultValue = "") String validationType,
-                                     @RequestParam(value = "contentSyntaxType", defaultValue = "") String contentSyntaxType,
-                                     @RequestParam(value = "contentType-external_default", required = false) String[] externalContentType,
-                                     @RequestParam(value = "inputFile-external_default", required= false) MultipartFile[] externalFiles,
-                                     @RequestParam(value = "uri-external_default", required = false) String[] externalUri,
-                                     @RequestParam(value = "contentSyntaxType-external_default", required = false) String[] externalFilesSyntaxType,
-                                     @RequestParam(value = "loadImportsCheck", required = false, defaultValue = "false") Boolean loadImportsValue,
-                                     @RequestParam(value = "contentQuery", defaultValue = "") String contentQuery,
-                                     @RequestParam(value = "contentQueryEndpoint", defaultValue = "") String contentQueryEndpoint,
-                                     @RequestParam(value = "contentQueryAuthenticate", defaultValue = "false") Boolean contentQueryAuthenticate,
-                                     @RequestParam(value = "contentQueryUsername", defaultValue = "") String contentQueryUsername,
-                                     @RequestParam(value = "contentQueryPassword", defaultValue = "") String contentQueryPassword,
-                                     HttpServletRequest request,
-                                     HttpServletResponse response) {
+    @ResponseBody
+    public UploadResult handleUpload(@PathVariable("domain") String domain,
+                                 @RequestParam("file") MultipartFile file,
+                                 @RequestParam(value = "uri", defaultValue = "") String uri,
+                                 @RequestParam(value = "text-editor", defaultValue = "") String string,
+                                 @RequestParam(value = "contentType", defaultValue = "") String contentType,
+                                 @RequestParam(value = "validationType", defaultValue = "") String validationType,
+                                 @RequestParam(value = "contentSyntaxType", defaultValue = "") String contentSyntaxType,
+                                 @RequestParam(value = "contentType-external_default", required = false) String[] externalContentType,
+                                 @RequestParam(value = "inputFile-external_default", required= false) MultipartFile[] externalFiles,
+                                 @RequestParam(value = "uri-external_default", required = false) String[] externalUri,
+                                 @RequestParam(value = "contentSyntaxType-external_default", required = false) String[] externalFilesSyntaxType,
+                                 @RequestParam(value = "loadImportsCheck", required = false, defaultValue = "false") Boolean loadImportsValue,
+                                 @RequestParam(value = "contentQuery", defaultValue = "") String contentQuery,
+                                 @RequestParam(value = "contentQueryEndpoint", defaultValue = "") String contentQueryEndpoint,
+                                 @RequestParam(value = "contentQueryAuthenticate", defaultValue = "false") Boolean contentQueryAuthenticate,
+                                 @RequestParam(value = "contentQueryUsername", defaultValue = "") String contentQueryUsername,
+                                 @RequestParam(value = "contentQueryPassword", defaultValue = "") String contentQueryPassword,
+                                 HttpServletRequest request,
+                                 HttpServletResponse response) {
         setMinimalUIFlag(request, false);
         DomainConfig domainConfig;
         try {
@@ -179,21 +181,11 @@ public class UploadController {
         // Temporary folder for the request.
         File parentFolder = fileManager.createTemporaryFolderPath();
         var localisationHelper = new LocalisationHelper(domainConfig, localeResolver.resolveLocale(request, response, domainConfig, appConfig));
+
+        var result = new UploadResult();
+        result.setContentSyntax(getContentSyntax(domainConfig));
         File inputFile = null;
         List<FileInfo> userProvidedShapes = null;
-        Map<String, Object> attributes = new HashMap<>();
-        attributes.put(PARAM_CONTENT_SYNTAX, getContentSyntax(domainConfig));
-        attributes.put(PARAM_EXTERNAL_ARTIFACT_INFO, domainConfig.getExternalArtifactInfoMap());
-        attributes.put(PARAM_LOAD_IMPORTS_INFO, domainConfig.getUserInputForLoadImportsType());
-        attributes.put(PARAM_MINIMAL_UI, false);
-        attributes.put(PARAM_DOMAIN_CONFIG, domainConfig);
-        attributes.put(PARAM_APP_CONFIG, appConfig);
-        attributes.put(PARAM_LOCALISER, localisationHelper);
-        attributes.put(PARAM_CONTENT_TYPE, getContentType(localisationHelper));
-        attributes.put(PARAM_HTML_BANNER_EXISTS, localisationHelper.propertyExists("validator.bannerHtml"));
-        if (StringUtils.isNotBlank(validationType)) {
-            attributes.put(PARAM_VALIDATION_TYPE_LABEL, domainConfig.getCompleteTypeOptionLabel(validationType, localisationHelper));
-        }
         boolean forceCleanup = false;
         try {
             // Check validation type.
@@ -202,7 +194,7 @@ public class UploadController {
             }
             if (domainConfig.hasMultipleValidationTypes() && (validationType == null || !domainConfig.getType().contains(validationType))) {
                 // A validation type is required.
-                attributes.put(PARAM_MESSAGE, localisationHelper.localise("validator.label.exception.providedValidationTypeInvalid"));
+                result.setMessage(localisationHelper.localise("validator.label.exception.providedValidationTypeInvalid"));
             } else {
                 // Check provided content type.
                 if (CONTENT_TYPE_QUERY.equals(contentType)) {
@@ -221,7 +213,7 @@ public class UploadController {
                     if (noContentSyntaxProvided) {
                         if (contentType.equals(CONTENT_TYPE_EDITOR)) {
                             logger.error("Provided content syntax type is not valid");
-                            attributes.put(PARAM_MESSAGE, localisationHelper.localise("validator.label.exception.providedContentSyntaxInvalid"));
+                            result.setMessage(localisationHelper.localise("validator.label.exception.providedContentSyntaxInvalid"));
                         } else {
                             if (contentType.equals(CONTENT_TYPE_FILE)) {
                                 contentSyntaxType = getExtensionContentTypeForFileName(file.getOriginalFilename());
@@ -271,24 +263,21 @@ public class UploadController {
                 try (FileWriter out = new FileWriter(fileManager.createFile(parentFolder, extension, FILE_NAME_SHAPES).toFile())) {
                     fileManager.writeRdfModel(out, validator.getAggregatedShapes(), domainConfig.getDefaultReportSyntax());
                 }
-                // All ok - add attributes for the UI.
-                attributes.put(PARAM_REPORT_ID, parentFolder.getName());
-                attributes.put(PARAM_FILE_NAME, fileName);
-                attributes.put(PARAM_REPORT, tarReport.getDetailedReport());
-                attributes.put(PARAM_AGGREGATE_REPORT, tarReport.getAggregateReport());
-                attributes.put(PARAM_SHOW_AGGREGATE_REPORT, Utils.aggregateDiffers(tarReport.getDetailedReport(), tarReport.getAggregateReport()));
-                attributes.put(PARAM_DATE, tarReport.getDetailedReport().getDate().toString());
+                // All ok - collect data for the UI.
+                result.populateCommon(localisationHelper, validationType, domainConfig, parentFolder.getName(),
+                        fileName, tarReport.getDetailedReport(), tarReport.getAggregateReport(),
+                        prepareTranslations(localisationHelper, tarReport.getDetailedReport(), domainConfig));
             }
         } catch (ValidatorException e) {
             logger.error(e.getMessageForLog(), e);
-            attributes.put(PARAM_MESSAGE, e.getMessageForDisplay(localisationHelper));
+            result.setMessage(e.getMessageForDisplay(localisationHelper));
             forceCleanup = true;
         } catch (Exception e) {
             logger.error("An error occurred during the validation [" + e.getMessage() + "]", e);
             if (e.getMessage() != null) {
-                attributes.put(PARAM_MESSAGE, localisationHelper.localise("validator.label.exception.unexpectedErrorDuringValidationWithParams", e.getMessage()));
+                result.setMessage(localisationHelper.localise("validator.label.exception.unexpectedErrorDuringValidationWithParams", e.getMessage()));
             } else {
-                attributes.put(PARAM_MESSAGE, localisationHelper.localise("validator.label.exception.unexpectedErrorDuringValidation"));
+                result.setMessage(localisationHelper.localise("validator.label.exception.unexpectedErrorDuringValidation"));
             }
             forceCleanup = true;
         } finally {
@@ -301,7 +290,22 @@ public class UploadController {
                 fileManager.removeContentToValidate(null, userProvidedShapes);
             }
         }
-        return new ModelAndView(VIEW_UPLOAD_FORM, attributes);
+        return result;
+    }
+
+    /**
+     * Prepare translations for the UI.
+     *
+     * @param helper The localisation helper to use.
+     * @param report The detailed report.
+     * @return The translation object.
+     */
+    private Translations prepareTranslations(LocalisationHelper helper, TAR report, DomainConfig domainConfig) {
+        var translations = new Translations(helper, report, domainConfig);
+        translations.setDownloadReportButton(helper.localise("validator.label.downloadReportButton"));
+        translations.setDownloadShapesButton(helper.localise("validator.label.downloadShapesButton"));
+        translations.setDownloadInputButton(helper.localise("validator.label.downloadInputButton"));
+        return translations;
     }
 
     /**
@@ -367,7 +371,8 @@ public class UploadController {
      * @return The model and view information.
      */
     @PostMapping(value = "/{domain}/uploadm")
-    public ModelAndView handleUploadM(@PathVariable("domain") String domain,
+    @ResponseBody
+    public UploadResult handleUploadM(@PathVariable("domain") String domain,
                                       @RequestParam("file") MultipartFile file,
                                       @RequestParam(value = "uri", defaultValue = "") String uri,
                                       @RequestParam(value = "text-editor", defaultValue = "") String string,
@@ -387,12 +392,7 @@ public class UploadController {
                                       HttpServletRequest request,
                                       HttpServletResponse response) {
         setMinimalUIFlag(request, true);
-        ModelAndView mv = handleUpload(domain, file, uri, string, contentType, validationType, contentSyntaxType, externalContentType, externalFiles, externalUri, externalFilesSyntaxType, loadImportsValue, contentQuery, contentQueryEndpoint, contentQueryAuthenticate, contentQueryUsername, contentQueryPassword, request, response);
-
-        Map<String, Object> attributes = mv.getModel();
-        attributes.put(PARAM_MINIMAL_UI, true);
-
-        return new ModelAndView(VIEW_UPLOAD_FORM, attributes);
+        return handleUpload(domain, file, uri, string, contentType, validationType, contentSyntaxType, externalContentType, externalFiles, externalUri, externalFilesSyntaxType, loadImportsValue, contentQuery, contentQueryEndpoint, contentQueryAuthenticate, contentQueryUsername, contentQueryPassword, request, response);
     }
 
     /**

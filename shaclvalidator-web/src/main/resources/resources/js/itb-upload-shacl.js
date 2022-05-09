@@ -3,6 +3,7 @@ addListener('ADDED_EXTERNAL_ARTIFACT_INPUT', externalShapeAdded);
 addListener('REMOVED_EXTERNAL_ARTIFACT_INPUT', externalShapeRemoved);
 addListener('INPUT_CONTENT_TYPE_CHANGED', inputContentTypeChanged);
 addListener('VALIDATION_TYPE_CHANGED', onValidationTypeChanged);
+addListener('RESULTS_LOADED', onResultsLoaded);
 addContentTypeValidator('queryType', validateQueryInputs);
 
 function onFormReady() {
@@ -220,7 +221,7 @@ function doDownload(downloadType, syntaxType, buttonId) {
         }
         if (xhr.readyState === 4) {
             if (xhr.status === 200) {
-                $(".alert.alert-danger.ajax-error").remove();
+                clearMessages();
                 var responseData;
                 var fileName = xhr.getResponseHeader('Content-Disposition').split("filename=")[1];
                 if (syntaxType === "pdfType") {
@@ -230,20 +231,13 @@ function doDownload(downloadType, syntaxType, buttonId) {
                 }
                 saveAs(responseData, fileName);
             } else {
-                raiseAlert(labelDownloadErrorMessage);
+                raiseAlert(labelDownloadErrorMessage, isFinal);
             }
             $('#'+buttonId).prop('disabled', false);
             $('#'+buttonId+'Spinner').addClass('hidden');
         }
     }
     xhr.send(null);
-}
-
-function raiseAlert(errorMessage){
-	$(".alert.alert-danger.ajax-error").remove();
-	const alertDiv = $("<div class='alert alert-danger ajax-error'></div>");
-	alertDiv.text(errorMessage);
-	alertDiv.insertAfter("#bannerSection");
 }
 
 function createOption(text, value){
@@ -253,7 +247,9 @@ function createOption(text, value){
 	return option;
 }
 
-function registerCleanup(reportId) {
+function onResultsLoaded(event, data) {
+    var reportId = data.data.reportId
+    // Register cleanup
     window.addEventListener("beforeunload", function() {
         if (navigator.sendBeacon) {
             // Modern browsers
