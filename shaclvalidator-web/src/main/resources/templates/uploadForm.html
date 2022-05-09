@@ -2,16 +2,10 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <title th:replace="fragments/common :: header">Validator</title>
-    <link rel="stylesheet" th:href="@{/css/itb-upload-shacl.css}"/>
+    <link rel="stylesheet" th:href="@{/css/style-shacl-min.css}"/>
     <script th:src="@{/webjars/codemirror/5.62.2/mode/xml/xml.js}"></script>
     <script th:src="@{/js/lib/FileSaver.min.js}"></script>
-    <script th:src="@{/js/itb-upload-shacl.js}"></script>
-    <script th:if="${report}" th:inline="text">
-    /*<![CDATA[*/
-        getReportData("[[${reportID}]]");
-        registerCleanup("[[${reportID}]]");
-    /*]]>*/
-    </script>
+    <script th:src="@{/js/itb-upload-shacl-min.js}"></script>
     <script th:inline="javascript">
 		var supportQuery = [[${config.isSupportsQueries()}]];
 		var supportQueryEndpoint = [[${config.isSupportsQueries() && config.queryEndpoint == null}]];
@@ -47,97 +41,55 @@
 			codeTypeObj: "xml",
 			isMinimalUI: [[${minimalUI}]],
 			artifactTypes: ['default'],
-			externalArtifacts: externalArtifacts
+			externalArtifacts: externalArtifacts,
+			reportTemplate: 'reportShacl.hbs',
+			reportMinimalTemplate: 'reportMinimalShacl.hbs'
 		});
     </script>
 </head>
 <body th:class="${not minimalUI} ? body-ui : ''">
-<div th:classappend="${not minimalUI} ? view-section-ui : ''" class="container view-section">
-    <div class="view-section-input" th:if="${!minimalUI || report == null}">
-        <div th:replace="fragments/input :: pageHeader(${config}, ${minimalUI})"/>
-        <form method="POST" enctype="multipart/form-data" th:action="@{${not minimalUI ? 'upload' : 'uploadm'}}" class="form-horizontal" th:fragment="form">
-            <div th:class="${minimalUI} ? panel-default : ''" th:classappend="${minimalUI} ? panel : ''">
-                <div th:replace="fragments/input :: formHeader(${config}, ${minimalUI})"/>
-                <div th:class="${minimalUI}?'panel-body panel-body-minimal':''">
-                    <div th:replace="fragments/input :: mainForm(${config})"/>
-                    <div id="contentSyntaxTypeDiv" class="form-group">
-                        <label for="contentSyntaxType" class="col-sm-2 control-label"><span th:text="${localiser.localise('validator.label.contentSyntaxLabel')}">Content syntax of the input</span><span data-toggle="tooltip" data-container="body" data-placement="right" th:attr="title=${localiser.localise('validator.label.contentSyntaxTooltip')}"> <i class="far fa-question-circle"></i></span></label>
-                        <div class="col-sm-3">
-                            <select class="form-control" id="contentSyntaxType" name="contentSyntaxType">
-                                <option value="empty" selected="true" th:text="${localiser.localise('validator.label.contentSyntaxDefault')}"></option>
-                                <option th:each="type : ${contentSyntax}" th:text="${type.key}" th:attr="value=${type.label}">Type</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div th:replace="fragments/input :: externalArtifactCheck(${localiser.localise('validator.label.includeExternalShapes')}, ${localiser.localise('validator.label.externalRulesTooltip')})"/>
-                    <div th:replace="fragments/input :: externalArtifactControl('default', ${localiser.localise('validator.label.externalShapesLabel')})"/>
-                    <div id="loadImportsDiv" class="form-group hidden">
-                        <div class="col-sm-offset-2 col-sm-10">
-                            <div class="checkbox">
-                                <label>
-                                    <input type="checkbox" id="loadImportsCheck" name="loadImportsCheck" /><span th:text="${localiser.localise('validator.label.loadImportsLabel')}">Load imports</span>
-                                </label>
-                                <span data-toggle="tooltip" data-container="body" data-placement="right" th:attr="title=${localiser.localise('validator.label.loadImportsTooltip')}"><i class="far fa-question-circle"></i></span>
+    <div th:classappend="${not minimalUI} ? view-section-ui : ''" class="container view-section">
+        <div class="view-section-input" th:if="${!minimalUI || report == null}">
+            <div th:replace="fragments/input :: pageHeader(${config}, ${minimalUI})"/>
+            <form method="POST" enctype="multipart/form-data" th:action="@{${not minimalUI ? 'upload' : 'uploadm'}}" class="form-horizontal" th:fragment="form">
+                <div th:class="${minimalUI} ? panel-default : ''" th:classappend="${minimalUI} ? panel : ''">
+                    <div th:replace="fragments/input :: formHeader(${config}, ${minimalUI})"/>
+                    <div th:class="${minimalUI}?'panel-body panel-body-minimal':''">
+                        <div th:replace="fragments/input :: mainForm(${config})"/>
+                        <div id="contentSyntaxTypeDiv" class="form-group">
+                            <label for="contentSyntaxType" class="col-sm-2 control-label"><span th:text="${localiser.localise('validator.label.contentSyntaxLabel')}">Content syntax of the input</span><span data-toggle="tooltip" data-container="body" data-placement="right" th:attr="title=${localiser.localise('validator.label.contentSyntaxTooltip')}"> <i class="far fa-question-circle"></i></span></label>
+                            <div class="col-sm-3">
+                                <select class="form-control" id="contentSyntaxType" name="contentSyntaxType">
+                                    <option value="empty" selected="true" th:text="${localiser.localise('validator.label.contentSyntaxDefault')}"></option>
+                                    <option th:each="type : ${contentSyntax}" th:text="${type.key}" th:attr="value=${type.label}">Type</option>
+                                </select>
                             </div>
                         </div>
+                        <div th:replace="fragments/input :: externalArtifactCheck(${localiser.localise('validator.label.includeExternalShapes')}, ${localiser.localise('validator.label.externalRulesTooltip')})"/>
+                        <div th:replace="fragments/input :: externalArtifactControl('default', ${localiser.localise('validator.label.externalShapesLabel')})"/>
+                        <div id="loadImportsDiv" class="form-group hidden">
+                            <div class="col-sm-offset-2 col-sm-10">
+                                <div class="checkbox">
+                                    <label>
+                                        <input type="checkbox" id="loadImportsCheck" name="loadImportsCheck" /><span th:text="${localiser.localise('validator.label.loadImportsLabel')}">Load imports</span>
+                                    </label>
+                                    <span data-toggle="tooltip" data-container="body" data-placement="right" th:attr="title=${localiser.localise('validator.label.loadImportsTooltip')}"><i class="far fa-question-circle"></i></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div th:replace="fragments/input :: submit(${config}, ${minimalUI})"/>
                     </div>
-                    <div th:replace="fragments/input :: submit(${config}, ${minimalUI})"/>
+                    <div th:if="${minimalUI}" id="reportPlaceholder"></div>
                 </div>
-            </div>
-        </form>
-    </div>
-    <div th:if="${report}" th:class="${not minimalUI} ? view-section-result : ''">
-        <div th:replace="fragments/output :: reportTitle(${config}, ${minimalUI})"/>
-        <div class="panel-default panel">
-            <div th:replace="fragments/output :: reportHeader(${config}, ${minimalUI})"/>
-            <div th:replace="fragments/output :: reportSummary(${config})"/>
-            <div class="panel-footer overview-button-row">
-                <div class="btn-toolbar">
-                    <div class="btn-group">
-                        <button type="button" id="downloadReportButton" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                            <span id="downloadReportButtonSpinner" class="hidden"> <i class="fa fa-spinner fa-spin fa-fw"></i></span>
-                            <span th:text="${localiser.localise('validator.label.downloadReportButton')}">Download report</span> <span class="caret"></span>
-                        </button>
-                        <ul class="dropdown-menu">
-                            <th:block th:if="${report.reports == null || report.reports.infoOrWarningOrError == null || report.reports.infoOrWarningOrError.size() <= config.maximumReportsForDetailedOutput}">
-                                <li><a href="#" onclick="downloadReport('pdfTypeDetailed');return false;"><span th:text="${localiser.localise('validator.label.reportDetailedPDF')}">PDF</span></a></li>
-                                <li th:if="${showAggregateReport}"><a href="#" onclick="downloadReport('pdfTypeAggregated');return false;"><span th:text="${localiser.localise('validator.label.reportAggregatedPDF')}">PDF (aggregated)</span></a></li>
-                            </th:block>
-                            <li><a href="#" onclick="downloadReport('csvTypeDetailed');return false;"><span th:text="${localiser.localise('validator.label.reportDetailedCSV')}">CSV</span></a></li>
-                            <li th:if="${showAggregateReport}"><a href="#" onclick="downloadReport('csvTypeAggregated');return false;"><span th:text="${localiser.localise('validator.label.reportAggregatedCSV')}">CSV (aggregated)</span></a></li>
-                            <li role="separator" class="divider"></li>
-                            <li th:each="type : ${contentSyntax}"><a href="#" th:attr="onclick=|downloadReport('${type.label}');return false;|"><span th:text="${type.key}">RDF/XML</span></a></li>
-                        </ul>
-                    </div>
-                    <div class="btn-group">
-                        <button type="button" id="downloadShapesButton" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                            <span id="downloadShapesButtonSpinner" class="hidden"> <i class="fa fa-spinner fa-spin fa-fw"></i></span>
-                            <span th:text="${localiser.localise('validator.label.downloadShapesButton')}">Download shapes</span> <span class="caret"></span>
-                        </button>
-                        <ul class="dropdown-menu">
-                            <li th:each="type : ${contentSyntax}"><a href="#" th:attr="onclick=|downloadShapes('${type.label}');return false;|"><span th:text="${type.key}">RDF/XML</span></a></li>
-                        </ul>
-                    </div>
-                    <div class="btn-group">
-                        <button type="button" id="downloadInputButton" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                            <span id="downloadInputButtonSpinner" class="hidden"> <i class="fa fa-spinner fa-spin fa-fw"></i></span>
-                            <span th:text="${localiser.localise('validator.label.downloadInputButton')}">Download input</span> <span class="caret"></span>
-                        </button>
-                        <ul class="dropdown-menu">
-                            <li th:each="type : ${contentSyntax}"><a href="#" th:attr="onclick=|downloadContent('${type.label}');return false;|"><span th:text="${type.key}">RDF/XML</span></a></li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
+            </form>
         </div>
-        <div th:replace="fragments/output :: reportDetails(${config}, ${minimalUI}, false)"/>
+        <th:block th:if="${!minimalUI}">
+            <div id="reportPlaceholder"></div>
+            <div th:replace="fragments/common :: localeSelector(${config}, ${localiser.getLocale()})"/>
+        </th:block>
+        <div th:replace="fragments/common :: footer(${config}, ${minimalUI})"/>
     </div>
-    <th:block th:if="${!minimalUI}">
-        <div th:replace="fragments/common :: localeSelector(${config}, ${localiser.getLocale()})"/>
-    </th:block>
-    <div th:replace="fragments/common :: footer(${config}, ${minimalUI})"/>
-</div>
-<div th:replace="fragments/common :: about">About</div>
-<div th:replace="fragments/common :: buildInfo">Build info</div>
+    <div th:replace="fragments/common :: about">About</div>
+    <div th:replace="fragments/common :: buildInfo">Build info</div>
 </body>
 </html>
