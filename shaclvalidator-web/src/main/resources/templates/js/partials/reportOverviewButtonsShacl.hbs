@@ -1,0 +1,46 @@
+<div id="reportOverviewButtons" class="btn-toolbar">
+    <div class="btn-group">
+        <button type="button" id="downloadReportButton" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            <span id="downloadReportButtonSpinner" class="hidden"> <i class="fa fa-spinner fa-spin fa-fw"></i></span>
+            <span>{{data.translations.downloadReportButton}}</span> <span class="caret"></span>
+        </button>
+        <ul class="dropdown-menu">
+            {{#if (or (not report.reports) (not report.reports.infoOrWarningOrError) (lte report.reports.infoOrWarningOrError.length data.maximumReportsForDetailedOutput))}}
+                <li><a href="#" onclick="downloadReport('pdfTypeDetailed');return false;"><span>{{data.translations.reportDetailedPDF}}</span></a></li>
+                {{#if data.showAggregateReport}}
+                    <li><a href="#" onclick="downloadReport('pdfTypeAggregated');return false;"><span>{{data.translations.reportAggregatedPDF}}</span></a></li>
+                {{/if}}
+            {{/if}}
+            <li><a href="#" onclick="downloadReport('csvTypeDetailed');return false;"><span>{{data.translations.reportDetailedCSV}}</span></a></li>
+            {{#if data.showAggregateReport}}
+                <li><a href="#" onclick="downloadReport('csvTypeAggregated');return false;"><span>{{data.translations.reportAggregatedCSV}}</span></a></li>
+            {{/if}}
+            <li role="separator" class="divider"></li>
+            {{#each data.contentSyntax}}
+                <li><a href="#" onclick="downloadReport('{{label}}');return false;"><span>{{key}}</span></a></li>
+            {{/each}}
+        </ul>
+    </div>
+    <div class="btn-group">
+        <button type="button" id="downloadShapesButton" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            <span id="downloadShapesButtonSpinner" class="hidden"> <i class="fa fa-spinner fa-spin fa-fw"></i></span>
+            <span>{{data.translations.downloadShapesButton}}</span> <span class="caret"></span>
+        </button>
+        <ul class="dropdown-menu">
+            {{#each data.contentSyntax}}
+                <li><a href="#" onclick="downloadShapes('{{label}}');return false;"><span>{{key}}</span></a></li>
+            {{/each}}
+        </ul>
+    </div>
+    <div class="btn-group">
+        <button type="button" id="downloadInputButton" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            <span id="downloadInputButtonSpinner" class="hidden"> <i class="fa fa-spinner fa-spin fa-fw"></i></span>
+            <span>{{data.translations.downloadInputButton}}</span> <span class="caret"></span>
+        </button>
+        <ul class="dropdown-menu">
+            {{#each data.contentSyntax}}
+                <li><a href="#" onclick="downloadContent('{{label}}');return false;"><span>{{key}}</span></a></li>
+            {{/each}}
+        </ul>
+    </div>
+</div>
