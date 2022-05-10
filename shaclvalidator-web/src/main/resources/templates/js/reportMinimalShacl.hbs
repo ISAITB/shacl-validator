@@ -1,2 +1,14 @@
 {{> reportSummary.hbs }}
-{{> reportControlsShacl.hbs }}
+<div id="reportItemsContent" class="panel-body items-minimal-panel hidden">
+    <div id="reportItemsDetailed">
+        {{> reportItems.hbs reportItems=data.report.reports clickableItems=false}}
+    </div>
+    <div id="reportItemsAggregated" class="hidden">
+        {{> reportItems.hbs reportItems=data.aggregateReport.reports clickableItems=false}}
+    </div>
+</div>
+<div id="reportControls" class="panel-footer overview-button-row">
+    {{> reportToggleDisplayButtons.hbs }}
+    {{> reportOverviewButtonsShacl.hbs }}
+    {{> reportDetailsButtons.hbs hidden=true }}
+</div>
