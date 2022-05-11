@@ -24,6 +24,21 @@ public class DomainConfig extends WebDomainConfig {
     private String queryUsername;
     private String queryPassword;
     private String queryContentType;
+    private boolean returnMessagesForAllLocales;
+
+    /**
+     * @return Whether messages for all defined locales should be included in the SHACL validation report.
+     */
+    public boolean isReturnMessagesForAllLocales() {
+        return returnMessagesForAllLocales;
+    }
+
+    /**
+     * @param returnMessagesForAllLocales Whether messages for all defined locales should be included in the SHACL validation report.
+     */
+    public void setReturnMessagesForAllLocales(boolean returnMessagesForAllLocales) {
+        this.returnMessagesForAllLocales = returnMessagesForAllLocales;
+    }
 
     /**
      * @return Whether authentication is needed for SPARQL queries.

@@ -82,6 +82,7 @@ public class DomainConfigCache extends WebDomainConfigCache<DomainConfig> {
         // SPARQL query configuration - end
         domainConfig.setDefaultLoadImportsType(parseBooleanMap("validator.loadImports", config, domainConfig.getType(), config.getBoolean("validator.loadImports", false)));
         domainConfig.setUserInputForLoadImportsType(parseEnumMap("validator.input.loadImports", ExternalArtifactSupport.byName(config.getString("validator.input.loadImports", ExternalArtifactSupport.NONE.getName())), config, domainConfig.getType(), ExternalArtifactSupport::byName));
+        domainConfig.setReturnMessagesForAllLocales(config.getBoolean("validator.returnMessagesForAllLocales", Boolean.FALSE));
         addMissingDefaultValues(domainConfig.getWebServiceDescription(), appConfig.getDefaultLabels());
     }
 
