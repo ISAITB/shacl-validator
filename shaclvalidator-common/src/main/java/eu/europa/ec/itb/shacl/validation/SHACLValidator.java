@@ -6,6 +6,7 @@ import com.gitb.vs.ValidateRequest;
 import com.gitb.vs.ValidationResponse;
 import eu.europa.ec.itb.shacl.DomainConfig;
 import eu.europa.ec.itb.shacl.ModelPair;
+import eu.europa.ec.itb.shacl.util.StatementTranslator;
 import eu.europa.ec.itb.validation.commons.FileInfo;
 import eu.europa.ec.itb.validation.commons.LocalisationHelper;
 import eu.europa.ec.itb.validation.commons.Utils;
@@ -42,6 +43,10 @@ import static eu.europa.ec.itb.shacl.validation.SHACLResources.VALIDATION_REPORT
 @Scope("prototype")
 public class SHACLValidator {
 
+    /** The URI for result predicates. */
+    public static final String RESULT_URI = "http://www.w3.org/ns/shacl#result";
+    /** The URI for result message predicates. */
+    public static final String RESULT_MESSAGE_URI = "http://www.w3.org/ns/shacl#resultMessage";
     private static final Logger LOG = LoggerFactory.getLogger(SHACLValidator.class);
 
     @Autowired
@@ -109,9 +114,33 @@ public class SHACLValidator {
     	LOG.info("Starting validation..");
     	try {
             Model validationReport = validateAgainstPlugins(validateAgainstShacl());
+            processForLocale(validationReport);
             return new ModelPair(dataModel, validationReport);
         } finally {
     	    LOG.info("Completed validation.");
+        }
+    }
+
+    /**
+     * If configured to do so, remove all translations from the report that are not relevant to the requested locale.
+     *
+     * @param report The report to process.
+     */
+    private void processForLocale(Model report) {
+        if (!domainConfig.isReturnMessagesForAllLocales()) {
+            // Filter out result messages for locales other than the requested one.
+            var resultProperty = report.getProperty(RESULT_URI);
+            var resultMessageProperty = report.getProperty(RESULT_MESSAGE_URI);
+            var resultIterator = report.listObjectsOfProperty(resultProperty);
+            while (resultIterator.hasNext()) {
+                var node = resultIterator.next();
+                var statementIterator = report.listStatements(node.asResource(), resultMessageProperty, (RDFNode) null);
+                var translator = new StatementTranslator();
+                while (statementIterator.hasNext()) {
+                    translator.processStatement(statementIterator.next());
+                }
+                report.remove(translator.getTranslation(localiser.getLocale()).getUnmatchedStatements());
+            }
         }
     }
 

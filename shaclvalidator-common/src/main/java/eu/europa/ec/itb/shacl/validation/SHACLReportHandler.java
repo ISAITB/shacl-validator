@@ -3,11 +3,11 @@ package eu.europa.ec.itb.shacl.validation;
 import com.gitb.core.AnyContent;
 import com.gitb.core.ValueEmbeddingEnumeration;
 import com.gitb.tr.*;
+import eu.europa.ec.itb.shacl.util.StatementTranslator;
 import eu.europa.ec.itb.validation.commons.AggregateReportItems;
 import eu.europa.ec.itb.validation.commons.ReportItemComparator;
 import eu.europa.ec.itb.validation.commons.ReportPair;
 import eu.europa.ec.itb.validation.commons.Utils;
-import org.apache.commons.lang3.LocaleUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jena.rdf.model.*;
 import org.slf4j.Logger;
@@ -16,8 +16,11 @@ import org.slf4j.LoggerFactory;
 import javax.xml.bind.JAXBElement;
 import java.io.StringWriter;
 import java.math.BigInteger;
-import java.util.*;
+import java.util.ArrayList;
 import java.util.function.Function;
+
+import static eu.europa.ec.itb.shacl.validation.SHACLValidator.RESULT_MESSAGE_URI;
+import static eu.europa.ec.itb.shacl.validation.SHACLValidator.RESULT_URI;
 
 /**
  * Class to handle a SHACL validation report and produce a TAR report.
@@ -68,43 +71,27 @@ public class SHACLReportHandler {
 	}
 
     /**
-     * Get the language code for the provided statement.
-     *
-     * @param statement The statement.
-     * @return The language code (empty string if none was defined).
-     */
-    private String getLanguageCode(Statement statement) {
-        RDFNode node = statement.getObject();
-        if (node.isLiteral()) {
-            if (node.asLiteral().getLanguage() == null) {
-                return "";
-            } else {
-                return StringUtils.replaceChars(node.asLiteral().getLanguage(), '-', '_');
-            }
-        }
-        return "";
-    }
-
-    /**
      * Convert the provided RDF statement to a string.
      *
      * @param statement The statement.
      * @return The resulting string.
      */
 	private String getStatementSafe(Statement statement) {
-	    String result;
-	    try {
-            RDFNode node = statement.getObject();
-            if (node.isAnon()) {
+	    String result = null;
+        if (statement != null) {
+            try {
+                RDFNode node = statement.getObject();
+                if (node.isAnon()) {
+                    result = "";
+                } else if (node.isLiteral()) {
+                    result = node.asLiteral().getLexicalForm();
+                } else {
+                    result = node.toString();
+                }
+            } catch (Exception e) {
+                logger.warn("Error while getting statement string", e);
                 result = "";
-            } else if (node.isLiteral()) {
-                result = node.asLiteral().getLexicalForm();
-            } else {
-                result = node.toString();
             }
-        } catch (Exception e) {
-            logger.warn("Error while getting statement string", e);
-            result = "";
         }
         return result;
     }
@@ -124,8 +111,6 @@ public class SHACLReportHandler {
         int infos = 0;
         int warnings = 0;
         int errors = 0;
-        var messageMap = new LinkedHashMap<String, String>();
-        var detectedInvalidLanguageCodes = new HashSet<String>();
         var additionalInfoTemplate = new AdditionalInfoTemplate(reportSpecs.getLocalisationHelper(), reportSpecs.getInputModel());
         AggregateReportItems aggregateReportItems = null;
         if (reportSpecs.isProduceAggregateReport()) {
@@ -133,7 +118,7 @@ public class SHACLReportHandler {
         }
 		if (reportSpecs.getReportModel() != null) {
             NodeIterator niResult = reportSpecs.getReportModel().listObjectsOfProperty(reportSpecs.getReportModel().getProperty("http://www.w3.org/ns/shacl#conforms"));
-            NodeIterator niValidationResult = reportSpecs.getReportModel().listObjectsOfProperty(reportSpecs.getReportModel().getProperty("http://www.w3.org/ns/shacl#result"));
+            NodeIterator niValidationResult = reportSpecs.getReportModel().listObjectsOfProperty(reportSpecs.getReportModel().getProperty(RESULT_URI));
             var reports = new ArrayList<JAXBElement<TestAssertionReportType>>();
 
             if (niResult.hasNext() && !niResult.next().asLiteral().getBoolean()) {
@@ -147,14 +132,13 @@ public class SHACLReportHandler {
         			String severity = "";
                     String value = "";
                     String shape = "";
+
+                    var statementTranslator = new StatementTranslator();
             		while(it.hasNext()) {
             			Statement statement = it.next();
-            			
-            			if(statement.getPredicate().hasURI("http://www.w3.org/ns/shacl#resultMessage")) {
-                            var message = getStatementSafe(statement);
-                            var languageCode = getLanguageCode(statement);
-                            messageMap.put(languageCode, message);
-            			}
+                        if(statement.getPredicate().hasURI(RESULT_MESSAGE_URI)) {
+                            statementTranslator.processStatement(statement);
+                        }
             			if(statement.getPredicate().hasURI("http://www.w3.org/ns/shacl#focusNode")) {
             				focusNode = getStatementSafe(statement);
             			}
@@ -174,7 +158,7 @@ public class SHACLReportHandler {
                     if (focusNode != null && additionalInfoTemplate.isEnabled()) {
                         error.setAssertionID(additionalInfoTemplate.apply(focusNode));
                     }
-                    error.setDescription(getErrorDescription(messageMap, detectedInvalidLanguageCodes));
+                    error.setDescription(getStatementSafe(statementTranslator.getTranslation(reportSpecs.getLocalisationHelper().getLocale()).getMatchedStatement()));
             		error.setLocation(createStringMessageFromParts(new String[] {reportSpecs.getReportLabels().getFocusNode(), reportSpecs.getReportLabels().getResultPath()}, new String[] {focusNode, resultPath}));
                     error.setTest(createStringMessageFromParts(new String[] {reportSpecs.getReportLabels().getShape(), reportSpecs.getReportLabels().getValue()}, new String[] {shape, value}));
                     JAXBElement<TestAssertionReportType> element;
@@ -194,11 +178,7 @@ public class SHACLReportHandler {
                         if (aggregateReportItems != null) aggregateReportItems.updateForReportItem(element, classifierFn);
                     }
                     reports.add(element);
-                    messageMap.clear();
             	}
-                if (!detectedInvalidLanguageCodes.isEmpty()) {
-                    logger.warn("Detected invalid languages codes for shape messages: {}", detectedInvalidLanguageCodes);
-                }
                 report.getReports().getInfoOrWarningOrError().addAll(reports);
             }
 		} else {
@@ -237,57 +217,6 @@ public class SHACLReportHandler {
         }
 		return new ReportPair(report, aggregateReport);
 	}
-
-    /**
-     * Get the message to use from the loaded messages considering the current locale.
-     *
-     * @param messageMap The loaded messages.
-     * @param detectedInvalidLanguageCodes The set to which to add any detected invalid language codes.
-     * @return The message to use.
-     */
-    private String getErrorDescription(LinkedHashMap<String, String> messageMap, Set<String> detectedInvalidLanguageCodes) {
-        if (messageMap.isEmpty()) {
-            return "";
-        } else if (messageMap.size() == 1) {
-            return messageMap.values().iterator().next();
-        } else {
-            var localeMap = new HashMap<Locale, String>();
-            String defaultMessage = null;
-            for (var messageEntry: messageMap.entrySet()) {
-                if (messageEntry.getKey().isEmpty()) {
-                    defaultMessage = messageEntry.getValue();
-                } else {
-                    try {
-                        var messageLocale = LocaleUtils.toLocale(messageEntry.getKey());
-                        localeMap.put(messageLocale, messageEntry.getValue());
-                    } catch (IllegalArgumentException e) {
-                        detectedInvalidLanguageCodes.add(messageEntry.getKey());
-                    }
-                }
-            }
-            String messageToReturn = null;
-            if (localeMap.containsKey(reportSpecs.getLocalisationHelper().getLocale())) {
-                // Exact match.
-                messageToReturn = localeMap.get(reportSpecs.getLocalisationHelper().getLocale());
-            } else {
-                var matchedLanguage = localeMap.entrySet().stream().filter(entry -> entry.getKey().getLanguage().equals(reportSpecs.getLocalisationHelper().getLocale().getLanguage())).findFirst();
-                if (matchedLanguage.isPresent()) {
-                    // Message for same language.
-                    messageToReturn = matchedLanguage.get().getValue();
-                } else if (defaultMessage != null) {
-                    // Message defined without a language code.
-                    messageToReturn = defaultMessage;
-                } else if (!localeMap.isEmpty()) {
-                    // The first defined message with a valid language code.
-                    messageToReturn = localeMap.values().iterator().next();
-                } else if (!messageMap.isEmpty()) {
-                    // The first defined message even with an invalid language code.
-                    messageToReturn = messageMap.values().iterator().next();
-                }
-            }
-            return StringUtils.defaultString(messageToReturn);
-        }
-    }
 
     /**
      * Create a report item message from the provided parts.
