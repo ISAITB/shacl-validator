@@ -9,12 +9,11 @@ import eu.europa.ec.itb.shacl.validation.SHACLValidator;
 import eu.europa.ec.itb.validation.commons.FileInfo;
 import eu.europa.ec.itb.validation.commons.LocalisationHelper;
 import eu.europa.ec.itb.validation.commons.ReportPair;
-import eu.europa.ec.itb.validation.commons.ValidatorChannel;
 import eu.europa.ec.itb.validation.commons.artifact.ExternalArtifactSupport;
-import eu.europa.ec.itb.validation.commons.config.WebDomainConfig;
 import eu.europa.ec.itb.validation.commons.error.ValidatorException;
+import eu.europa.ec.itb.validation.commons.web.BaseUploadController;
+import eu.europa.ec.itb.validation.commons.web.Constants;
 import eu.europa.ec.itb.validation.commons.web.KeyWithLabel;
-import eu.europa.ec.itb.validation.commons.web.errors.NotFoundException;
 import eu.europa.ec.itb.validation.commons.web.locale.CustomLocaleResolver;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -22,11 +21,10 @@ import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFLanguages;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.ModelAndView;
@@ -49,7 +47,7 @@ import static eu.europa.ec.itb.validation.commons.web.Constants.*;
  */
 @Controller
 @RestController
-public class UploadController {
+public class UploadController extends BaseUploadController<DomainConfig, DomainConfigCache> {
 
     private static final Logger logger = LoggerFactory.getLogger(UploadController.class);
 
@@ -75,20 +73,13 @@ public class UploadController {
     static final String FILE_NAME_TAR_AGGREGATE = "tarAggregateFile";
 
     @Autowired
-    private FileManager fileManager = null;
-
+    private FileManager fileManager;
     @Autowired
-    private DomainConfigCache domainConfigs = null;
-
+    private ApplicationConfig appConfig;
     @Autowired
-    private ApplicationConfig appConfig = null;
-
+    private ApplicationContext ctx;
     @Autowired
-    private ApplicationContext ctx = null;
-
-    @Autowired
-    private InputHelper inputHelper = null;
-
+    private InputHelper inputHelper;
     @Autowired
     private CustomLocaleResolver localeResolver;
 
@@ -96,34 +87,39 @@ public class UploadController {
      * Prepare the upload page.
      *
      * @param domain The domain name.
-     * @param model The UI model.
      * @param request The received request.
      * @param response The produced response.
      * @return The model and view information.
      */
     @GetMapping(value = "/{domain}/upload")
-    public ModelAndView upload(@PathVariable("domain") String domain, Model model, HttpServletRequest request, HttpServletResponse response) {
-        setMinimalUIFlag(request, false);
-        DomainConfig domainConfig;
-        try {
-            domainConfig = validateDomain(request, domain);
-        } catch (Exception e) {
-            throw new NotFoundException();
-        }
-
+    public ModelAndView upload(@PathVariable("domain") String domain, HttpServletRequest request, HttpServletResponse response) {
+        var domainConfig = validateDomain(request, domain);
         Map<String, Object> attributes = new HashMap<>();
         attributes.put(PARAM_CONTENT_SYNTAX, getContentSyntax(domainConfig));
         attributes.put(PARAM_EXTERNAL_ARTIFACT_INFO, domainConfig.getExternalArtifactInfoMap());
         attributes.put(PARAM_LOAD_IMPORTS_INFO, domainConfig.getUserInputForLoadImportsType());
-        attributes.put(PARAM_MINIMAL_UI, false);
+        attributes.put(PARAM_MINIMAL_UI, request.getAttribute(IS_MINIMAL));
         attributes.put(PARAM_DOMAIN_CONFIG, domainConfig);
         attributes.put(PARAM_APP_CONFIG, appConfig);
         var localisationHelper = new LocalisationHelper(domainConfig, localeResolver.resolveLocale(request, response, domainConfig, appConfig));
         attributes.put(PARAM_LOCALISER, localisationHelper);
         attributes.put(PARAM_CONTENT_TYPE, getContentType(localisationHelper));
         attributes.put(PARAM_HTML_BANNER_EXISTS, localisationHelper.propertyExists("validator.bannerHtml"));
-
         return new ModelAndView(VIEW_UPLOAD_FORM, attributes);
+    }
+
+    /**
+     * Prepare the upload page (minimal UI version).
+     *
+     * @param domain The domain name.
+     * @param request The received request.
+     * @param response The produced response.
+     * @return The model and view information.
+     */
+    @GetMapping(value = "/{domain}/uploadm")
+    public ModelAndView uploadMinimal(@PathVariable("domain") String domain, HttpServletRequest request, HttpServletResponse response) {
+        setMinimalUIFlag(request, true);
+        return upload(domain, request, response);
     }
 
     /**
@@ -150,7 +146,7 @@ public class UploadController {
      * @param response The produced response.
      * @return The model and view information.
      */
-    @PostMapping(value = "/{domain}/upload")
+    @PostMapping(value = "/{domain}/upload", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     public UploadResult handleUpload(@PathVariable("domain") String domain,
                                  @RequestParam("file") MultipartFile file,
@@ -171,13 +167,7 @@ public class UploadController {
                                  @RequestParam(value = "contentQueryPassword", defaultValue = "") String contentQueryPassword,
                                  HttpServletRequest request,
                                  HttpServletResponse response) {
-        setMinimalUIFlag(request, false);
-        DomainConfig domainConfig;
-        try {
-            domainConfig = validateDomain(request, domain);
-        } catch (Exception e) {
-            throw new NotFoundException();
-        }
+        var domainConfig = validateDomain(request, domain);
         // Temporary folder for the request.
         File parentFolder = fileManager.createTemporaryFolderPath();
         var localisationHelper = new LocalisationHelper(domainConfig, localeResolver.resolveLocale(request, response, domainConfig, appConfig));
@@ -294,6 +284,96 @@ public class UploadController {
     }
 
     /**
+     * Handle the upload form's submission when the user interface is minimal.
+     *
+     * @see UploadController#handleUpload(String, MultipartFile, String, String, String, String, String, String[], MultipartFile[], String[], String[], Boolean, String, String, Boolean, String, String, HttpServletRequest, HttpServletResponse)
+     */
+    @PostMapping(value = "/{domain}/uploadm", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
+    public UploadResult handleUploadMinimal(@PathVariable("domain") String domain,
+                                        @RequestParam("file") MultipartFile file,
+                                        @RequestParam(value = "uri", defaultValue = "") String uri,
+                                        @RequestParam(value = "text-editor", defaultValue = "") String string,
+                                        @RequestParam(value = "contentType", defaultValue = "") String contentType,
+                                        @RequestParam(value = "validationType", defaultValue = "") String validationType,
+                                        @RequestParam(value = "contentSyntaxType", defaultValue = "") String contentSyntaxType,
+                                        @RequestParam(value = "contentType-external_default", required = false) String[] externalContentType,
+                                        @RequestParam(value = "inputFile-external_default", required= false) MultipartFile[] externalFiles,
+                                        @RequestParam(value = "uri-external_default", required = false) String[] externalUri,
+                                        @RequestParam(value = "contentSyntaxType-external_default", required = false) String[] externalFilesSyntaxType,
+                                        @RequestParam(value = "loadImportsCheck", required = false, defaultValue = "false") Boolean loadImportsValue,
+                                        @RequestParam(value = "contentQuery", defaultValue = "") String contentQuery,
+                                        @RequestParam(value = "contentQueryEndpoint", defaultValue = "") String contentQueryEndpoint,
+                                        @RequestParam(value = "contentQueryAuthenticate", defaultValue = "false") Boolean contentQueryAuthenticate,
+                                        @RequestParam(value = "contentQueryUsername", defaultValue = "") String contentQueryUsername,
+                                        @RequestParam(value = "contentQueryPassword", defaultValue = "") String contentQueryPassword,
+                                        HttpServletRequest request,
+                                        HttpServletResponse response) {
+        setMinimalUIFlag(request, true);
+        return handleUpload(domain, file, uri, string, contentType, validationType, contentSyntaxType, externalContentType, externalFiles, externalUri, externalFilesSyntaxType, loadImportsValue, contentQuery, contentQueryEndpoint, contentQueryAuthenticate, contentQueryUsername, contentQueryPassword, request, response);
+    }
+
+    /**
+     * Handle the upload form's submission when the user interface is embedded in another web page.
+     *
+     * @see UploadController#handleUpload(String, MultipartFile, String, String, String, String, String, String[], MultipartFile[], String[], String[], Boolean, String, String, Boolean, String, String, HttpServletRequest, HttpServletResponse)
+     */
+    @PostMapping(value = "/{domain}/upload", produces = MediaType.TEXT_HTML_VALUE)
+    public ModelAndView handleUploadEmbedded(@PathVariable("domain") String domain,
+                                             @RequestParam("file") MultipartFile file,
+                                             @RequestParam(value = "uri", defaultValue = "") String uri,
+                                             @RequestParam(value = "text-editor", defaultValue = "") String string,
+                                             @RequestParam(value = "contentType", defaultValue = "") String contentType,
+                                             @RequestParam(value = "validationType", defaultValue = "") String validationType,
+                                             @RequestParam(value = "contentSyntaxType", defaultValue = "") String contentSyntaxType,
+                                             @RequestParam(value = "contentType-external_default", required = false) String[] externalContentType,
+                                             @RequestParam(value = "inputFile-external_default", required= false) MultipartFile[] externalFiles,
+                                             @RequestParam(value = "uri-external_default", required = false) String[] externalUri,
+                                             @RequestParam(value = "contentSyntaxType-external_default", required = false) String[] externalFilesSyntaxType,
+                                             @RequestParam(value = "loadImportsCheck", required = false, defaultValue = "false") Boolean loadImportsValue,
+                                             @RequestParam(value = "contentQuery", defaultValue = "") String contentQuery,
+                                             @RequestParam(value = "contentQueryEndpoint", defaultValue = "") String contentQueryEndpoint,
+                                             @RequestParam(value = "contentQueryAuthenticate", defaultValue = "false") Boolean contentQueryAuthenticate,
+                                             @RequestParam(value = "contentQueryUsername", defaultValue = "") String contentQueryUsername,
+                                             @RequestParam(value = "contentQueryPassword", defaultValue = "") String contentQueryPassword,
+                                             HttpServletRequest request,
+                                             HttpServletResponse response) {
+        var uploadForm = upload(domain, request, response);
+        var uploadResult = handleUpload(domain, file, uri, string, contentType, validationType, contentSyntaxType, externalContentType, externalFiles, externalUri, externalFilesSyntaxType, loadImportsValue, contentQuery, contentQueryEndpoint, contentQueryAuthenticate, contentQueryUsername, contentQueryPassword, request, response);
+        uploadForm.getModel().put(Constants.PARAM_REPORT_DATA, writeResultToString(uploadResult));
+        return uploadForm;
+    }
+
+    /**
+     * Handle the upload form's submission when the user interface is minimal and embedded in another web page.
+     *
+     * @see UploadController#handleUpload(String, MultipartFile, String, String, String, String, String, String[], MultipartFile[], String[], String[], Boolean, String, String, Boolean, String, String, HttpServletRequest, HttpServletResponse)
+     */
+    @PostMapping(value = "/{domain}/uploadm", produces = MediaType.TEXT_HTML_VALUE)
+    public ModelAndView handleUploadMinimalEmbedded(@PathVariable("domain") String domain,
+                                             @RequestParam("file") MultipartFile file,
+                                             @RequestParam(value = "uri", defaultValue = "") String uri,
+                                             @RequestParam(value = "text-editor", defaultValue = "") String string,
+                                             @RequestParam(value = "contentType", defaultValue = "") String contentType,
+                                             @RequestParam(value = "validationType", defaultValue = "") String validationType,
+                                             @RequestParam(value = "contentSyntaxType", defaultValue = "") String contentSyntaxType,
+                                             @RequestParam(value = "contentType-external_default", required = false) String[] externalContentType,
+                                             @RequestParam(value = "inputFile-external_default", required= false) MultipartFile[] externalFiles,
+                                             @RequestParam(value = "uri-external_default", required = false) String[] externalUri,
+                                             @RequestParam(value = "contentSyntaxType-external_default", required = false) String[] externalFilesSyntaxType,
+                                             @RequestParam(value = "loadImportsCheck", required = false, defaultValue = "false") Boolean loadImportsValue,
+                                             @RequestParam(value = "contentQuery", defaultValue = "") String contentQuery,
+                                             @RequestParam(value = "contentQueryEndpoint", defaultValue = "") String contentQueryEndpoint,
+                                             @RequestParam(value = "contentQueryAuthenticate", defaultValue = "false") Boolean contentQueryAuthenticate,
+                                             @RequestParam(value = "contentQueryUsername", defaultValue = "") String contentQueryUsername,
+                                             @RequestParam(value = "contentQueryPassword", defaultValue = "") String contentQueryPassword,
+                                             HttpServletRequest request,
+                                             HttpServletResponse response) {
+        setMinimalUIFlag(request, true);
+        return handleUploadEmbedded(domain, file, uri, string, contentType, validationType, contentSyntaxType, externalContentType, externalFiles, externalUri, externalFilesSyntaxType, loadImportsValue, contentQuery, contentQueryEndpoint, contentQueryAuthenticate, contentQueryUsername, contentQueryPassword, request, response);
+    }
+
+    /**
      * Prepare translations for the UI.
      *
      * @param helper The localisation helper to use.
@@ -306,105 +386,6 @@ public class UploadController {
         translations.setDownloadShapesButton(helper.localise("validator.label.downloadShapesButton"));
         translations.setDownloadInputButton(helper.localise("validator.label.downloadInputButton"));
         return translations;
-    }
-
-    /**
-     * Prepare the upload page (minimal UI version).
-     *
-     * @param domain The domain name.
-     * @param model The UI model.
-     * @param request The received request.
-     * @param response The produced response.
-     * @return The model and view information.
-     */
-    @GetMapping(value = "/{domain}/uploadm")
-    public ModelAndView uploadm(@PathVariable("domain") String domain, Model model, HttpServletRequest request, HttpServletResponse response) {
-        setMinimalUIFlag(request, true);
-        DomainConfig domainConfig;
-        try {
-            domainConfig = validateDomain(request, domain);
-        } catch (Exception e) {
-            throw new NotFoundException();
-        }
-        if(!domainConfig.isSupportMinimalUserInterface()) {
-            logger.error("Minimal user interface is not supported in this domain [{}].", domain);
-            throw new NotFoundException();
-        }
-
-        Map<String, Object> attributes = new HashMap<>();
-        attributes.put(PARAM_CONTENT_SYNTAX, getContentSyntax(domainConfig));
-        attributes.put(PARAM_EXTERNAL_ARTIFACT_INFO, domainConfig.getExternalArtifactInfoMap());
-        attributes.put(PARAM_LOAD_IMPORTS_INFO, domainConfig.getUserInputForLoadImportsType());
-        attributes.put(PARAM_MINIMAL_UI, true);
-        attributes.put(PARAM_DOMAIN_CONFIG, domainConfig);
-        attributes.put(PARAM_APP_CONFIG, appConfig);
-        var localisationHelper = new LocalisationHelper(domainConfig, localeResolver.resolveLocale(request, response, domainConfig, appConfig));
-        attributes.put(PARAM_LOCALISER, localisationHelper);
-        attributes.put(PARAM_CONTENT_TYPE, getContentType(localisationHelper));
-        attributes.put(PARAM_HTML_BANNER_EXISTS, localisationHelper.propertyExists("validator.bannerHtml"));
-
-        return new ModelAndView(VIEW_UPLOAD_FORM, attributes);
-    }
-
-    /**
-     * Handle the upload form's submission.
-     *
-     * @param domain The domain name.
-     * @param file The input file (if provided via file upload).
-     * @param uri The input URI (if provided via remote URI).
-     * @param string The input content (if provided via editor).
-     * @param contentType The type of the provided content.
-     * @param validationType The validation type.
-     * @param contentSyntaxType The syntax for the content.
-     * @param externalContentType The content type for user-provided shapes (those provided as URIs).
-     * @param externalFiles The user-provided shapes (those provided as files).
-     * @param externalUri The user-provided shapes (those provided as URIs).
-     * @param externalFilesSyntaxType The content type for user-provided shapes (those provided as files).
-     * @param loadImportsValue The load OWL imports from input flag.
-     * @param contentQuery The SPARQL query to load the input with.
-     * @param contentQueryEndpoint The SPARQL endpoint URL to query for the content.
-     * @param contentQueryAuthenticate Whether or not authentication is needed for the SPARQL endpoint.
-     * @param contentQueryUsername The username to use for authentication with the SPARQL endpoint.
-     * @param contentQueryPassword The password to use for authentication with the SPARQL endpoint.
-     * @param request The received request.
-     * @param response The produced response.
-     * @return The model and view information.
-     */
-    @PostMapping(value = "/{domain}/uploadm")
-    @ResponseBody
-    public UploadResult handleUploadM(@PathVariable("domain") String domain,
-                                      @RequestParam("file") MultipartFile file,
-                                      @RequestParam(value = "uri", defaultValue = "") String uri,
-                                      @RequestParam(value = "text-editor", defaultValue = "") String string,
-                                      @RequestParam(value = "contentType", defaultValue = "") String contentType,
-                                      @RequestParam(value = "validationType", defaultValue = "") String validationType,
-                                      @RequestParam(value = "contentSyntaxType", defaultValue = "") String contentSyntaxType,
-                                      @RequestParam(value = "contentType-external_default", required = false) String[] externalContentType,
-                                      @RequestParam(value = "inputFile-external_default", required= false) MultipartFile[] externalFiles,
-                                      @RequestParam(value = "uri-external_default", required = false) String[] externalUri,
-                                      @RequestParam(value = "contentSyntaxType-external_default", required = false) String[] externalFilesSyntaxType,
-                                      @RequestParam(value = "loadImportsCheck", required = false, defaultValue = "false") Boolean loadImportsValue,
-                                      @RequestParam(value = "contentQuery", defaultValue = "") String contentQuery,
-                                      @RequestParam(value = "contentQueryEndpoint", defaultValue = "") String contentQueryEndpoint,
-                                      @RequestParam(value = "contentQueryAuthenticate", defaultValue = "false") Boolean contentQueryAuthenticate,
-                                      @RequestParam(value = "contentQueryUsername", defaultValue = "") String contentQueryUsername,
-                                      @RequestParam(value = "contentQueryPassword", defaultValue = "") String contentQueryPassword,
-                                      HttpServletRequest request,
-                                      HttpServletResponse response) {
-        setMinimalUIFlag(request, true);
-        return handleUpload(domain, file, uri, string, contentType, validationType, contentSyntaxType, externalContentType, externalFiles, externalUri, externalFilesSyntaxType, loadImportsValue, contentQuery, contentQueryEndpoint, contentQueryAuthenticate, contentQueryUsername, contentQueryPassword, request, response);
-    }
-
-    /**
-     * Record whether the current request is through a minimal UI.
-     *
-     * @param request The current request.
-     * @param isMinimal True in case of the minimal UI being used.
-     */
-    private void setMinimalUIFlag(HttpServletRequest request, boolean isMinimal) {
-        if (request.getAttribute(IS_MINIMAL) == null) {
-            request.setAttribute(IS_MINIMAL, isMinimal);
-        }
     }
 
     /**
@@ -522,26 +503,6 @@ public class UploadController {
             }
         }
         return shapeFiles;
-    }
-
-    /**
-     * Validates that the domain exists and supports REST calls and return it if so.
-     *
-     *
-     * @param request The HTTP request.
-     * @param domain The domain to check.
-     * @return The retrieved domain configuration.
-     * @throws NotFoundException If the domain or REST API are unsupported.
-     */
-    private DomainConfig validateDomain(HttpServletRequest request, String domain) {
-        DomainConfig config = domainConfigs.getConfigForDomainName(domain);
-        if (config == null || !config.isDefined() || !config.getChannels().contains(ValidatorChannel.REST_API)) {
-            logger.error("The following domain does not exist: {}", domain);
-            throw new NotFoundException();
-        }
-        request.setAttribute(WebDomainConfig.DOMAIN_CONFIG_REQUEST_ATTRIBUTE, config);
-        MDC.put(MDC_DOMAIN, domain);
-        return config;
     }
 
     /**

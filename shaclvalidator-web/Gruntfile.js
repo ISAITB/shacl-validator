@@ -45,13 +45,13 @@ module.exports = function(grunt) {
       },
       dist: {
         src: ['./src/main/resources/resources/js/itb-upload-shacl.js', './target/temp/itb-templates-shacl.js'],
-        dest: './target/temp/itb-upload-templates-shacl.js'
+        dest: './target/classes/resources/js/itb-upload-templates-shacl.js'
       }
     },
     uglify: {
       my_target: {
         files: {
-          './target/classes/resources/js/itb-upload-shacl-min.js': ['./target/temp/itb-upload-templates-shacl.js']
+          './target/classes/resources/js/itb-upload-shacl-min.js': ['./target/classes/resources/js/itb-upload-templates-shacl.js']
         }
       }
     },
