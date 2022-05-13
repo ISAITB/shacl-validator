@@ -1,5 +1,5 @@
 <div id="reportOverviewButtons" class="btn-toolbar">
-    <div class="btn-group">
+    <div class="btn-group{{#if config.isMinimalUI}} dropup{{/if}}">
         <button type="button" id="downloadReportButton" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
             <span id="downloadReportButtonSpinner" class="hidden"> <i class="fa fa-spinner fa-spin fa-fw"></i></span>
             <span>{{data.translations.downloadReportButton}}</span> <span class="caret"></span>
@@ -21,7 +21,7 @@
             {{/each}}
         </ul>
     </div>
-    <div class="btn-group">
+    <div class="btn-group{{#if config.isMinimalUI}} dropup{{/if}}">
         <button type="button" id="downloadShapesButton" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
             <span id="downloadShapesButtonSpinner" class="hidden"> <i class="fa fa-spinner fa-spin fa-fw"></i></span>
             <span>{{data.translations.downloadShapesButton}}</span> <span class="caret"></span>
@@ -32,7 +32,7 @@
             {{/each}}
         </ul>
     </div>
-    <div class="btn-group">
+    <div class="btn-group{{#if config.isMinimalUI}} dropup{{/if}}">
         <button type="button" id="downloadInputButton" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
             <span id="downloadInputButtonSpinner" class="hidden"> <i class="fa fa-spinner fa-spin fa-fw"></i></span>
             <span>{{data.translations.downloadInputButton}}</span> <span class="caret"></span>

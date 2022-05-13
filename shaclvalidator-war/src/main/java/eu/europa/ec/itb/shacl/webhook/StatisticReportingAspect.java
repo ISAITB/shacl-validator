@@ -37,7 +37,7 @@ public class StatisticReportingAspect extends StatisticReporting {
     /**
      * Pointcut for minimal WEB validation.
      */
-    @Pointcut("execution(public * eu.europa.ec.itb.shacl.upload.UploadController.handleUploadM(..))")
+    @Pointcut("execution(public * eu.europa.ec.itb.shacl.upload.UploadController.handleUploadMinimal(..))")
     private void minimalUploadValidation(){}
 
     /**
@@ -46,13 +46,24 @@ public class StatisticReportingAspect extends StatisticReporting {
     @Pointcut("execution(public * eu.europa.ec.itb.shacl.upload.UploadController.handleUpload(..))")
     private void uploadValidation(){}
 
+    /**
+     * Pointcut for minimal WEB validation.
+     */
+    @Pointcut("execution(public * eu.europa.ec.itb.shacl.upload.UploadController.handleUploadMinimalEmbedded(..))")
+    private void minimalEmbeddedUploadValidation(){}
+
+    /**
+     * Pointcut for regular WEB validation.
+     */
+    @Pointcut("execution(public * eu.europa.ec.itb.shacl.upload.UploadController.handleUploadEmbedded(..))")
+    private void embeddedUploadValidation(){}
 
     /**
      * Advice to obtain the arguments passed to the web upload API call.
      *
      * @param joinPoint The original call's information.
      */
-    @Before("minimalUploadValidation() || uploadValidation()")
+    @Before("minimalUploadValidation() || uploadValidation() || minimalEmbeddedUploadValidation() || embeddedUploadValidation()")
     public void getUploadContext(JoinPoint joinPoint) {
         Map<String, String> contextParams = new HashMap<>();
         contextParams.put("api", StatisticReportingConstants.WEB_API);
