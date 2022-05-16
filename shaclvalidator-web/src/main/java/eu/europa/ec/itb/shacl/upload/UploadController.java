@@ -34,7 +34,6 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.*;
@@ -93,7 +92,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
      */
     @GetMapping(value = "/{domain}/upload")
     public ModelAndView upload(@PathVariable("domain") String domain, HttpServletRequest request, HttpServletResponse response) {
-        var domainConfig = validateDomain(request, domain);
+        var domainConfig = getDomainConfig(request);
         Map<String, Object> attributes = new HashMap<>();
         attributes.put(PARAM_CONTENT_SYNTAX, getContentSyntax(domainConfig));
         attributes.put(PARAM_EXTERNAL_ARTIFACT_INFO, domainConfig.getExternalArtifactInfoMap());
@@ -118,7 +117,6 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
      */
     @GetMapping(value = "/{domain}/uploadm")
     public ModelAndView uploadMinimal(@PathVariable("domain") String domain, HttpServletRequest request, HttpServletResponse response) {
-        setMinimalUIFlag(request, true);
         return upload(domain, request, response);
     }
 
@@ -149,7 +147,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
     @PostMapping(value = "/{domain}/upload", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     public UploadResult handleUpload(@PathVariable("domain") String domain,
-                                 @RequestParam("file") MultipartFile file,
+                                 @RequestParam(value = "file", required = false) MultipartFile file,
                                  @RequestParam(value = "uri", defaultValue = "") String uri,
                                  @RequestParam(value = "text-editor", defaultValue = "") String string,
                                  @RequestParam(value = "contentType", defaultValue = "") String contentType,
@@ -167,7 +165,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                                  @RequestParam(value = "contentQueryPassword", defaultValue = "") String contentQueryPassword,
                                  HttpServletRequest request,
                                  HttpServletResponse response) {
-        var domainConfig = validateDomain(request, domain);
+        var domainConfig = getDomainConfig(request);
         // Temporary folder for the request.
         File parentFolder = fileManager.createTemporaryFolderPath();
         var localisationHelper = new LocalisationHelper(domainConfig, localeResolver.resolveLocale(request, response, domainConfig, appConfig));
@@ -200,20 +198,30 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                     inputFile = fileManager.getContentFromSparqlEndpoint(queryConfig, parentFolder, FILE_NAME_INPUT).toFile();
                 } else {
                     var noContentSyntaxProvided = contentSyntaxType.isEmpty() || contentSyntaxType.equals(EMPTY);
-                    if (noContentSyntaxProvided) {
-                        if (contentType.equals(CONTENT_TYPE_EDITOR)) {
-                            logger.error("Provided content syntax type is not valid");
-                            result.setMessage(localisationHelper.localise("validator.label.exception.providedContentSyntaxInvalid"));
-                        } else {
-                            if (contentType.equals(CONTENT_TYPE_FILE)) {
+                    switch (contentType) {
+                        case CONTENT_TYPE_EDITOR:
+                            if (noContentSyntaxProvided) {
+                                logger.error("Provided content syntax type is not valid");
+                                result.setMessage(localisationHelper.localise("validator.label.exception.providedContentSyntaxInvalid"));
+                            } else {
+                                inputFile = this.fileManager.getFileFromString(parentFolder, string, contentSyntaxType, FILE_NAME_INPUT);
+                            }
+                            break;
+                        case CONTENT_TYPE_FILE:
+                            Objects.requireNonNull(file, "The input file must be provided");
+                            if (noContentSyntaxProvided) {
                                 contentSyntaxType = getExtensionContentTypeForFileName(file.getOriginalFilename());
-                            } else if (contentType.equals(CONTENT_TYPE_URI)) {
+                            }
+                            inputFile = fileManager.getFileFromInputStream(parentFolder, file.getInputStream(), contentSyntaxType, FILE_NAME_INPUT);
+                            break;
+                        case CONTENT_TYPE_URI:
+                            if (noContentSyntaxProvided) {
                                 contentSyntaxType = getExtensionContentTypeForURL(uri);
                             }
-                            inputFile = getInputFile(contentType, file.getInputStream(), uri, string, contentSyntaxType, parentFolder);
-                        }
-                    } else {
-                        inputFile = getInputFile(contentType, file.getInputStream(), uri, string, contentSyntaxType, parentFolder);
+                            inputFile = this.fileManager.getFileFromURL(parentFolder, uri, fileManager.getFileExtension(contentSyntaxType), FILE_NAME_INPUT);
+                            break;
+                        default:
+                            throw new IllegalArgumentException("Unknown content type [" + contentType + "]");
                     }
                 }
             }
@@ -291,7 +299,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
     @PostMapping(value = "/{domain}/uploadm", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     public UploadResult handleUploadMinimal(@PathVariable("domain") String domain,
-                                        @RequestParam("file") MultipartFile file,
+                                        @RequestParam(value = "file", required = false) MultipartFile file,
                                         @RequestParam(value = "uri", defaultValue = "") String uri,
                                         @RequestParam(value = "text-editor", defaultValue = "") String string,
                                         @RequestParam(value = "contentType", defaultValue = "") String contentType,
@@ -309,7 +317,6 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                                         @RequestParam(value = "contentQueryPassword", defaultValue = "") String contentQueryPassword,
                                         HttpServletRequest request,
                                         HttpServletResponse response) {
-        setMinimalUIFlag(request, true);
         return handleUpload(domain, file, uri, string, contentType, validationType, contentSyntaxType, externalContentType, externalFiles, externalUri, externalFilesSyntaxType, loadImportsValue, contentQuery, contentQueryEndpoint, contentQueryAuthenticate, contentQueryUsername, contentQueryPassword, request, response);
     }
 
@@ -320,7 +327,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
      */
     @PostMapping(value = "/{domain}/upload", produces = MediaType.TEXT_HTML_VALUE)
     public ModelAndView handleUploadEmbedded(@PathVariable("domain") String domain,
-                                             @RequestParam("file") MultipartFile file,
+                                             @RequestParam(value = "file", required = false) MultipartFile file,
                                              @RequestParam(value = "uri", defaultValue = "") String uri,
                                              @RequestParam(value = "text-editor", defaultValue = "") String string,
                                              @RequestParam(value = "contentType", defaultValue = "") String contentType,
@@ -351,7 +358,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
      */
     @PostMapping(value = "/{domain}/uploadm", produces = MediaType.TEXT_HTML_VALUE)
     public ModelAndView handleUploadMinimalEmbedded(@PathVariable("domain") String domain,
-                                             @RequestParam("file") MultipartFile file,
+                                             @RequestParam(value = "file", required = false) MultipartFile file,
                                              @RequestParam(value = "uri", defaultValue = "") String uri,
                                              @RequestParam(value = "text-editor", defaultValue = "") String string,
                                              @RequestParam(value = "contentType", defaultValue = "") String contentType,
@@ -369,7 +376,6 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                                              @RequestParam(value = "contentQueryPassword", defaultValue = "") String contentQueryPassword,
                                              HttpServletRequest request,
                                              HttpServletResponse response) {
-        setMinimalUIFlag(request, true);
         return handleUploadEmbedded(domain, file, uri, string, contentType, validationType, contentSyntaxType, externalContentType, externalFiles, externalUri, externalFilesSyntaxType, loadImportsValue, contentQuery, contentQueryEndpoint, contentQueryAuthenticate, contentQueryUsername, contentQueryPassword, request, response);
     }
 
@@ -403,35 +409,6 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
     }
 
     /**
-     * Get the content to validate as a file stored on the validator's temp file system.
-     *
-     * @param contentType The way to interpret the content.
-     * @param inputStream Input as a stream.
-     * @param uri Input as a URI.
-     * @param string Input as directly provided content.
-     * @param contentSyntaxType The input's content type (mime type).
-     * @param tmpFolder The temp folder to use for storing the input.
-     * @return The input to use for the validation.
-     * @throws IOException If an IO error occurs.
-     */
-    private File getInputFile(String contentType, InputStream inputStream, String uri, String string, String contentSyntaxType, File tmpFolder) throws IOException {
-        File inputFile;
-        switch (contentType) {
-            case CONTENT_TYPE_FILE:
-                inputFile = this.fileManager.getFileFromInputStream(tmpFolder, inputStream, contentSyntaxType, FILE_NAME_INPUT);
-                break;
-            case CONTENT_TYPE_URI:
-                inputFile = this.fileManager.getFileFromURL(tmpFolder, uri, fileManager.getFileExtension(contentSyntaxType), FILE_NAME_INPUT);
-                break;
-            case CONTENT_TYPE_EDITOR:
-                inputFile = this.fileManager.getFileFromString(tmpFolder, string, contentSyntaxType, FILE_NAME_INPUT);
-                break;
-            default: throw new IllegalArgumentException("Unknown content type ["+contentType+"]");
-        }
-        return inputFile;
-    }
-
-    /**
      * Determine the RDF content type (mime type) from the provided file name.
      *
      * @param filename The file name to check.
@@ -445,7 +422,6 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
         }
         return contentType;
     }
-
 
     /**
      * Determine the RDF content type (mime type) from the provided URL.
