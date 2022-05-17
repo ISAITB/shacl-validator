@@ -50,13 +50,9 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
 
     private static final Logger logger = LoggerFactory.getLogger(UploadController.class);
 
-    private static final String CONTENT_TYPE_FILE = "fileType" ;
-    private static final String CONTENT_TYPE_URI = "uriType" ;
-    private static final String CONTENT_TYPE_EDITOR = "stringType" ;
     private static final String CONTENT_TYPE_QUERY = "queryType" ;
     private static final String PARAM_CONTENT_SYNTAX = "contentSyntax";
     private static final String PARAM_LOAD_IMPORTS_INFO = "loadImportsInfo";
-    private static final String PARAM_CONTENT_TYPE = "contentType";
     private static final String EMPTY = "empty";
     static final String DOWNLOAD_TYPE_REPORT = "reportType";
     static final String DOWNLOAD_TYPE_SHAPES = "shapesType";
@@ -97,12 +93,11 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
         attributes.put(PARAM_CONTENT_SYNTAX, getContentSyntax(domainConfig));
         attributes.put(PARAM_EXTERNAL_ARTIFACT_INFO, domainConfig.getExternalArtifactInfoMap());
         attributes.put(PARAM_LOAD_IMPORTS_INFO, domainConfig.getUserInputForLoadImportsType());
-        attributes.put(PARAM_MINIMAL_UI, request.getAttribute(IS_MINIMAL));
+        attributes.put(PARAM_MINIMAL_UI, isMinimalUI(request));
         attributes.put(PARAM_DOMAIN_CONFIG, domainConfig);
         attributes.put(PARAM_APP_CONFIG, appConfig);
         var localisationHelper = new LocalisationHelper(domainConfig, localeResolver.resolveLocale(request, response, domainConfig, appConfig));
         attributes.put(PARAM_LOCALISER, localisationHelper);
-        attributes.put(PARAM_CONTENT_TYPE, getContentType(localisationHelper));
         attributes.put(PARAM_HTML_BANNER_EXISTS, localisationHelper.propertyExists("validator.bannerHtml"));
         return new ModelAndView(VIEW_UPLOAD_FORM, attributes);
     }
@@ -149,7 +144,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
     public UploadResult handleUpload(@PathVariable("domain") String domain,
                                  @RequestParam(value = "file", required = false) MultipartFile file,
                                  @RequestParam(value = "uri", defaultValue = "") String uri,
-                                 @RequestParam(value = "text-editor", defaultValue = "") String string,
+                                 @RequestParam(value = "text", defaultValue = "") String string,
                                  @RequestParam(value = "contentType", defaultValue = "") String contentType,
                                  @RequestParam(value = "validationType", defaultValue = "") String validationType,
                                  @RequestParam(value = "contentSyntaxType", defaultValue = "") String contentSyntaxType,
@@ -166,6 +161,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                                  HttpServletRequest request,
                                  HttpServletResponse response) {
         var domainConfig = getDomainConfig(request);
+        contentType = checkInputType(contentType, file, uri, string, contentQuery);
         // Temporary folder for the request.
         File parentFolder = fileManager.createTemporaryFolderPath();
         var localisationHelper = new LocalisationHelper(domainConfig, localeResolver.resolveLocale(request, response, domainConfig, appConfig));
@@ -199,7 +195,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                 } else {
                     var noContentSyntaxProvided = contentSyntaxType.isEmpty() || contentSyntaxType.equals(EMPTY);
                     switch (contentType) {
-                        case CONTENT_TYPE_EDITOR:
+                        case CONTENT_TYPE_STRING:
                             if (noContentSyntaxProvided) {
                                 logger.error("Provided content syntax type is not valid");
                                 result.setMessage(localisationHelper.localise("validator.label.exception.providedContentSyntaxInvalid"));
@@ -301,7 +297,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
     public UploadResult handleUploadMinimal(@PathVariable("domain") String domain,
                                         @RequestParam(value = "file", required = false) MultipartFile file,
                                         @RequestParam(value = "uri", defaultValue = "") String uri,
-                                        @RequestParam(value = "text-editor", defaultValue = "") String string,
+                                        @RequestParam(value = "text", defaultValue = "") String string,
                                         @RequestParam(value = "contentType", defaultValue = "") String contentType,
                                         @RequestParam(value = "validationType", defaultValue = "") String validationType,
                                         @RequestParam(value = "contentSyntaxType", defaultValue = "") String contentSyntaxType,
@@ -329,7 +325,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
     public ModelAndView handleUploadEmbedded(@PathVariable("domain") String domain,
                                              @RequestParam(value = "file", required = false) MultipartFile file,
                                              @RequestParam(value = "uri", defaultValue = "") String uri,
-                                             @RequestParam(value = "text-editor", defaultValue = "") String string,
+                                             @RequestParam(value = "text", defaultValue = "") String string,
                                              @RequestParam(value = "contentType", defaultValue = "") String contentType,
                                              @RequestParam(value = "validationType", defaultValue = "") String validationType,
                                              @RequestParam(value = "contentSyntaxType", defaultValue = "") String contentSyntaxType,
@@ -360,7 +356,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
     public ModelAndView handleUploadMinimalEmbedded(@PathVariable("domain") String domain,
                                              @RequestParam(value = "file", required = false) MultipartFile file,
                                              @RequestParam(value = "uri", defaultValue = "") String uri,
-                                             @RequestParam(value = "text-editor", defaultValue = "") String string,
+                                             @RequestParam(value = "text", defaultValue = "") String string,
                                              @RequestParam(value = "contentType", defaultValue = "") String contentType,
                                              @RequestParam(value = "validationType", defaultValue = "") String validationType,
                                              @RequestParam(value = "contentSyntaxType", defaultValue = "") String contentSyntaxType,
@@ -377,6 +373,28 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                                              HttpServletRequest request,
                                              HttpServletResponse response) {
         return handleUploadEmbedded(domain, file, uri, string, contentType, validationType, contentSyntaxType, externalContentType, externalFiles, externalUri, externalFilesSyntaxType, loadImportsValue, contentQuery, contentQueryEndpoint, contentQueryAuthenticate, contentQueryUsername, contentQueryPassword, request, response);
+    }
+
+    /**
+     * Check and/or determine the input submission type based on the received information.
+     *
+     * @param contentType The declared content type.
+     * @param file The received file input (or null).
+     * @param uri The received URI input (or null).
+     * @param string The received text input (or null).
+     * @param query The received query input (or null).
+     * @return The content type value to consider.
+     */
+    private String checkInputType(String contentType, MultipartFile file, String uri, String string, String query) {
+        contentType = super.checkInputType(contentType, file, uri, string);
+        if (StringUtils.isEmpty(contentType)) {
+            if (StringUtils.isNotEmpty(query)) {
+                contentType = CONTENT_TYPE_QUERY;
+            } else {
+                throw new IllegalArgumentException("No explicit content type was declared and determining it from the provided inputs was not possible.");
+            }
+        }
+        return contentType;
     }
 
     /**
@@ -479,20 +497,6 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
             }
         }
         return shapeFiles;
-    }
-
-    /**
-     * The list of content provision options as key and label pairs to be displayed on the UI.
-     *
-     * @param localiser The localisation helper.
-     * @return The list of options.
-     */
-    private List<KeyWithLabel> getContentType(LocalisationHelper localiser){
-        return List.of(
-                new KeyWithLabel(CONTENT_TYPE_FILE, localiser.localise("validator.label.optionContentFile")),
-                new KeyWithLabel(CONTENT_TYPE_URI, localiser.localise("validator.label.optionContentURI")),
-                new KeyWithLabel(CONTENT_TYPE_EDITOR, localiser.localise("validator.label.optionContentDirectInput"))
-        );
     }
 
     /**
