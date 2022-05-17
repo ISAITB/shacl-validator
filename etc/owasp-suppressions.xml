@@ -35,4 +35,11 @@
         <packageUrl regex="true">^pkg:npm/grunt\-cli@.*$</packageUrl>
         <cpe>cpe:/a:gruntcli_project:gruntcli</cpe>
     </suppress>
+    <suppress>
+        <notes><![CDATA[
+   file name: grunt:1.5.2
+   ]]></notes>
+        <packageUrl regex="true">^pkg:npm/grunt@.*$</packageUrl>
+        <cve>CVE-2022-1537</cve>
+    </suppress>
 </suppressions>
