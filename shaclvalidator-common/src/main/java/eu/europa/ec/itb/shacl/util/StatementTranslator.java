@@ -92,10 +92,10 @@ public class StatementTranslator {
                 defaultMessage = null;
             } else if (!messageMap.isEmpty()) {
                 // The first defined message with a valid language code.
-                statementToReturn = messageMap.remove(messageMap.keySet().stream().findFirst().get());
+                statementToReturn = messageMap.remove(messageMap.keySet().stream().findFirst().orElseThrow());
             } else if (!invalidMessageMap.isEmpty()) {
                 // The first defined message even with an invalid language code.
-                statementToReturn = invalidMessageMap.remove(invalidMessageMap.keySet().stream().findFirst().get());
+                statementToReturn = invalidMessageMap.remove(invalidMessageMap.keySet().stream().findFirst().orElseThrow());
             }
         }
         return new StatementTranslation(statementToReturn, getRemainingStatements());
