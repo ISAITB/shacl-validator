@@ -46,10 +46,15 @@
 			reportMinimalTemplate: 'reportMinimalShacl.hbs'
 		});
     </script>
+    <script th:inline="javascript" th:if="${reportData}">
+        $(document).ready(function() {
+            displayReport([(${reportData})]);
+        });
+    </script>
 </head>
 <body th:class="${not minimalUI} ? body-ui : ''">
     <div th:classappend="${not minimalUI} ? view-section-ui : ''" class="container view-section">
-        <div class="view-section-input" th:if="${!minimalUI || report == null}">
+        <div class="view-section-input" th:classappend="${minimalUI} ? 'minimal-ui' : 'normal-ui'" th:if="${!minimalUI || report == null}">
             <div th:replace="fragments/input :: pageHeader(${config}, ${minimalUI})"/>
             <form method="POST" enctype="multipart/form-data" th:action="@{${not minimalUI ? 'upload' : 'uploadm'}}" class="form-horizontal" th:fragment="form">
                 <div th:class="${minimalUI} ? panel-default : ''" th:classappend="${minimalUI} ? panel : ''">
