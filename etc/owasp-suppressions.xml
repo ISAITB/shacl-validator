@@ -49,4 +49,12 @@
         <packageUrl regex="true">^pkg:maven/org\.springframework/spring\-aop@.*$</packageUrl>
         <cve>CVE-2016-1000027</cve>
     </suppress>
+    <suppress>
+        <notes><![CDATA[
+   file name: spring-core-5.3.19.jar
+   ]]></notes>
+        <packageUrl regex="true">^pkg:maven/org\.springframework/spring\-core@.*$</packageUrl>
+        <cve>CVE-2016-1000027</cve>
+    </suppress>
+
 </suppressions>
