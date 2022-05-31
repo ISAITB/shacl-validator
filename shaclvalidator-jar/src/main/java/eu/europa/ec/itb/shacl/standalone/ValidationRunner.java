@@ -244,8 +244,9 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
                                 // Run report post-processing query (if provided).
                                 if (reportQuery != null) {
                                     Query query = QueryFactory.create(reportQuery);
-                                    QueryExecution queryExecution = QueryExecutionFactory.create(query, report);
-                                    report = queryExecution.execConstruct();
+                                    try (QueryExecution queryExecution = QueryExecutionFactory.create(query, report)) {
+                                        report = queryExecution.execConstruct();
+                                    }
                                 }
                                 if (!noReports) {
                                     // Output SHACL validation report as a file.
