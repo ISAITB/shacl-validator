@@ -15,12 +15,19 @@ import eu.europa.ec.itb.validation.commons.error.ValidatorException;
 import eu.europa.ec.itb.validation.plugin.PluginManager;
 import eu.europa.ec.itb.validation.plugin.ValidationPlugin;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.jena.graph.Triple;
 import org.apache.jena.ontology.OntModel;
 import org.apache.jena.ontology.OntModelSpec;
+import org.apache.jena.query.QueryExecution;
+import org.apache.jena.query.QueryExecutionFactory;
 import org.apache.jena.rdf.model.*;
+import org.apache.jena.rdf.model.impl.StatementImpl;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFLanguages;
+import org.apache.jena.shared.JenaException;
+import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.vocabulary.RDF;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,6 +64,7 @@ public class SHACLValidator {
     private DomainPluginConfigProvider<DomainConfig> pluginConfigProvider = null;
 
     private final File inputFileToValidate;
+    private boolean inputReady = false;
     private final DomainConfig domainConfig;
     private final LocalisationHelper localiser;
     private String validationType;
@@ -157,14 +165,14 @@ public class SHACLValidator {
         if (Lang.RDFXML.equals(contentSyntaxToUse)) {
             // Use file as-is.
             try {
-                FileUtils.copyFile(inputFileToValidate, pluginInputFile);
+                FileUtils.copyFile(getInputFileToUse(), pluginInputFile);
             } catch (IOException e) {
                 throw new IllegalStateException("Unable to copy input file for plugin", e);
             }
         } else {
             // Make a converted copy.
             Model fileModel = JenaUtil.createMemoryModel();
-            try (FileInputStream in = new FileInputStream(inputFileToValidate); FileWriter out = new FileWriter(pluginInputFile)) {
+            try (FileInputStream in = new FileInputStream(getInputFileToUse()); FileWriter out = new FileWriter(pluginInputFile)) {
                 fileModel.read(in, null, contentSyntaxToUse.getContentType().getContentTypeStr());
                 fileManager.writeRdfModel(out, fileModel, Lang.RDFXML.getContentType().getContentTypeStr());
             } catch (IOException e) {
@@ -315,7 +323,7 @@ public class SHACLValidator {
         } else {
             // Get data to validate from file
             this.aggregatedShapes = getShapesModel(shaclFiles);
-            this.dataModel = getDataModel(inputFileToValidate, this.aggregatedShapes);
+            this.dataModel = getDataModel(getInputFileToUse(), this.aggregatedShapes);
             // Perform the validation of data, using the shapes model. Do not validate any shapes inside the data model.
             Resource resource = ValidationUtil.validateModel(dataModel, this.aggregatedShapes, false);
             reportModel = resource.getModel();
@@ -345,14 +353,14 @@ public class SHACLValidator {
                 throw new ValidatorException("validator.label.exception.errorReadingShaclFile", e);
            }
         }
-        if(this.importedShapes!=null) {
+        if (this.importedShapes!=null) {
         	this.importedShapes.close();
         	this.importedShapes.removeAll();        	
         }
         
         this.importedShapes = JenaUtil.createMemoryModel();
         createImportedModels(aggregateModel);
-        if(this.importedShapes != null) {
+        if (this.importedShapes != null) {
         	aggregateModel.add(importedShapes);
         	this.importedShapes.removeAll();
         }
@@ -389,11 +397,11 @@ public class SHACLValidator {
     	baseOntModel.loadImports();
         Set<String> listImportedURI = baseOntModel.listImportedOntologyURIs();
                 
-        for(String importedURI : listImportedURI) {
-        	if(!reachedURIs.contains(importedURI)) {
+        for (String importedURI : listImportedURI) {
+        	if (!reachedURIs.contains(importedURI)) {
         		OntModel importedModel = baseOntModel.getImportedModel(importedURI);
         		
-        		if(importedModel != null) {
+        		if (importedModel != null) {
         			this.importedShapes.add(importedModel.getBaseModel());
         			reachedURIs.add(importedURI);
         			
@@ -451,11 +459,11 @@ public class SHACLValidator {
         try (InputStream dataStream = new FileInputStream(dataFile)) {
             dataModel.read(dataStream, null, contextSyntaxToUse().getName());
             
-            if(this.loadImports) {
+            if (this.loadImports) {
                 LOG.info("Loading imports...");
 	            createImportedModels(dataModel);
 	            
-	            if(this.importedShapes != null) {
+	            if (this.importedShapes != null) {
 	            	dataModel.add(importedShapes);
 	            	this.importedShapes.removeAll();
 	            }
@@ -478,6 +486,43 @@ public class SHACLValidator {
         }
 		return dataModel;
 	}
+
+    /**
+     * Preprocesses the file.
+     *
+     * @return inputFileToUse.
+     */
+    private File getInputFileToUse() {
+        if (!inputReady) {
+            // obtain the SPARQL CONSTRUCT query for the validationType
+            var constructQuery = domainConfig.getInputPreprocessorPerType().get(validationType);
+            if (constructQuery != null) {
+                // preprocessing: execute the CONSTRUCT query
+                Model inputModel = JenaUtil.createMemoryModel();
+                try (InputStream dataStream = new FileInputStream(inputFileToValidate)) {
+                    inputModel.read(dataStream, null, contextSyntaxToUse().getName());
+                } catch (IOException e) {
+                    throw new ValidatorException("validator.label.exception.errorWhileReadingProvidedContent", e, e.getMessage());
+                } catch (JenaException e) {
+                    throw new ValidatorException("validator.label.exception.preprocessingError", e, constructQuery);
+                }
+                QueryExecution qexec = QueryExecutionFactory.create(constructQuery, inputModel);
+                Model preprocessedModel = JenaUtil.createMemoryModel();
+                qexec.execConstruct(preprocessedModel);
+                // check that the processed model is not empty
+                if (preprocessedModel.isEmpty()) {
+                    throw new ValidatorException("validator.label.exception.emptyPreprocessingResult", constructQuery);
+                }
+                try (FileWriter writer = new FileWriter(inputFileToValidate)) {
+                    preprocessedModel.write(writer, contentSyntaxLang.getName());
+                } catch (IOException e) {
+                    throw new ValidatorException("validator.label.exception.preprocessingError", e, constructQuery);
+                }
+            }
+            inputReady = true;
+        }
+        return inputFileToValidate;
+    }
 
     /**
      * @return The aggregated SHACL shape model used for the validation.
