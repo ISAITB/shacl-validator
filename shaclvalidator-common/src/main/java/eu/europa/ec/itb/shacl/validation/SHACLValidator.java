@@ -506,9 +506,10 @@ public class SHACLValidator {
                 } catch (JenaException e) {
                     throw new ValidatorException("validator.label.exception.preprocessingError", e, constructQuery);
                 }
-                QueryExecution qexec = QueryExecutionFactory.create(constructQuery, inputModel);
                 Model preprocessedModel = JenaUtil.createMemoryModel();
-                qexec.execConstruct(preprocessedModel);
+                try (QueryExecution qexec = QueryExecutionFactory.create(constructQuery, inputModel)) {
+                    qexec.execConstruct(preprocessedModel);
+                }
                 // check that the processed model is not empty
                 if (preprocessedModel.isEmpty()) {
                     throw new ValidatorException("validator.label.exception.emptyPreprocessingResult", constructQuery);
