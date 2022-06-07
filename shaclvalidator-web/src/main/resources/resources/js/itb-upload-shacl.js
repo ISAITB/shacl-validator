@@ -4,6 +4,7 @@ addListener('REMOVED_EXTERNAL_ARTIFACT_INPUT', externalShapeRemoved);
 addListener('INPUT_CONTENT_TYPE_CHANGED', inputContentTypeChanged);
 addListener('VALIDATION_TYPE_CHANGED', onValidationTypeChanged);
 addListener('RESULTS_LOADED', onResultsLoaded);
+addListener('SUBMIT_STATUS_VALIDATED', onSubmitStatusValidated);
 addContentTypeValidator('queryType', validateQueryInputs);
 
 function onFormReady() {
@@ -14,6 +15,14 @@ function onFormReady() {
         	selectContentTypeElement.add(createOption(labelOptionContentQuery, 'queryType'));
         	createQueryFields();
     	}
+    }
+}
+
+function onSubmitStatusValidated() {
+    if ($('#contentType').val() == "queryType") {
+        $("#query-editor-value").val(getCodeMirrorNative('#query-editor').getDoc().getValue());
+    } else {
+        $("#query-editor-value").val('');
     }
 }
 
@@ -52,7 +61,8 @@ function createQueryFields() {
     }
     fieldContent += ''+
            '<div class="row">'+
-               '<textarea id="query-editor" name="contentQuery" class="form-control"></textarea>'+
+               '<textarea id="query-editor" class="form-control"></textarea>'+
+               '<input id="query-editor-value" name="contentQuery" type="hidden">'+
            '</div>';
     fieldContent = '' +
     '<div class="col-sm-12 hidden" id="queryToValidate">'+
