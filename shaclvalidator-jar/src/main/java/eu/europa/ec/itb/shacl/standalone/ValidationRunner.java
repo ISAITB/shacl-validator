@@ -84,7 +84,7 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
         List<FileInfo> externalShapesList = new ArrayList<>();
         boolean noReports = false;
         boolean cliReports = false;
-        boolean requireType = domainConfig.hasMultipleValidationTypes();
+        boolean requireType = domainConfig.hasMultipleValidationTypes() && domainConfig.getDefaultType() == null;
         Boolean loadImports = null;
         SparqlQueryConfig queryConfig = null;
 
@@ -109,9 +109,6 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
                         } else if (FLAG_VALIDATION_TYPE.equalsIgnoreCase(args[i])) {
                             if (requireType && args.length > i+1) {
                                 type = args[++i];
-                            }
-                            if (!domainConfig.getType().contains(type)) {
-                                throw new IllegalArgumentException("Unknown validation type ["+type+"]");
                             }
                         } else if (FLAG_REPORT_SYNTAX.equalsIgnoreCase(args[i])) {
                             if (args.length > i+1) {
@@ -194,9 +191,7 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
                         }
                         i++;
                     }
-                    if (requireType && type == null) {
-                        throw new ValidatorException("validator.label.exception.unknownValidationType", String.join("|", domainConfig.getType()));
-                    }
+                    type = inputHelper.validateValidationType(domainConfig, type);
                     boolean hasExternalShapes = domainConfig.getShapeInfo(type).getExternalArtifactSupport() != ExternalArtifactSupport.NONE;
                     if (!hasExternalShapes && !externalShapesList.isEmpty()) {
                         throw new ValidatorException("validator.label.exception.externalShapeLoadingNotSupported", type, domainConfig.getDomainName());
@@ -310,6 +305,10 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
         if (domainConfig.hasMultipleValidationTypes()) {
             usageStr.append(String.format(" [%s VALIDATION_TYPE]", FLAG_VALIDATION_TYPE));
             detailsStr.append("\n").append(PAD).append(PAD).append(String.format("- VALIDATION_TYPE is one of [%s].", String.join("|", domainConfig.getType())));
+            String defaultType = domainConfig.getDefaultType();
+            if (defaultType != null) {
+                detailsStr.append("\n").append(PAD).append(PAD).append(String.format("- VALIDATION_TYPE has default value of [%s].", defaultType));
+            }
         }
         if (domainConfig.supportsUserProvidedLoadImports()) {
             usageStr.append(String.format(" [%s LOAD_IMPORTS]", FLAG_LOAD_IMPORTS));
