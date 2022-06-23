@@ -35,6 +35,18 @@
                     </execution>
                 </executions>
             </plugin>
+            <!-- Used to create an executable JAR file. -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
         <finalName>validator</finalName>
     </build>
