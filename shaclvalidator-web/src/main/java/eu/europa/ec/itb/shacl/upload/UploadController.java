@@ -10,6 +10,7 @@ import eu.europa.ec.itb.validation.commons.FileInfo;
 import eu.europa.ec.itb.validation.commons.LocalisationHelper;
 import eu.europa.ec.itb.validation.commons.ReportPair;
 import eu.europa.ec.itb.validation.commons.artifact.ExternalArtifactSupport;
+import eu.europa.ec.itb.validation.commons.config.ErrorResponseTypeEnum;
 import eu.europa.ec.itb.validation.commons.error.ValidatorException;
 import eu.europa.ec.itb.validation.commons.web.BaseUploadController;
 import eu.europa.ec.itb.validation.commons.web.Constants;
@@ -256,6 +257,11 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                 }
                 try (FileWriter out = new FileWriter(fileManager.createFile(parentFolder, extension, FILE_NAME_SHAPES).toFile())) {
                     fileManager.writeRdfModel(out, validator.getAggregatedShapes(), domainConfig.getDefaultReportSyntax());
+                }
+                // Report if needed an error on owl:imports having failed.
+                if (result.getMessage() == null && validator.hasErrorsDuringOwlImports() && domainConfig.getResponseForImportedShapeFailure(validationType) == ErrorResponseTypeEnum.WARN) {
+                    result.setMessage(localisationHelper.localise("validator.label.exception.failureToLoadRemoteArtefacts"));
+                    result.setMessageIsError(false);
                 }
                 // All ok - collect data for the UI.
                 result.populateCommon(localisationHelper, validationType, domainConfig, parentFolder.getName(),
