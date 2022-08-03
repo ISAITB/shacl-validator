@@ -11,23 +11,21 @@ import eu.europa.ec.itb.validation.commons.FileInfo;
 import eu.europa.ec.itb.validation.commons.LocalisationHelper;
 import eu.europa.ec.itb.validation.commons.Utils;
 import eu.europa.ec.itb.validation.commons.config.DomainPluginConfigProvider;
+import eu.europa.ec.itb.validation.commons.config.ErrorResponseTypeEnum;
 import eu.europa.ec.itb.validation.commons.error.ValidatorException;
 import eu.europa.ec.itb.validation.plugin.PluginManager;
 import eu.europa.ec.itb.validation.plugin.ValidationPlugin;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.jena.graph.Triple;
+import org.apache.jena.ontology.OntDocumentManager;
 import org.apache.jena.ontology.OntModel;
 import org.apache.jena.ontology.OntModelSpec;
 import org.apache.jena.query.QueryExecution;
 import org.apache.jena.query.QueryExecutionFactory;
 import org.apache.jena.rdf.model.*;
-import org.apache.jena.rdf.model.impl.StatementImpl;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFLanguages;
 import org.apache.jena.shared.JenaException;
-import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.vocabulary.RDF;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,6 +53,7 @@ public class SHACLValidator {
     /** The URI for result message predicates. */
     public static final String RESULT_MESSAGE_URI = "http://www.w3.org/ns/shacl#resultMessage";
     private static final Logger LOG = LoggerFactory.getLogger(SHACLValidator.class);
+    private static final ThreadLocal<Set<String>> importsResultingInErrors = new ThreadLocal<>();
 
     @Autowired
     private FileManager fileManager = null;
@@ -75,6 +74,7 @@ public class SHACLValidator {
     private Model importedShapes;
     private final boolean loadImports;
     private Model dataModel;
+    private boolean errorsWhileLoadingOwlImports = false;
 
     /**
      * Constructor to start the SHACL validator.
@@ -380,10 +380,40 @@ public class SHACLValidator {
         OntModelSpec spec = new OntModelSpec( OntModelSpec.OWL_MEM_RULE_INF );
         spec.setBaseModelMaker(modelMaker);
         spec.setImportModelMaker(modelMaker);
-        
-        OntModel baseOntModel = ModelFactory.createOntologyModel( spec, aggregateModel );
-        
+
+        importsResultingInErrors.set(new HashSet<>());
+        OntDocumentManager.getInstance().setReadFailureHandler((url, model, e) -> {
+            LOG.warn("Failed to load import [{}]: {}", url, e.getMessage());
+            // Use a thread local because this is a shared default instance.
+            importsResultingInErrors.get().add(url);
+        });
+        OntModel baseOntModel = ModelFactory.createOntologyModel(spec, aggregateModel);
         addIncluded(baseOntModel, reachedURIs);
+        var importsWithErrors = importsResultingInErrors.get();
+        if (!importsWithErrors.isEmpty()) {
+            errorsWhileLoadingOwlImports = true;
+            // Make sure the relevant models are closed, otherwise they are cached and don't result in additional failures, nor retries.
+            importsWithErrors.forEach((uri) -> {
+                var model = OntDocumentManager.getInstance().getModel(uri);
+                if (model != null && !model.isClosed()) {
+                    try {
+                        model.close();
+                    } catch (Exception e) {
+                        // Ignore.
+                    }
+                }
+            });
+            if (domainConfig.getResponseForImportedShapeFailure(validationType) == ErrorResponseTypeEnum.FAIL) {
+                throw new ValidatorException("validator.label.exception.failureToLoadRemoteArtefactsError");
+            }
+        }
+    }
+
+    /**
+     * @return Whether errors were recorded while loading owl:imports.
+     */
+    public boolean hasErrorsDuringOwlImports() {
+        return errorsWhileLoadingOwlImports;
     }
 
     /**

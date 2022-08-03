@@ -3,6 +3,7 @@ package eu.europa.ec.itb.shacl;
 import eu.europa.ec.itb.validation.commons.artifact.ExternalArtifactSupport;
 import eu.europa.ec.itb.validation.commons.artifact.TypedValidationArtifactInfo;
 import eu.europa.ec.itb.validation.commons.artifact.ValidationArtifactInfo;
+import eu.europa.ec.itb.validation.commons.config.ErrorResponseTypeEnum;
 import eu.europa.ec.itb.validation.commons.config.WebDomainConfig;
 
 import java.util.List;
@@ -25,6 +26,31 @@ public class DomainConfig extends WebDomainConfig {
     private String queryPassword;
     private String queryContentType;
     private boolean returnMessagesForAllLocales;
+    private Map<String, ErrorResponseTypeEnum> importedShapeErrorResponse;
+
+    /**
+     * Check how to react to a failure when loading shapes imported via owl:imports.
+     *
+     * @param validationType The validation type to check for.
+     * @return The reaction type.
+     */
+    public ErrorResponseTypeEnum getResponseForImportedShapeFailure(String validationType) {
+        if (validationType == null) {
+            validationType = getDefaultType();
+        }
+        if (validationType == null) {
+            return ErrorResponseTypeEnum.LOG;
+        } else {
+            return importedShapeErrorResponse.computeIfAbsent(validationType, (key) -> ErrorResponseTypeEnum.LOG);
+        }
+    }
+
+    /**
+     * @param importedShapeErrorResponse The configuration per (full) validation type of how to respond to owl:import errors.
+     */
+    public void setImportedShapeErrorResponse(Map<String, ErrorResponseTypeEnum> importedShapeErrorResponse) {
+        this.importedShapeErrorResponse = importedShapeErrorResponse;
+    }
 
     /**
      * @return Whether messages for all defined locales should be included in the SHACL validation report.

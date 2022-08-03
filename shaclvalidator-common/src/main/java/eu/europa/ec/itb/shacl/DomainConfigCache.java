@@ -2,6 +2,8 @@ package eu.europa.ec.itb.shacl;
 
 import eu.europa.ec.itb.validation.commons.ValidatorChannel;
 import eu.europa.ec.itb.validation.commons.artifact.ExternalArtifactSupport;
+import eu.europa.ec.itb.validation.commons.config.ErrorResponseTypeEnum;
+import eu.europa.ec.itb.validation.commons.config.ParseUtils;
 import eu.europa.ec.itb.validation.commons.config.WebDomainConfigCache;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.lang3.StringUtils;
@@ -83,6 +85,10 @@ public class DomainConfigCache extends WebDomainConfigCache<DomainConfig> {
         domainConfig.setDefaultLoadImportsType(parseBooleanMap("validator.loadImports", config, domainConfig.getType(), config.getBoolean("validator.loadImports", false)));
         domainConfig.setUserInputForLoadImportsType(parseEnumMap("validator.input.loadImports", ExternalArtifactSupport.byName(config.getString("validator.input.loadImports", ExternalArtifactSupport.NONE.getName())), config, domainConfig.getType(), ExternalArtifactSupport::byName));
         domainConfig.setReturnMessagesForAllLocales(config.getBoolean("validator.returnMessagesForAllLocales", Boolean.FALSE));
+        // Check how to react to owl:import failures - start
+        var defaultResponseType = ErrorResponseTypeEnum.fromValue(config.getString("validator.owlImportErrors", "log"));
+        domainConfig.setImportedShapeErrorResponse(ParseUtils.parseEnumMap("validator.owlImportErrors", defaultResponseType, config, domainConfig.getType(), ErrorResponseTypeEnum::fromValue));
+        // Check how to react to owl:import failures - end
         addMissingDefaultValues(domainConfig.getWebServiceDescription(), appConfig.getDefaultLabels());
     }
 
