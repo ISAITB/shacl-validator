@@ -390,6 +390,7 @@ public class SHACLValidator {
         OntModel baseOntModel = ModelFactory.createOntologyModel(spec, aggregateModel);
         addIncluded(baseOntModel, reachedURIs);
         var importsWithErrors = importsResultingInErrors.get();
+        importsResultingInErrors.remove();
         if (!importsWithErrors.isEmpty()) {
             errorsWhileLoadingOwlImports = true;
             // Make sure the relevant models are closed, otherwise they are cached and don't result in additional failures, nor retries.
