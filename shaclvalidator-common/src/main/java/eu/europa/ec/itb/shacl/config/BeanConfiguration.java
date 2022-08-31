@@ -5,6 +5,9 @@ import eu.europa.ec.itb.validation.commons.config.DomainPluginConfigProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import javax.annotation.PostConstruct;
+
+
 /**
  * Configure common spring beans.
  */
@@ -21,4 +24,8 @@ public class BeanConfiguration {
         return new DomainPluginConfigProvider<>();
     }
 
+    @PostConstruct
+    public void initialise() {
+//        OntDocumentManager.getInstance().setReadFailureHandler(new CustomReadFailureHandler());
+    }
 }
