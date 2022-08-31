@@ -53,7 +53,6 @@ public class SHACLValidator {
     /** The URI for result message predicates. */
     public static final String RESULT_MESSAGE_URI = "http://www.w3.org/ns/shacl#resultMessage";
     private static final Logger LOG = LoggerFactory.getLogger(SHACLValidator.class);
-    private static final ThreadLocal<Set<String>> importsResultingInErrors = new ThreadLocal<>();
 
     @Autowired
     private FileManager fileManager = null;
@@ -381,16 +380,18 @@ public class SHACLValidator {
         spec.setBaseModelMaker(modelMaker);
         spec.setImportModelMaker(modelMaker);
 
-        importsResultingInErrors.set(new HashSet<>());
-        OntDocumentManager.getInstance().setReadFailureHandler((url, model, e) -> {
-            LOG.warn("Failed to load import [{}]: {}", url, e.getMessage());
-            // Use a thread local because this is a shared default instance.
-            importsResultingInErrors.get().add(url);
-        });
+        Set<String> importsWithErrors = Collections.emptySet();
         OntModel baseOntModel = ModelFactory.createOntologyModel(spec, aggregateModel);
         addIncluded(baseOntModel, reachedURIs);
-        var importsWithErrors = importsResultingInErrors.get();
-        importsResultingInErrors.remove();
+//        CustomReadFailureHandler.IMPORTS_WITH_ERRORS.set(new HashSet<>());
+//        Set<String> importsWithErrors;
+//        try {
+//            OntModel baseOntModel = ModelFactory.createOntologyModel(spec, aggregateModel);
+//            addIncluded(baseOntModel, reachedURIs);
+//            importsWithErrors = new HashSet<>(CustomReadFailureHandler.IMPORTS_WITH_ERRORS.get());
+//        } finally {
+//            CustomReadFailureHandler.IMPORTS_WITH_ERRORS.remove();
+//        }
         if (!importsWithErrors.isEmpty()) {
             errorsWhileLoadingOwlImports = true;
             // Make sure the relevant models are closed, otherwise they are cached and don't result in additional failures, nor retries.
