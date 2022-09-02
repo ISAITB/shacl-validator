@@ -17,6 +17,7 @@ import java.io.InputStream;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.security.NoSuchAlgorithmException;
+import java.util.Set;
 
 import static org.apache.jena.http.HttpEnv.httpClientBuilder;
 
@@ -28,6 +29,7 @@ import static org.apache.jena.http.HttpEnv.httpClientBuilder;
  */
 public class CustomLocatorHTTP extends LocatorHTTP {
 
+    public static final ThreadLocal<Set<String>> URIS_TO_SKIP = new ThreadLocal<>();
     private static final Logger LOG = LoggerFactory.getLogger(CustomLocatorHTTP.class);
 
     /**
@@ -37,24 +39,28 @@ public class CustomLocatorHTTP extends LocatorHTTP {
     public TypedInputStream performOpen(String uri) {
         TypedInputStream result = null;
         if (uri.startsWith("http://") || uri.startsWith("https://")) {
-            HttpRequest.Builder builder = HttpLib.requestBuilderFor(uri).uri(HttpLib.toRequestURI(uri)).GET();
-            builder.header(HttpNames.hAccept, WebContent.defaultRDFAcceptHeader);
-            var request = builder.build();
-            HttpResponse<InputStream> response;
-            try {
-                LOG.debug("Sending request to [{}]", uri);
-                response = httpClientBuilder()
-                        .sslContext(SSLContext.getInstance(SSLContext.getDefault().getProtocol()))
-                        .build().send(request, HttpResponse.BodyHandlers.ofInputStream());
-                // Ensure we fully consume the response to avoid any blocked threads.
-                var bos = new ByteArrayOutputStream();
-                IOUtils.copy(response.body(), bos);
-                HttpLib.handleHttpStatusCode(response);
-                result = new TypedInputStream(new ByteArrayInputStream(bos.toByteArray()), HttpLib.responseHeader(response, HttpNames.hContentType));
-            } catch (IOException | InterruptedException | NoSuchAlgorithmException e) {
-                throw new IllegalStateException(String.format("Unexpected error while reading URI [%s]", uri), e);
-            } finally {
-                LOG.debug("Received response from [{}]", uri);
+            if (URIS_TO_SKIP.get().contains(uri)) {
+                LOG.debug("Skipped URI {}", uri);
+            } else {
+                HttpRequest.Builder builder = HttpLib.requestBuilderFor(uri).uri(HttpLib.toRequestURI(uri)).GET();
+                builder.header(HttpNames.hAccept, WebContent.defaultRDFAcceptHeader);
+                var request = builder.build();
+                HttpResponse<InputStream> response;
+                try {
+                    LOG.debug("Sending request to [{}]", uri);
+                    response = httpClientBuilder()
+                            .sslContext(SSLContext.getInstance(SSLContext.getDefault().getProtocol()))
+                            .build().send(request, HttpResponse.BodyHandlers.ofInputStream());
+                    // Ensure we fully consume the response to avoid any blocked threads.
+                    var bos = new ByteArrayOutputStream();
+                    IOUtils.copy(response.body(), bos);
+                    HttpLib.handleHttpStatusCode(response);
+                    result = new TypedInputStream(new ByteArrayInputStream(bos.toByteArray()), HttpLib.responseHeader(response, HttpNames.hContentType));
+                } catch (IOException | InterruptedException | NoSuchAlgorithmException e) {
+                    throw new IllegalStateException(String.format("Unexpected error while reading URI [%s]", uri), e);
+                } finally {
+                    LOG.debug("Received response from [{}]", uri);
+                }
             }
         }
         return result;

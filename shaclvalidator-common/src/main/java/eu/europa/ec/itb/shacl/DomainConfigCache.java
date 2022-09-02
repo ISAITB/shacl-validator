@@ -90,6 +90,7 @@ public class DomainConfigCache extends WebDomainConfigCache<DomainConfig> {
         var defaultResponseType = ErrorResponseTypeEnum.fromValue(config.getString("validator.owlImportErrors", "log"));
         domainConfig.setImportedShapeErrorResponse(ParseUtils.parseEnumMap("validator.owlImportErrors", defaultResponseType, config, domainConfig.getType(), ErrorResponseTypeEnum::fromValue));
         domainConfig.setUrisToIgnoreForImportErrors(new HashSet<>(Arrays.asList(StringUtils.split(config.getString("validator.owlImportErrorsIgnoredUris", ""), ","))));
+        domainConfig.setUrisToSkipWhenImporting(new HashSet<>(Arrays.asList(StringUtils.split(config.getString("validator.owlImportSkippedUris", ""), ","))));
         // Check how to react to owl:import failures - end
         addMissingDefaultValues(domainConfig.getWebServiceDescription(), appConfig.getDefaultLabels());
     }

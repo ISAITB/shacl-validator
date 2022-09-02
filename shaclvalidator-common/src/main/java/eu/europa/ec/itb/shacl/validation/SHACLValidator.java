@@ -7,6 +7,7 @@ import com.gitb.vs.ValidationResponse;
 import eu.europa.ec.itb.shacl.DomainConfig;
 import eu.europa.ec.itb.shacl.ExtendedValidatorException;
 import eu.europa.ec.itb.shacl.ModelPair;
+import eu.europa.ec.itb.shacl.config.CustomLocatorHTTP;
 import eu.europa.ec.itb.shacl.util.StatementTranslator;
 import eu.europa.ec.itb.validation.commons.FileInfo;
 import eu.europa.ec.itb.validation.commons.LocalisationHelper;
@@ -384,6 +385,7 @@ public class SHACLValidator {
         spec.setBaseModelMaker(modelMaker);
         spec.setImportModelMaker(modelMaker);
 
+        CustomLocatorHTTP.URIS_TO_SKIP.set(domainConfig.getUrisToSkipWhenImporting());
         CustomReadFailureHandler.IMPORTS_WITH_ERRORS.set(new LinkedHashSet<>());
         Set<Pair<String, String>> importsWithErrors;
         try {
@@ -392,13 +394,21 @@ public class SHACLValidator {
             importsWithErrors = CustomReadFailureHandler.IMPORTS_WITH_ERRORS.get();
         } finally {
             CustomReadFailureHandler.IMPORTS_WITH_ERRORS.remove();
+            CustomLocatorHTTP.URIS_TO_SKIP.remove();
         }
 
         if (!importsWithErrors.isEmpty()) {
             // Make sure the relevant models are closed, otherwise they are cached and don't result in additional failures, nor retries.
             var informationMessages = new ArrayList<String>();
-            importsWithErrors.forEach((errorInfo) -> {
-                informationMessages.add(String.format("URI [%s] produced error [%s]", errorInfo.getKey(), errorInfo.getValue()));
+            for (var errorInfo: importsWithErrors) {
+                if (!domainConfig.getUrisToSkipWhenImporting().contains(errorInfo.getKey())) {
+                    LOG.warn("Failed to load import [{}]: {}", errorInfo.getKey(), errorInfo.getValue());
+                    informationMessages.add(String.format("URI [%s] produced error [%s]", errorInfo.getKey(), errorInfo.getValue()));
+                    if (!domainConfig.getUrisToIgnoreForImportErrors().contains(errorInfo.getKey())) {
+                        errorsWhileLoadingOwlImportsToReport = true;
+                    }
+                }
+                // Close the relevant model so that we don't cache an error response.
                 var model = OntDocumentManager.getInstance().getModel(errorInfo.getKey());
                 if (model != null && !model.isClosed()) {
                     try {
@@ -407,9 +417,8 @@ public class SHACLValidator {
                         // Ignore.
                     }
                 }
-            });
+            }
             errorsWhileLoadingOwlImports.addAll(informationMessages);
-            errorsWhileLoadingOwlImportsToReport = errorsWhileLoadingOwlImportsToReport || !domainConfig.getUrisToIgnoreForImportErrors().containsAll(importsWithErrors.stream().map(Pair::getKey).collect(Collectors.toList()));
             if (errorsWhileLoadingOwlImportsToReport && domainConfig.getResponseForImportedShapeFailure(validationType) == ErrorResponseTypeEnum.FAIL) {
                 throw new ExtendedValidatorException("validator.label.exception.failureToLoadRemoteArtefactsError", informationMessages);
             }
