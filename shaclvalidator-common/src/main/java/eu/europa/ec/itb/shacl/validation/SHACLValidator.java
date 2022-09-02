@@ -5,6 +5,7 @@ import com.gitb.tr.TestAssertionReportType;
 import com.gitb.vs.ValidateRequest;
 import com.gitb.vs.ValidationResponse;
 import eu.europa.ec.itb.shacl.DomainConfig;
+import eu.europa.ec.itb.shacl.ExtendedValidatorException;
 import eu.europa.ec.itb.shacl.ModelPair;
 import eu.europa.ec.itb.shacl.util.StatementTranslator;
 import eu.europa.ec.itb.validation.commons.FileInfo;
@@ -17,6 +18,7 @@ import eu.europa.ec.itb.validation.plugin.PluginManager;
 import eu.europa.ec.itb.validation.plugin.ValidationPlugin;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.jena.ontology.OntDocumentManager;
 import org.apache.jena.ontology.OntModel;
 import org.apache.jena.ontology.OntModelSpec;
@@ -38,6 +40,7 @@ import org.topbraid.shacl.validation.ValidationUtil;
 import javax.xml.bind.JAXBElement;
 import java.io.*;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static eu.europa.ec.itb.shacl.validation.SHACLResources.VALIDATION_REPORT;
 
@@ -73,7 +76,8 @@ public class SHACLValidator {
     private Model importedShapes;
     private final boolean loadImports;
     private Model dataModel;
-    private boolean errorsWhileLoadingOwlImports = false;
+    private final List<String> errorsWhileLoadingOwlImports = new ArrayList<>();
+    private boolean errorsWhileLoadingOwlImportsToReport = false;
 
     /**
      * Constructor to start the SHACL validator.
@@ -380,23 +384,22 @@ public class SHACLValidator {
         spec.setBaseModelMaker(modelMaker);
         spec.setImportModelMaker(modelMaker);
 
-        Set<String> importsWithErrors = Collections.emptySet();
-        OntModel baseOntModel = ModelFactory.createOntologyModel(spec, aggregateModel);
-        addIncluded(baseOntModel, reachedURIs);
-//        CustomReadFailureHandler.IMPORTS_WITH_ERRORS.set(new HashSet<>());
-//        Set<String> importsWithErrors;
-//        try {
-//            OntModel baseOntModel = ModelFactory.createOntologyModel(spec, aggregateModel);
-//            addIncluded(baseOntModel, reachedURIs);
-//            importsWithErrors = new HashSet<>(CustomReadFailureHandler.IMPORTS_WITH_ERRORS.get());
-//        } finally {
-//            CustomReadFailureHandler.IMPORTS_WITH_ERRORS.remove();
-//        }
+        CustomReadFailureHandler.IMPORTS_WITH_ERRORS.set(new LinkedHashSet<>());
+        Set<Pair<String, String>> importsWithErrors;
+        try {
+            OntModel baseOntModel = ModelFactory.createOntologyModel(spec, aggregateModel);
+            addIncluded(baseOntModel, reachedURIs);
+            importsWithErrors = CustomReadFailureHandler.IMPORTS_WITH_ERRORS.get();
+        } finally {
+            CustomReadFailureHandler.IMPORTS_WITH_ERRORS.remove();
+        }
+
         if (!importsWithErrors.isEmpty()) {
-            errorsWhileLoadingOwlImports = true;
             // Make sure the relevant models are closed, otherwise they are cached and don't result in additional failures, nor retries.
-            importsWithErrors.forEach((uri) -> {
-                var model = OntDocumentManager.getInstance().getModel(uri);
+            var informationMessages = new ArrayList<String>();
+            importsWithErrors.forEach((errorInfo) -> {
+                informationMessages.add(String.format("URI [%s] produced error [%s]", errorInfo.getKey(), errorInfo.getValue()));
+                var model = OntDocumentManager.getInstance().getModel(errorInfo.getKey());
                 if (model != null && !model.isClosed()) {
                     try {
                         model.close();
@@ -405,16 +408,32 @@ public class SHACLValidator {
                     }
                 }
             });
-            if (domainConfig.getResponseForImportedShapeFailure(validationType) == ErrorResponseTypeEnum.FAIL) {
-                throw new ValidatorException("validator.label.exception.failureToLoadRemoteArtefactsError");
+            errorsWhileLoadingOwlImports.addAll(informationMessages);
+            errorsWhileLoadingOwlImportsToReport = errorsWhileLoadingOwlImportsToReport || !domainConfig.getUrisToIgnoreForImportErrors().containsAll(importsWithErrors.stream().map(Pair::getKey).collect(Collectors.toList()));
+            if (errorsWhileLoadingOwlImportsToReport && domainConfig.getResponseForImportedShapeFailure(validationType) == ErrorResponseTypeEnum.FAIL) {
+                throw new ExtendedValidatorException("validator.label.exception.failureToLoadRemoteArtefactsError", informationMessages);
             }
         }
+    }
+
+    /**
+     * @return Whether errors were recorded while loading owl:imports that must be reported.
+     */
+    public boolean hasErrorsWhileLoadingOwlImportsToReport() {
+        return errorsWhileLoadingOwlImportsToReport;
     }
 
     /**
      * @return Whether errors were recorded while loading owl:imports.
      */
     public boolean hasErrorsDuringOwlImports() {
+        return !errorsWhileLoadingOwlImports.isEmpty();
+    }
+
+    /**
+     * @return The list of produced errors while loading owl:imports.
+     */
+    public List<String> getErrorsWhileLoadingOwlImports() {
         return errorsWhileLoadingOwlImports;
     }
 

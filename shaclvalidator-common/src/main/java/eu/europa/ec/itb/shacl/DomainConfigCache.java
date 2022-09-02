@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.stream.Collectors;
 
 import static eu.europa.ec.itb.validation.commons.config.ParseUtils.*;
@@ -88,6 +89,7 @@ public class DomainConfigCache extends WebDomainConfigCache<DomainConfig> {
         // Check how to react to owl:import failures - start
         var defaultResponseType = ErrorResponseTypeEnum.fromValue(config.getString("validator.owlImportErrors", "log"));
         domainConfig.setImportedShapeErrorResponse(ParseUtils.parseEnumMap("validator.owlImportErrors", defaultResponseType, config, domainConfig.getType(), ErrorResponseTypeEnum::fromValue));
+        domainConfig.setUrisToIgnoreForImportErrors(new HashSet<>(Arrays.asList(StringUtils.split(config.getString("validator.owlImportErrorsIgnoredUris", ""), ","))));
         // Check how to react to owl:import failures - end
         addMissingDefaultValues(domainConfig.getWebServiceDescription(), appConfig.getDefaultLabels());
     }

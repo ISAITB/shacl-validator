@@ -18,6 +18,7 @@ import eu.europa.ec.itb.validation.commons.web.KeyWithLabel;
 import eu.europa.ec.itb.validation.commons.web.locale.CustomLocaleResolver;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFLanguages;
 import org.slf4j.Logger;
@@ -259,15 +260,24 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                     fileManager.writeRdfModel(out, validator.getAggregatedShapes(), domainConfig.getDefaultReportSyntax());
                 }
                 // Report if needed an error on owl:imports having failed.
-                if (result.getMessage() == null && validator.hasErrorsDuringOwlImports() && domainConfig.getResponseForImportedShapeFailure(validationType) == ErrorResponseTypeEnum.WARN) {
-                    result.setMessage(localisationHelper.localise("validator.label.exception.failureToLoadRemoteArtefacts"));
-                    result.setMessageIsError(false);
+                if (validator.hasErrorsDuringOwlImports()) {
+                    // We always add the error messages as they will be included as (hidden) additional input.
+                    result.setAdditionalErrorMessages(validator.getErrorsWhileLoadingOwlImports());
+                    if (validator.hasErrorsWhileLoadingOwlImportsToReport() && result.getMessage() == null && domainConfig.getResponseForImportedShapeFailure(validationType) == ErrorResponseTypeEnum.WARN) {
+                        result.setMessage(localisationHelper.localise("validator.label.exception.failureToLoadRemoteArtefacts"));
+                        result.setMessageIsError(false);
+                    }
                 }
                 // All ok - collect data for the UI.
                 result.populateCommon(localisationHelper, validationType, domainConfig, parentFolder.getName(),
                         fileName, tarReport.getDetailedReport(), tarReport.getAggregateReport(),
                         prepareTranslations(localisationHelper, tarReport.getDetailedReport(), domainConfig));
             }
+        } catch (ExtendedValidatorException e) {
+            logger.error(e.getMessageForLog(), e);
+            result.setMessage(e.getMessageForDisplay(localisationHelper));
+            result.setAdditionalErrorMessages(e.getAdditionalInformation());
+            forceCleanup = true;
         } catch (ValidatorException e) {
             logger.error(e.getMessageForLog(), e);
             result.setMessage(e.getMessageForDisplay(localisationHelper));
