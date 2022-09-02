@@ -29,6 +29,7 @@ public class DomainConfig extends WebDomainConfig {
     private boolean returnMessagesForAllLocales;
     private Map<String, ErrorResponseTypeEnum> importedShapeErrorResponse;
     private Set<String> urisToIgnoreForImportErrors;
+    private Set<String> urisToSkipWhenImporting;
 
     /**
      * @return The URIs to ignore for import errors.
@@ -42,6 +43,20 @@ public class DomainConfig extends WebDomainConfig {
      */
     public void setUrisToIgnoreForImportErrors(Set<String> urisToIgnoreForImportErrors) {
         this.urisToIgnoreForImportErrors = urisToIgnoreForImportErrors;
+    }
+
+    /**
+     * @return The URIs that should be skipped when found in owl:imports.
+     */
+    public Set<String> getUrisToSkipWhenImporting() {
+        return urisToSkipWhenImporting;
+    }
+
+    /**
+     * @param urisToSkipWhenImporting The URIs that should be skipped when found in owl:imports.
+     */
+    public void setUrisToSkipWhenImporting(Set<String> urisToSkipWhenImporting) {
+        this.urisToSkipWhenImporting = urisToSkipWhenImporting;
     }
 
     /**
