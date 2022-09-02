@@ -42,7 +42,7 @@ public class CustomLocatorHTTP extends LocatorHTTP {
             var request = builder.build();
             HttpResponse<InputStream> response;
             try {
-                LOG.info("Sending request to [{}]", uri);
+                LOG.debug("Sending request to [{}]", uri);
                 response = httpClientBuilder()
                         .sslContext(SSLContext.getInstance(SSLContext.getDefault().getProtocol()))
                         .build().send(request, HttpResponse.BodyHandlers.ofInputStream());
@@ -54,7 +54,7 @@ public class CustomLocatorHTTP extends LocatorHTTP {
             } catch (IOException | InterruptedException | NoSuchAlgorithmException e) {
                 throw new IllegalStateException(String.format("Unexpected error while reading URI [%s]", uri), e);
             } finally {
-                LOG.info("Received response from [{}]", uri);
+                LOG.debug("Received response from [{}]", uri);
             }
         }
         return result;
