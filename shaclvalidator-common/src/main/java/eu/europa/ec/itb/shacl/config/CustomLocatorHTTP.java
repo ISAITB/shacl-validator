@@ -57,6 +57,7 @@ public class CustomLocatorHTTP extends LocatorHTTP {
                     HttpLib.handleHttpStatusCode(response);
                     result = new TypedInputStream(new ByteArrayInputStream(bos.toByteArray()), HttpLib.responseHeader(response, HttpNames.hContentType));
                 } catch (IOException | InterruptedException | NoSuchAlgorithmException e) {
+                    Thread.currentThread().interrupt();
                     throw new IllegalStateException(String.format("Unexpected error while reading URI [%s]", uri), e);
                 } finally {
                     LOG.debug("Received response from [{}]", uri);
