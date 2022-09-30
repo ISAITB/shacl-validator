@@ -12,6 +12,8 @@ public class StatisticReportingConstants {
 
     /** The web API. */
     public static final String WEB_API = "web";
+    /** The web (minimal) API. */
+    public static final String WEB_MINIMAL_API = "web_minimal";
     /** The SOAP API. */
     public static final String SOAP_API = "soap";
     /** The REST API. */

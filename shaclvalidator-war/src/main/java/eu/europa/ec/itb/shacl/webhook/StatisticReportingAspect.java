@@ -59,14 +59,34 @@ public class StatisticReportingAspect extends StatisticReporting {
     private void embeddedUploadValidation(){}
 
     /**
+     * Advice to obtain the arguments passed to the web upload API call (minimal UI).
+     *
+     * @param joinPoint The original call's information.
+     */
+    @Before("minimalUploadValidation() || minimalEmbeddedUploadValidation()")
+    public void getUploadMinimalContext(JoinPoint joinPoint) {
+        handleUploadContext(joinPoint, StatisticReportingConstants.WEB_MINIMAL_API);
+    }
+
+    /**
      * Advice to obtain the arguments passed to the web upload API call.
      *
      * @param joinPoint The original call's information.
      */
-    @Before("minimalUploadValidation() || uploadValidation() || minimalEmbeddedUploadValidation() || embeddedUploadValidation()")
+    @Before("uploadValidation() || embeddedUploadValidation()")
     public void getUploadContext(JoinPoint joinPoint) {
+        handleUploadContext(joinPoint, StatisticReportingConstants.WEB_API);
+    }
+
+    /**
+     * Common advice processing for all web UIs.
+     *
+     * @param joinPoint The relevant join point.
+     * @param api The specific API type.
+     */
+    private void handleUploadContext(JoinPoint joinPoint, String api) {
         Map<String, String> contextParams = new HashMap<>();
-        contextParams.put("api", StatisticReportingConstants.WEB_API);
+        contextParams.put("api", api);
         if(config.getWebhook().isStatisticsEnableCountryDetection()){
             HttpServletRequest request = getHttpRequest(joinPoint);
             if(request != null){
