@@ -17,6 +17,7 @@ import java.io.InputStream;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.security.NoSuchAlgorithmException;
+import java.util.HashSet;
 import java.util.Set;
 
 import static org.apache.jena.http.HttpEnv.httpClientBuilder;
@@ -33,6 +34,19 @@ public class CustomLocatorHTTP extends LocatorHTTP {
     private static final Logger LOG = LoggerFactory.getLogger(CustomLocatorHTTP.class);
 
     /**
+     * Convert URI string to an HTTP request.
+     *
+     * @param uri The URI.
+     * @return The request.
+     */
+    private HttpRequest toRequest(String uri) {
+        return HttpLib.requestBuilderFor(uri).uri(HttpLib.toRequestURI(uri))
+            .GET()
+            .header(HttpNames.hAccept, WebContent.defaultRDFAcceptHeader)
+            .build();
+    }
+
+    /**
      * {@inheritDoc}
      */
     @Override
@@ -42,15 +56,24 @@ public class CustomLocatorHTTP extends LocatorHTTP {
             if (URIS_TO_SKIP.get().contains(uri)) {
                 LOG.debug("Skipped URI {}", uri);
             } else {
-                HttpRequest.Builder builder = HttpLib.requestBuilderFor(uri).uri(HttpLib.toRequestURI(uri)).GET();
-                builder.header(HttpNames.hAccept, WebContent.defaultRDFAcceptHeader);
-                var request = builder.build();
                 HttpResponse<InputStream> response;
+                var attemptedUrls = new HashSet<String>();
+                var uriToUse = uri;
                 try {
-                    LOG.debug("Sending request to [{}]", uri);
-                    response = httpClientBuilder()
+                    var client = httpClientBuilder()
                             .sslContext(SSLContext.getInstance(SSLContext.getDefault().getProtocol()))
-                            .build().send(request, HttpResponse.BodyHandlers.ofInputStream());
+                            .build();
+                    do {
+                        LOG.debug("Sending request to [{}]", uriToUse);
+                        attemptedUrls.add(uriToUse);
+                        response = client.send(toRequest(uriToUse), HttpResponse.BodyHandlers.ofInputStream());
+                        if (response.statusCode() >= 300 && response.statusCode() <= 399) {
+                            var nextLocation = response.headers().firstValue("Location");
+                            if (nextLocation.isPresent()) {
+                                uriToUse = nextLocation.get();
+                            }
+                        }
+                    } while (!attemptedUrls.contains(uriToUse));
                     // Ensure we fully consume the response to avoid any blocked threads.
                     var bos = new ByteArrayOutputStream();
                     IOUtils.copy(response.body(), bos);
