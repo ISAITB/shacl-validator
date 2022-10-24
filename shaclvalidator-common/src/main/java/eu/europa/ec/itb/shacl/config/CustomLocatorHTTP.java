@@ -69,6 +69,9 @@ public class CustomLocatorHTTP extends LocatorHTTP {
                         response = client.send(toRequest(uriToUse), HttpResponse.BodyHandlers.ofInputStream());
                         if (response.statusCode() >= 300 && response.statusCode() <= 399) {
                             var nextLocation = response.headers().firstValue("Location");
+                            if (nextLocation.isEmpty()) {
+                                nextLocation = response.headers().firstValue("location");
+                            }
                             if (nextLocation.isPresent()) {
                                 uriToUse = nextLocation.get();
                             }
