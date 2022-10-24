@@ -93,4 +93,9 @@ public class CustomLocatorHTTP extends LocatorHTTP {
         return result;
     }
 
+    @Override
+    public String getName() {
+        return "CustomLocatorHTTP" ;
+    }
+
 }
