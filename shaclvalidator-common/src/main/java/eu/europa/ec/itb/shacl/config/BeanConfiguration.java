@@ -5,7 +5,9 @@ import eu.europa.ec.itb.shacl.validation.CustomReadFailureHandler;
 import eu.europa.ec.itb.validation.commons.config.DomainPluginConfigProvider;
 import org.apache.jena.ontology.OntDocumentManager;
 import org.apache.jena.riot.adapters.AdapterFileManager;
-import org.apache.jena.riot.system.stream.LocatorHTTP;
+import org.apache.jena.riot.system.stream.LocatorClassLoader;
+import org.apache.jena.riot.system.stream.LocatorFTP;
+import org.apache.jena.riot.system.stream.LocatorFile;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -32,11 +34,11 @@ public class BeanConfiguration {
     public void initialise() {
         // Setup FileManager.
         var fileManager = AdapterFileManager.get();
-        fileManager.getStreamManager().locators().stream()
-                .filter(locator -> locator instanceof LocatorHTTP)
-                .findFirst()
-                .ifPresent(locator -> fileManager.getStreamManager().remove(locator));
-        fileManager.getStreamManager().addLocator(new CustomLocatorHTTP());
+        fileManager.getStreamManager().clearLocators();
+        fileManager.getStreamManager().addLocator(new LocatorFile()) ;
+        fileManager.getStreamManager().addLocator(new CustomLocatorHTTP()) ;
+        fileManager.getStreamManager().addLocator(new LocatorFTP()) ;
+        fileManager.getStreamManager().addLocator(new LocatorClassLoader(fileManager.getStreamManager().getClass().getClassLoader())) ;
         fileManager.setModelCaching(true);
         // Setup OntDocumentManager.
         var ontDocumentManager = OntDocumentManager.getInstance();
