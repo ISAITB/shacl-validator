@@ -73,6 +73,11 @@ public class RestValidationController extends BaseRestController<DomainConfig, A
     @Value("${validator.hydraRootPath}")
     private String hydraRootPath;
 
+    @Override
+    protected Set<String> getSupportedReportTypes() {
+        return acceptedHeaderAcceptTypes;
+    }
+
     /**
      * Service to trigger one validation for the provided input and settings.
      *
@@ -87,7 +92,7 @@ public class RestValidationController extends BaseRestController<DomainConfig, A
     @ApiResponse(responseCode = "200", description = "Success (for successful validation)", content = @Content)
     @ApiResponse(responseCode = "500", description = "Error (If a problem occurred with processing the request)", content = @Content)
     @ApiResponse(responseCode = "404", description = "Not found (for an invalid domain value)", content = @Content)
-    @PostMapping(value = "/{domain}/api/validate", consumes = {MediaType.APPLICATION_JSON_VALUE, "application/ld+json"})
+    @PostMapping(value = "/{domain}/api/validate", consumes = {MediaType.APPLICATION_JSON_VALUE, "application/ld+json"}, produces = { "application/ld+json", "application/rdf+xml", "text/turtle", "application/n-triples", MediaType.APPLICATION_XML_VALUE, MediaType.TEXT_XML_VALUE, MediaType.APPLICATION_JSON_VALUE})
     public ResponseEntity<StreamingResponseBody> validate(
             @Parameter(required = true, name = "domain", description = "A fixed value corresponding to the specific validation domain.")
             @PathVariable("domain") String domain,
@@ -96,7 +101,7 @@ public class RestValidationController extends BaseRestController<DomainConfig, A
             HttpServletRequest request
     ) {
         DomainConfig domainConfig = validateDomain(domain);
-        var reportSyntax = getValidationReportSyntax(in.getReportSyntax(), getFirstSupportedAcceptHeader(request), domainConfig.getDefaultReportSyntax());
+        var reportSyntax = getValidationReportSyntax(in.getReportSyntax(), getAcceptHeader(request, domainConfig.getDefaultReportSyntax()));
         /*
          * Important: We call executeValidationProcess here and not in the return statement because the StreamingResponseBody
          * uses a separate thread. Doing so would break the ThreadLocal used in the statistics reporting.
@@ -106,8 +111,11 @@ public class RestValidationController extends BaseRestController<DomainConfig, A
                 .contentType(reportSyntax)
                 .body(outputStream -> {
                     if (MediaType.APPLICATION_XML.equals(reportSyntax) || MediaType.TEXT_XML.equals(reportSyntax)) {
-                        // This is a GITB TRL report.
+                        // GITB TRL report (XML format).
                         fileManager.saveReport(createTAR(in, result, domainConfig), outputStream, domainConfig);
+                    } else if (MediaType.APPLICATION_JSON.equals(reportSyntax)) {
+                        // GITB TRL report (JSON format).
+                        writeReportAsJson(outputStream, createTAR(in, result, domainConfig), domainConfig);
                     } else {
                         // SHACL validation report.
                         fileManager.writeRdfModel(outputStream, result.getReport(), reportSyntax.toString());
@@ -153,26 +161,6 @@ public class RestValidationController extends BaseRestController<DomainConfig, A
     }
 
     /**
-     * Scan the HTTP request and return the first ACCEPT header that is accepted as a syntax for the produced
-     * validation report.
-     *
-     * @param request The HTTP request.
-     * @return The value (or null if not found).
-     */
-    private String getFirstSupportedAcceptHeader(HttpServletRequest request) {
-        Enumeration<String> headerValues = request.getHeaders(HttpHeaders.ACCEPT);
-        while (headerValues.hasMoreElements()) {
-            String acceptHeader = headerValues.nextElement();
-            for (String acceptableValue: acceptedHeaderAcceptTypes) {
-                if (acceptHeader.contains(acceptableValue)) {
-                    return acceptableValue;
-                }
-            }
-        }
-        return null;
-    }
-
-    /**
      * Validate the provided value as a validation report syntax.
      *
      * @param reportSyntax The value to check.
@@ -180,7 +168,7 @@ public class RestValidationController extends BaseRestController<DomainConfig, A
      */
     private MediaType validReportSyntax(String reportSyntax) {
         var mediaType = MediaType.parseMediaType(reportSyntax);
-        if (!MediaType.APPLICATION_XML.equals(mediaType) && !MediaType.TEXT_XML.equals(mediaType)) {
+        if (!MediaType.APPLICATION_XML.equals(mediaType) && !MediaType.TEXT_XML.equals(mediaType) && !MediaType.APPLICATION_JSON.equals(mediaType)) {
             if (RDFLanguages.contentTypeToLang(reportSyntax.toLowerCase()) == null) {
                 return null;
             }
@@ -193,22 +181,15 @@ public class RestValidationController extends BaseRestController<DomainConfig, A
      *
      * @param inputReportSyntax Report syntax from the Input data.
      * @param acceptHeader Report syntax from the Header.
-     * @param defaultReportSyntax Default report syntax.
      * @return Report syntax as a media type instance.
      */
-    private MediaType getValidationReportSyntax(String inputReportSyntax, String acceptHeader, String defaultReportSyntax) {
+    private MediaType getValidationReportSyntax(String inputReportSyntax, String acceptHeader) {
         // Consider first the report syntax requested as part of the input properties.
         if (inputReportSyntax == null) {
             // If unspecified consider the first acceptable syntax from the Accept header.
             inputReportSyntax = acceptHeader;
         }
-        MediaType reportSyntax;
-        if (inputReportSyntax == null) {
-            // No syntax specified by client - use the configuration default.
-            reportSyntax = MediaType.parseMediaType(defaultReportSyntax);
-        } else {
-            reportSyntax = validReportSyntax(inputReportSyntax);
-        }
+        var reportSyntax = validReportSyntax(inputReportSyntax);
         if (reportSyntax == null) {
             // The requested syntax is invalid.
             throw new ValidatorException("validator.label.exception.reportSyntaxNotSupported", inputReportSyntax);
@@ -308,17 +289,20 @@ public class RestValidationController extends BaseRestController<DomainConfig, A
             HttpServletRequest request
     ) {
         DomainConfig domainConfig = validateDomain(domain);
-        String acceptHeader = getFirstSupportedAcceptHeader(request);
-
+        String acceptHeader = getAcceptHeader(request, domainConfig.getDefaultReportSyntax());
         Output[] outputs = new Output[inputs.length];
         int i = 0;
         for (Input input: inputs) {
             Output output = new Output();
-            var reportSyntax = getValidationReportSyntax(input.getReportSyntax(), acceptHeader, domainConfig.getDefaultReportSyntax());
+            var reportSyntax = getValidationReportSyntax(input.getReportSyntax(), acceptHeader);
+            if (MediaType.APPLICATION_JSON.equals(reportSyntax)) {
+                // We don't support a JSON GITB TRL when validating multiple inputs.
+                reportSyntax = MediaType.APPLICATION_XML;
+            }
             // Start validation process of the Input
             var result = executeValidationProcess(input, domainConfig);
             if (MediaType.APPLICATION_XML.equals(reportSyntax) || MediaType.TEXT_XML.equals(reportSyntax)) {
-                // This is a GITB TRL report.
+                // GITB TRL report (XML format).
                 try (var bos = new ByteArrayOutputStream()) {
                     fileManager.saveReport(createTAR(input, result, domainConfig), bos, domainConfig);
                     output.setReport(Base64.getEncoder().encodeToString(bos.toByteArray()));
