@@ -24,7 +24,7 @@ public class Input {
     private String validationType;
     @Schema(description = "A SPARQL CONSTRUCT query that will be executed on the resulting SHACL validation report as a post-processing step. If provided, the result of this query will replace the SHACL validation report in the service's output.")
     private String reportQuery;
-    @Schema(description = "The mime type for the validation report syntax (e.g. \"application/ld+json\", \"application/rdf+xml\", \"text/turtle\", \"application/n-triples\"). If none is provided \"application/rdf+xml\" is considered as the default, unless a different syntax is configured for the domain in question. Note that specifying \"application/xml\" or \"text/xml\" will produce the report in the GITB TRL syntax.")
+    @Schema(description = "The mime type for the validation report syntax. Providing an RDF mime type (\"application/ld+json\", \"application/rdf+xml\", \"text/turtle\", \"application/n-triples\") will produce a SHACL validation report. Specifying \"application/xml\", \"text/xml\" or \"application/json\" will produce the report in the GITB TRL syntax (in XML or JSON). If no syntax is provided \"application/rdf+xml\" is considered as the default, unless a different syntax is configured for the domain in question.")
     private String reportSyntax;
     @Schema(description = "Any shapes to consider that are externally provided (i.e. provided at the time of the call).")
     private List<RuleSet> externalRules;
