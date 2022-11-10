@@ -48,8 +48,6 @@ public class Input {
     private Boolean addRdfReportToReport;
     @Schema(description = "In case a GITB TRL report is requested (see reportSyntax), and the SHACL validation report is set to be included in GITB TRL report's context section, this is the mime type to use for the SHACL validation report. If returning a SHACL validation report this input is ignored.")
     private String rdfReportSyntax;
-    @Schema(description = "In case a GITB TRL report is requested (see reportSyntax), and the SHACL validation report is set to be included in GITB TRL report's context section, this is an optional SPARQL query for the post-processing of the report. If returning a SHACL validation report this input is ignored.")
-    private String rdfReportQuery;
 
     /**
      * @return The string representing the content to validate (string as-is, URL or base64 content).
@@ -269,22 +267,6 @@ public class Input {
      */
     public void setRdfReportSyntax(String rdfReportSyntax) {
         this.rdfReportSyntax = rdfReportSyntax;
-    }
-
-    /**
-     * @return A SPARQL query for the post-processing of the SHACL validation report if the overall report returned is a GITB TRL report, and
-     * we have selected to include the SHACL validation report in the GITB TRL report's context section.
-     */
-    public String getRdfReportQuery() {
-        return rdfReportQuery;
-    }
-
-    /**
-     * @param rdfReportQuery A SPARQL query for the post-processing of the SHACL validation report if the overall report returned is a GITB TRL report, and
-     * we have selected to include the SHACL validation report in the GITB TRL report's context section.
-     */
-    public void setRdfReportQuery(String rdfReportQuery) {
-        this.rdfReportQuery = rdfReportQuery;
     }
 
     /**

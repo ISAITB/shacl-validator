@@ -149,7 +149,7 @@ public class RestValidationController extends BaseRestController<DomainConfig, A
             reportSpecs = reportSpecs.withReportContentToInclude(ShaclValidatorUtils.getRdfReportToIncludeInTAR(
                     result.getReport(),
                     StringUtils.defaultIfEmpty(in.getRdfReportSyntax(), domainConfig.getDefaultReportSyntax()),
-                    in.getRdfReportQuery(), fileManager));
+                    in.getReportQuery(), fileManager));
         }
         if (isOriginalInputNeeded(in) && result.getInputContent().isPresent()) {
             reportSpecs = reportSpecs.withInputContentToInclude(result.getInputContent().get());
