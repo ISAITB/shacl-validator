@@ -1,16 +1,25 @@
 package eu.europa.ec.itb.shacl.rest;
 
 import com.gitb.core.ValueEmbeddingEnumeration;
-import eu.europa.ec.itb.shacl.*;
-import eu.europa.ec.itb.shacl.rest.model.ApiInfo;
+import com.gitb.tr.TAR;
+import eu.europa.ec.itb.shacl.ApplicationConfig;
+import eu.europa.ec.itb.shacl.DomainConfig;
+import eu.europa.ec.itb.shacl.InputHelper;
+import eu.europa.ec.itb.shacl.ModelPair;
 import eu.europa.ec.itb.shacl.rest.model.Input;
 import eu.europa.ec.itb.shacl.rest.model.Output;
 import eu.europa.ec.itb.shacl.rest.model.RuleSet;
+import eu.europa.ec.itb.shacl.util.ShaclValidatorUtils;
 import eu.europa.ec.itb.shacl.validation.FileManager;
+import eu.europa.ec.itb.shacl.validation.ReportSpecs;
 import eu.europa.ec.itb.shacl.validation.SHACLValidator;
-import eu.europa.ec.itb.validation.commons.*;
+import eu.europa.ec.itb.validation.commons.FileContent;
+import eu.europa.ec.itb.validation.commons.FileInfo;
+import eu.europa.ec.itb.validation.commons.LocalisationHelper;
+import eu.europa.ec.itb.validation.commons.Utils;
 import eu.europa.ec.itb.validation.commons.error.ValidatorException;
 import eu.europa.ec.itb.validation.commons.web.errors.NotFoundException;
+import eu.europa.ec.itb.validation.commons.web.rest.BaseRestController;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -20,14 +29,12 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.LocaleUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryExecution;
 import org.apache.jena.query.QueryExecutionFactory;
 import org.apache.jena.query.QueryFactory;
-import org.apache.jena.rdf.model.Model;
-import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFLanguages;
-import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
@@ -39,31 +46,25 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import javax.servlet.http.HttpServletRequest;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
 import java.util.*;
 import java.util.stream.Collectors;
-
-import static eu.europa.ec.itb.validation.commons.web.Constants.MDC_DOMAIN;
 
 /**
  * REST controller to allow triggering the validator via its REST API.
  */
 @Tag(name = "/{domain}/api", description = "Operations for the validation of RDF content based on SHACL shapes.")
 @RestController
-public class ShaclController {
+public class RestValidationController extends BaseRestController<DomainConfig, ApplicationConfig, FileManager, InputHelper> {
 
     @Autowired
     ApplicationContext ctx;
     @Autowired
-    ApplicationConfig config;
-    @Autowired
-    DomainConfigCache domainConfigs;
-    @Autowired
     FileManager fileManager;
-    @Autowired
-    InputHelper inputHelper;
 
     @Value("${validator.acceptedHeaderAcceptTypes}")
     Set<String> acceptedHeaderAcceptTypes;
@@ -71,51 +72,6 @@ public class ShaclController {
     String hydraServer;
     @Value("${validator.hydraRootPath}")
     private String hydraRootPath;
-
-    /**
-     * Get all domains configured in this validator and their supported validation types.
-     *
-     * @return A list of domains coupled with their validation types.
-     */
-    @Operation(summary = "Get API information (all supported domains and validation types).", description="Retrieve the supported domains " +
-            "and validation types configured in this validator. These are the domain and validation types that can be used as parameters " +
-            "with the API's other operations.")
-    @ApiResponse(responseCode = "200", description = "Success", content = { @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, array = @ArraySchema(schema = @Schema(implementation = ApiInfo.class))) })
-    @ApiResponse(responseCode = "500", description = "Error (If a problem occurred with processing the request)", content = @Content)
-    @GetMapping(value = "/api/info", consumes = MediaType.ALL_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ApiInfo[] infoAll() {
-        List<DomainConfig> listDomainsConfig = domainConfigs.getAllDomainConfigurations();
-        ApiInfo[] listApiInfo = new ApiInfo[listDomainsConfig.size()];
-
-        int i=0;
-        for(DomainConfig domainConfig : listDomainsConfig) {
-            listApiInfo[i] = ApiInfo.fromDomainConfig(domainConfig);
-
-            i++;
-        }
-
-        return listApiInfo;
-    }
-
-    /**
-     * Get the validation types supported by the current domain.
-     *
-     * @param domain The domain.
-     * @return The list of validation types.
-     */
-    @Operation(summary = "Get API information (for a given domain).", description = "Retrieve the supported validation types " +
-            "that can be requested when calling this API's validation operations.")
-    @ApiResponse(responseCode = "200", description = "Success", content = { @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ApiInfo.class)) })
-    @ApiResponse(responseCode = "500", description = "Error (If a problem occurred with processing the request)", content = @Content)
-    @ApiResponse(responseCode = "404", description = "Not found (for an invalid domain value)", content = @Content)
-    @GetMapping(value = "/{domain}/api/info", consumes = MediaType.ALL_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ApiInfo info(
-            @Parameter(required = true, name = "domain", description = "A fixed value corresponding to the specific validation domain.")
-            @PathVariable("domain") String domain
-    ) {
-        DomainConfig domainConfig = validateDomain(domain);
-        return ApiInfo.fromDomainConfig(domainConfig);
-    }
 
     /**
      * Service to trigger one validation for the provided input and settings.
@@ -140,15 +96,60 @@ public class ShaclController {
             HttpServletRequest request
     ) {
         DomainConfig domainConfig = validateDomain(domain);
-        String reportSyntax = getValidationReportSyntax(in.getReportSyntax(), getFirstSupportedAcceptHeader(request), domainConfig.getDefaultReportSyntax());
+        var reportSyntax = getValidationReportSyntax(in.getReportSyntax(), getFirstSupportedAcceptHeader(request), domainConfig.getDefaultReportSyntax());
         /*
          * Important: We call executeValidationProcess here and not in the return statement because the StreamingResponseBody
          * uses a separate thread. Doing so would break the ThreadLocal used in the statistics reporting.
          */
-        Model report = executeValidationProcess(in, domainConfig);
+        var result = executeValidationProcess(in, domainConfig);
         return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(reportSyntax))
-                .body(outputStream -> fileManager.writeRdfModel(outputStream, report, reportSyntax));
+                .contentType(reportSyntax)
+                .body(outputStream -> {
+                    if (MediaType.APPLICATION_XML.equals(reportSyntax) || MediaType.TEXT_XML.equals(reportSyntax)) {
+                        // This is a GITB TRL report.
+                        fileManager.saveReport(createTAR(in, result, domainConfig), outputStream, domainConfig);
+                    } else {
+                        // SHACL validation report.
+                        fileManager.writeRdfModel(outputStream, result.getReport(), reportSyntax.toString());
+                    }
+                });
+    }
+
+    /**
+     * Check to see if the original input received is needed in the resulting report.
+     *
+     * @param in The inputs.
+     * @return The check result.
+     */
+    private boolean isOriginalInputNeeded(Input in) {
+        return Objects.requireNonNullElse(in.getAddInputToReport(), false);
+    }
+
+    /**
+     * Create a GITB TRL report (TAR) based on the received input and the result of the validation.
+     *
+     * @param in The inputs.
+     * @param result The validation result.
+     * @param domainConfig The domain configuration.
+     * @return The report.
+     */
+    private TAR createTAR(Input in, ValidationResources result, DomainConfig domainConfig) {
+        var reportSpecs = ReportSpecs.builder(result.getInput(), result.getReport(),
+                new LocalisationHelper(Utils.getSupportedLocale(LocaleUtils.toLocale(in.getLocale()), domainConfig)),
+                domainConfig);
+        if (Objects.requireNonNullElse(in.getAddRdfReportToReport(), false)) {
+            reportSpecs = reportSpecs.withReportContentToInclude(ShaclValidatorUtils.getRdfReportToIncludeInTAR(
+                    result.getReport(),
+                    StringUtils.defaultIfEmpty(in.getRdfReportSyntax(), domainConfig.getDefaultReportSyntax()),
+                    in.getRdfReportQuery(), fileManager));
+        }
+        if (isOriginalInputNeeded(in) && result.getInputContent().isPresent()) {
+            reportSpecs = reportSpecs.withInputContentToInclude(result.getInputContent().get());
+        }
+        if (Objects.requireNonNullElse(in.getAddShapesToReport(), false)) {
+            reportSpecs = reportSpecs.withShapesToInclude(result.getShapes());
+        }
+        return ShaclValidatorUtils.getTAR(reportSpecs.build()).getDetailedReport();
     }
 
     /**
@@ -177,9 +178,14 @@ public class ShaclController {
      * @param reportSyntax The value to check.
      * @return True if valid.
      */
-    private boolean validReportSyntax(String reportSyntax) {
-        Lang lang = RDFLanguages.contentTypeToLang(reportSyntax.toLowerCase());
-        return lang != null;
+    private MediaType validReportSyntax(String reportSyntax) {
+        var mediaType = MediaType.parseMediaType(reportSyntax);
+        if (!MediaType.APPLICATION_XML.equals(mediaType) && !MediaType.TEXT_XML.equals(mediaType)) {
+            if (RDFLanguages.contentTypeToLang(reportSyntax.toLowerCase()) == null) {
+                return null;
+            }
+        }
+        return mediaType;
     }
 
     /**
@@ -188,23 +194,24 @@ public class ShaclController {
      * @param inputReportSyntax Report syntax from the Input data.
      * @param acceptHeader Report syntax from the Header.
      * @param defaultReportSyntax Default report syntax.
-     * @return Report syntax as string.
+     * @return Report syntax as a media type instance.
      */
-    private String getValidationReportSyntax(String inputReportSyntax, String acceptHeader, String defaultReportSyntax) {
+    private MediaType getValidationReportSyntax(String inputReportSyntax, String acceptHeader, String defaultReportSyntax) {
         // Consider first the report syntax requested as part of the input properties.
-        String reportSyntax = inputReportSyntax;
-        if (reportSyntax == null) {
+        if (inputReportSyntax == null) {
             // If unspecified consider the first acceptable syntax from the Accept header.
-            reportSyntax = acceptHeader;
+            inputReportSyntax = acceptHeader;
+        }
+        MediaType reportSyntax;
+        if (inputReportSyntax == null) {
+            // No syntax specified by client - use the configuration default.
+            reportSyntax = MediaType.parseMediaType(defaultReportSyntax);
+        } else {
+            reportSyntax = validReportSyntax(inputReportSyntax);
         }
         if (reportSyntax == null) {
-            // No syntax specified by client - use the configuration default.
-            reportSyntax = defaultReportSyntax;
-        } else {
-            if (!validReportSyntax(reportSyntax)) {
-                // The requested syntax is invalid.
-                throw new ValidatorException("validator.label.exception.reportSyntaxNotSupported", reportSyntax);
-            }
+            // The requested syntax is invalid.
+            throw new ValidatorException("validator.label.exception.reportSyntaxNotSupported", inputReportSyntax);
         }
         return reportSyntax;
     }
@@ -212,11 +219,11 @@ public class ShaclController {
     /**
      * Execute the process to validate the content.
      *
-     * @param in The input for the validation (content and metadata for one or more RDF instances).
+     * @param in The input for the validation of one RDF document.
      * @param domainConfig The domain where the SHACL validator is executed.
-     * @return The report's model.
+     * @return The report's models (input and report).
      */
-    private Model executeValidationProcess(Input in, DomainConfig domainConfig) {
+    private ValidationResources executeValidationProcess(Input in, DomainConfig domainConfig) {
         // Start validation of the input file
         File parentFolder = fileManager.createTemporaryFolderPath();
         File inputFile;
@@ -242,12 +249,14 @@ public class ShaclController {
                 // Run post-processing query on report and return based on content-type
                 Query query = QueryFactory.create(in.getReportQuery());
                 try (QueryExecution queryExecution = QueryExecutionFactory.create(query, models.getReportModel())) {
-                    return queryExecution.execConstruct();
+                    models = new ModelPair(models.getInputModel(), queryExecution.execConstruct());
                 }
-            } else {
-                // Return the validation report according to content-type
-                return models.getReportModel();
             }
+            return new ValidationResources(
+                    isOriginalInputNeeded(in)?Files.readString(inputFile.toPath()):null,
+                    models.getInputModel(),
+                    models.getReportModel(),
+                    validator.getAggregatedShapes());
         } catch (ValidatorException | NotFoundException e) {
             // Localisation of the ValidatorException takes place in the ErrorHandler.
             throw e;
@@ -303,36 +312,27 @@ public class ShaclController {
 
         Output[] outputs = new Output[inputs.length];
         int i = 0;
-        for(Input input: inputs) {
+        for (Input input: inputs) {
             Output output = new Output();
-            String reportSyntax = getValidationReportSyntax(input.getReportSyntax(), acceptHeader, domainConfig.getDefaultReportSyntax());
-
-            //Start validation process of the Input
-            Model report = executeValidationProcess(input, domainConfig);
-            output.setReport(Base64.getEncoder().encodeToString(fileManager.writeRdfModelToString(report, reportSyntax).getBytes()));
-            output.setReportSyntax(reportSyntax);
-
+            var reportSyntax = getValidationReportSyntax(input.getReportSyntax(), acceptHeader, domainConfig.getDefaultReportSyntax());
+            // Start validation process of the Input
+            var result = executeValidationProcess(input, domainConfig);
+            if (MediaType.APPLICATION_XML.equals(reportSyntax) || MediaType.TEXT_XML.equals(reportSyntax)) {
+                // This is a GITB TRL report.
+                try (var bos = new ByteArrayOutputStream()) {
+                    fileManager.saveReport(createTAR(input, result, domainConfig), bos, domainConfig);
+                    output.setReport(Base64.getEncoder().encodeToString(bos.toByteArray()));
+                } catch (IOException e) {
+                    throw new ValidatorException(e);
+                }
+            } else {
+                output.setReport(Base64.getEncoder().encodeToString(fileManager.writeRdfModelToString(result.getReport(), reportSyntax.toString()).getBytes()));
+            }
+            output.setReportSyntax(reportSyntax.toString());
             outputs[i] = output;
-
             i++;
         }
         return outputs;
-    }
-
-    /**
-     * Validates that the domain exists.
-     *
-     * @param domain The domain identifier provided in the call..
-     * @return The matched domain configuration.
-     * @throws NotFoundException If the domain does not exist or it does not support a REST API.
-     */
-    private DomainConfig validateDomain(String domain) {
-        DomainConfig domainConfig = domainConfigs.getConfigForDomainName(domain);
-        if (domainConfig == null || !domainConfig.isDefined() || !domainConfig.getChannels().contains(ValidatorChannel.REST_API)) {
-            throw new NotFoundException(domain);
-        }
-        MDC.put(MDC_DOMAIN, domain);
-        return domainConfig;
     }
 
     /**
@@ -357,7 +357,7 @@ public class ShaclController {
             path.append('/');
         }
         path.append(domainConfig.getDomainName());
-        responseHeaders.set("Link", "<"+path.toString()+"/api/vocab>; rel=\"http://www.w3.org/ns/hydra/core#apiDocumentation\"");
+        responseHeaders.set("Link", "<"+ path +"/api/vocab>; rel=\"http://www.w3.org/ns/hydra/core#apiDocumentation\"");
         return new ResponseEntity<>(content, responseHeaders, HttpStatus.OK);
     }
 
