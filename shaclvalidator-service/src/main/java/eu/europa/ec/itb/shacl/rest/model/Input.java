@@ -40,15 +40,15 @@ public class Input {
     private String contentQueryPassword;
     @Schema(description = "Locale (language code) to use for reporting of results. If the provided locale is not supported by the validator the default locale will be used instead (e.g. 'fr', 'fr_FR').")
     private String locale;
-    @Schema(description = "In case a GITB TRL report is requested (see reportSyntax), whether to include the validated input in the resulting report's context section. If returning a SHACL validation report this input is ignored", defaultValue = "false")
+    @Schema(description = "In case a GITB TRL report is requested (see reportSyntax), whether to include the validated input in the resulting report's context section. If returning a SHACL validation report this input is ignored.", defaultValue = "false")
     private Boolean addInputToReport;
-    @Schema(description = "In case a GITB TRL report is requested (see reportSyntax), whether to include the SHACL shapes in the resulting report's context section. If returning a SHACL validation report this input is ignored", defaultValue = "false")
+    @Schema(description = "In case a GITB TRL report is requested (see reportSyntax), whether to include the SHACL shapes in the resulting report's context section. If returning a SHACL validation report this input is ignored.", defaultValue = "false")
     private Boolean addShapesToReport;
-    @Schema(description = "In case a GITB TRL report is requested (see reportSyntax), whether to include the SHACL validation report in the resulting GITB TRL report's context section. If returning a SHACL validation report this input is ignored", defaultValue = "false")
+    @Schema(description = "In case a GITB TRL report is requested (see reportSyntax), whether to include the SHACL validation report in the resulting GITB TRL report's context section. If returning a SHACL validation report this input is ignored.", defaultValue = "false")
     private Boolean addRdfReportToReport;
-    @Schema(description = "In case a GITB TRL report is requested (see reportSyntax), and the SHACL validation report is set to be included in GITB TRL report's context section, this is the mime type to use for the SHACL validation report. If returning a SHACL validation report this input is ignored")
+    @Schema(description = "In case a GITB TRL report is requested (see reportSyntax), and the SHACL validation report is set to be included in GITB TRL report's context section, this is the mime type to use for the SHACL validation report. If returning a SHACL validation report this input is ignored.")
     private String rdfReportSyntax;
-    @Schema(description = "In case a GITB TRL report is requested (see reportSyntax), and the SHACL validation report is set to be included in GITB TRL report's context section, this is an optional SPARQL query for the post-processing of the report. If returning a SHACL validation report this input is ignored")
+    @Schema(description = "In case a GITB TRL report is requested (see reportSyntax), and the SHACL validation report is set to be included in GITB TRL report's context section, this is an optional SPARQL query for the post-processing of the report. If returning a SHACL validation report this input is ignored.")
     private String rdfReportQuery;
 
     /**
