@@ -57,7 +57,7 @@ of JAR post-processing to configure the validator's domain(s).
 Once the validator's web application is up you can use it as follows:
 
 * SOAP API: http://localhost:8080/shacl/soap/DOMAIN/validation?wsdl
-* REST API: http://localhost:8080/shacl/DOMAIN/api/validate (Swagger docs at http://localhost:8080/shacl/swagger-ui/)
+* REST API: http://localhost:8080/shacl/DOMAIN/api/validate (Swagger docs at http://localhost:8080/shacl/swagger-ui/index.html)
 * Web form: http://localhost:8080/shacl/DOMAIN/upload
 
 Note that the `DOMAIN` placeholder in the above URLs is the name of a domain configuration folder beneath your configured `validator.resourceRoot`.
