@@ -5,40 +5,27 @@ import eu.europa.ec.itb.shacl.DomainConfigCache;
 import eu.europa.ec.itb.shacl.validation.FileManager;
 import freemarker.cache.ClassTemplateLoader;
 import freemarker.template.Template;
-import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.info.Info;
-import io.swagger.v3.oas.models.info.License;
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import javax.annotation.PostConstruct;
 import java.io.File;
 import java.nio.file.Files;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * Configuration for the validator's REST API documentation (based on Swagger and Hydra).
+ * Configuration for the validator's REST API documentation (based on Hydra).
  */
 @Configuration
-public class DocumentationConfig {
+public class HydraDocumentationConfig {
 
-    private static final Logger logger = LoggerFactory.getLogger(DocumentationConfig.class);
+    private static final Logger logger = LoggerFactory.getLogger(HydraDocumentationConfig.class);
 
-    @Value("${validator.docs.licence.description}")
-    private String licenceDescription;
-    @Value("${validator.docs.licence.url}")
-    private String licenceUrl;
-    @Value("${validator.docs.version}")
-    private String restApiVersion;
-    @Value("${validator.docs.title}")
-    private String restApiTitle;
-    @Value("${validator.docs.description}")
-    private String restApiDescription;
     @Value("${validator.hydraRootPath:null}")
     private String hydraRootPath;
     @Value("${server.servlet.context-path:null}")
@@ -48,17 +35,6 @@ public class DocumentationConfig {
     private DomainConfigCache domainConfigCache;
     @Autowired
     private FileManager fileManager;
-
-    @Bean
-    public OpenAPI api() {
-        return new OpenAPI()
-                .info(new Info()
-                        .title(restApiTitle)
-                        .description(restApiDescription)
-                        .version(restApiVersion)
-                        .license(new License().name(licenceDescription).url(licenceUrl))
-        );
-    }
 
     /**
      * Prepare the service's Hydra documentation on initialisation.

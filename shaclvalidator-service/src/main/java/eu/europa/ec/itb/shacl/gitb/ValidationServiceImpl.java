@@ -3,7 +3,10 @@ package eu.europa.ec.itb.shacl.gitb;
 import com.gitb.core.*;
 import com.gitb.vs.Void;
 import com.gitb.vs.*;
-import eu.europa.ec.itb.shacl.*;
+import eu.europa.ec.itb.shacl.DomainConfig;
+import eu.europa.ec.itb.shacl.InputHelper;
+import eu.europa.ec.itb.shacl.ModelPair;
+import eu.europa.ec.itb.shacl.SparqlQueryConfig;
 import eu.europa.ec.itb.shacl.util.ShaclValidatorUtils;
 import eu.europa.ec.itb.shacl.validation.FileManager;
 import eu.europa.ec.itb.shacl.validation.ReportSpecs;
@@ -14,13 +17,10 @@ import eu.europa.ec.itb.validation.commons.LocalisationHelper;
 import eu.europa.ec.itb.validation.commons.ReportPair;
 import eu.europa.ec.itb.validation.commons.Utils;
 import eu.europa.ec.itb.validation.commons.error.ValidatorException;
+import eu.europa.ec.itb.validation.commons.web.WebServiceContextProvider;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.LocaleUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.jena.query.Query;
-import org.apache.jena.query.QueryExecution;
-import org.apache.jena.query.QueryExecutionFactory;
-import org.apache.jena.query.QueryFactory;
 import org.apache.jena.rdf.model.Model;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,7 +41,7 @@ import java.util.List;
  */
 @Component
 @Scope("prototype")
-public class ValidationServiceImpl implements ValidationService {
+public class ValidationServiceImpl implements ValidationService, WebServiceContextProvider {
 
     private static final Logger logger = LoggerFactory.getLogger(ValidationServiceImpl.class);
     private final DomainConfig domainConfig;
@@ -186,14 +186,7 @@ public class ValidationServiceImpl implements ValidationService {
     private String getRdfReportToInclude(Model reportModel, ValidateRequest validateRequest) {
         String mimeType = getInputAsString(validateRequest, ValidationConstants.INPUT_RDF_REPORT_SYNTAX, domainConfig.getDefaultReportSyntax());
         String reportQuery = getInputAsString(validateRequest, ValidationConstants.INPUT_RDF_REPORT_QUERY, null);
-        Model reportToInclude = reportModel;
-        if (reportQuery != null && !reportQuery.isBlank()) {
-            Query query = QueryFactory.create(reportQuery);
-            try (QueryExecution queryExecution = QueryExecutionFactory.create(query, reportToInclude)) {
-                reportToInclude = queryExecution.execConstruct();
-            }
-        }
-        return fileManager.writeRdfModelToString(reportToInclude, mimeType);
+        return ShaclValidatorUtils.getRdfReportToIncludeInTAR(reportModel, mimeType, reportQuery, fileManager);
     }
 
     /**
@@ -295,6 +288,7 @@ public class ValidationServiceImpl implements ValidationService {
     /**
      * @return The web service context.
      */
+    @Override
     public WebServiceContext getWebServiceContext(){
         return this.wsContext;
     }

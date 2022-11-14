@@ -1,9 +1,9 @@
 package eu.europa.ec.itb.shacl.webhook;
 
 import eu.europa.ec.itb.shacl.ModelPair;
-import eu.europa.ec.itb.shacl.gitb.ValidationServiceImpl;
 import eu.europa.ec.itb.shacl.validation.SHACLValidator;
 import eu.europa.ec.itb.validation.commons.war.webhook.StatisticReporting;
+import eu.europa.ec.itb.validation.commons.war.webhook.StatisticReportingConstants;
 import eu.europa.ec.itb.validation.commons.war.webhook.UsageData;
 import org.apache.jena.rdf.model.*;
 import org.aspectj.lang.JoinPoint;
@@ -17,9 +17,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.xml.ws.handler.MessageContext;
-import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -31,8 +28,6 @@ import java.util.Map;
 public class StatisticReportingAspect extends StatisticReporting {
 
     private static final Logger logger = LoggerFactory.getLogger(StatisticReportingAspect.class);
-
-    private static final ThreadLocal<Map<String, String>> adviceContext = new ThreadLocal<>();
 
     /**
      * Pointcut for minimal WEB validation.
@@ -79,53 +74,25 @@ public class StatisticReportingAspect extends StatisticReporting {
     }
 
     /**
-     * Common advice processing for all web UIs.
-     *
-     * @param joinPoint The relevant join point.
-     * @param api The specific API type.
-     */
-    private void handleUploadContext(JoinPoint joinPoint, String api) {
-        Map<String, String> contextParams = new HashMap<>();
-        contextParams.put("api", api);
-        if(config.getWebhook().isStatisticsEnableCountryDetection()){
-            HttpServletRequest request = getHttpRequest(joinPoint);
-            if(request != null){
-                String ip = extractIpAddress(request);
-                contextParams.put("ip", ip);
-            }
-        }
-        adviceContext.set(contextParams);
-    }
-
-    /**
      * Advice to obtain the arguments passed to the SOAP API call.
      *
      * @param joinPoint The original call's information.
      */
     @Before(value = "execution(public * eu.europa.ec.itb.shacl.gitb.ValidationServiceImpl.validate(..))")
     public void getSoapCallContext(JoinPoint joinPoint) {
-        Map<String, String> contextParams = new HashMap<>();
-        contextParams.put("api", StatisticReportingConstants.SOAP_API);
-        if(config.getWebhook().isStatisticsEnableCountryDetection()){
-            ValidationServiceImpl validationService = (ValidationServiceImpl)joinPoint.getTarget();
-            HttpServletRequest request = (HttpServletRequest)validationService.getWebServiceContext().getMessageContext()
-                    .get(MessageContext.SERVLET_REQUEST);
-            String ip = extractIpAddress(request);
-            contextParams.put("ip", ip);
-        }
-        adviceContext.set(contextParams);
+        handleSoapCallContext(joinPoint);
     }
 
     /**
      * Pointcut for the single REST validation.
      */
-    @Pointcut("execution(public * eu.europa.ec.itb.shacl.rest.ShaclController.validate(..))")
+    @Pointcut("execution(public * eu.europa.ec.itb.shacl.rest.RestValidationController.validate(..))")
     private void singleRestValidation(){}
 
     /**
      * Pointcut for batch REST validation.
      */
-    @Pointcut("execution(public * eu.europa.ec.itb.shacl.rest.ShaclController.validateMultiple(..))")
+    @Pointcut("execution(public * eu.europa.ec.itb.shacl.rest.RestValidationController.validateMultiple(..))")
     private void multipleRestValidation(){}
 
     /**
@@ -135,17 +102,7 @@ public class StatisticReportingAspect extends StatisticReporting {
      */
     @Before("singleRestValidation() || multipleRestValidation()")
     public void getRestCallContext(JoinPoint joinPoint) {
-        String ip = null;
-        Map<String, String> contextParams = new HashMap<>();
-        contextParams.put("api", StatisticReportingConstants.REST_API);
-        if(config.getWebhook().isStatisticsEnableCountryDetection()){
-            HttpServletRequest request = getHttpRequest(joinPoint);
-            if(request != null){
-                ip = extractIpAddress(request);
-                contextParams.put("ip", ip);
-            }
-        }
-        adviceContext.set(contextParams);
+        handleRestCallContext(joinPoint);
     }
 
     /**
@@ -158,12 +115,12 @@ public class StatisticReportingAspect extends StatisticReporting {
         SHACLValidator validator = (SHACLValidator) joinPoint.getTarget();
         Object report = joinPoint.proceed();
         try {
-            Map<String, String> usageParams = adviceContext.get();
+            Map<String, String> usageParams = getAdviceContext();
             String validatorId = config.getIdentifier();
             String domain = validator.getDomain();
             String validationType = validator.getValidationType();
-            String api = usageParams.get("api");
-            String ip = usageParams.get("ip");
+            String api = usageParams.get(StatisticReportingConstants.PARAM_API);
+            String ip = usageParams.get(StatisticReportingConstants.PARAM_IP);
             ModelPair reportModel = (ModelPair) report;
             // Obtain the result of the model
             UsageData.Result result = extractResult(reportModel.getReportModel());

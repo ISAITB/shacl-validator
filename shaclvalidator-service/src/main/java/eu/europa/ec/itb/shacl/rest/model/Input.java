@@ -24,7 +24,7 @@ public class Input {
     private String validationType;
     @Schema(description = "A SPARQL CONSTRUCT query that will be executed on the resulting SHACL validation report as a post-processing step. If provided, the result of this query will replace the SHACL validation report in the service's output.")
     private String reportQuery;
-    @Schema(description = "The mime type for the validation report syntax (e.g. \"application/ld+json\", \"application/rdf+xml\", \"text/turtle\", \"application/n-triples\"). If none is provided \"application/rdf+xml\" is considered as the default, unless a different syntax is configured for the domain in question.")
+    @Schema(description = "The mime type for the validation report syntax. Providing an RDF mime type (\"application/ld+json\", \"application/rdf+xml\", \"text/turtle\", \"application/n-triples\") will produce a SHACL validation report. Specifying \"application/xml\", \"text/xml\" or \"application/json\" will produce the report in the GITB TRL syntax (in XML or JSON). If no syntax is provided \"application/rdf+xml\" is considered as the default, unless a different syntax is configured for the domain in question.")
     private String reportSyntax;
     @Schema(description = "Any shapes to consider that are externally provided (i.e. provided at the time of the call).")
     private List<RuleSet> externalRules;
@@ -40,6 +40,14 @@ public class Input {
     private String contentQueryPassword;
     @Schema(description = "Locale (language code) to use for reporting of results. If the provided locale is not supported by the validator the default locale will be used instead (e.g. 'fr', 'fr_FR').")
     private String locale;
+    @Schema(description = "In case a GITB TRL report is requested (see reportSyntax), whether to include the validated input in the resulting report's context section. If returning a SHACL validation report this input is ignored.", defaultValue = "false")
+    private Boolean addInputToReport;
+    @Schema(description = "In case a GITB TRL report is requested (see reportSyntax), whether to include the SHACL shapes in the resulting report's context section. If returning a SHACL validation report this input is ignored.", defaultValue = "false")
+    private Boolean addShapesToReport;
+    @Schema(description = "In case a GITB TRL report is requested (see reportSyntax), whether to include the SHACL validation report in the resulting GITB TRL report's context section. If returning a SHACL validation report this input is ignored.", defaultValue = "false")
+    private Boolean addRdfReportToReport;
+    @Schema(description = "In case a GITB TRL report is requested (see reportSyntax), and the SHACL validation report is set to be included in GITB TRL report's context section, this is the mime type to use for the SHACL validation report. If returning a SHACL validation report this input is ignored.")
+    private String rdfReportSyntax;
 
     /**
      * @return The string representing the content to validate (string as-is, URL or base64 content).
@@ -67,7 +75,7 @@ public class Input {
     public String getContentSyntax() { return this.contentSyntax; }
 
     /**
-     * @return The set of user-provided SHACL shape riles with additional business rules.
+     * @return The set of user-provided SHACL shape files with additional business rules.
      */
     public List<RuleSet> getExternalRules(){ return this.externalRules; }
 
@@ -201,6 +209,64 @@ public class Input {
      */
     public void setReportQuery(String reportQuery) {
         this.reportQuery = reportQuery;
+    }
+
+    /**
+     * @return Whether to include the validated input in the resulting report's context section (when returning a GITB TRL report).
+     */
+    public Boolean getAddInputToReport() {
+        return addInputToReport;
+    }
+
+    /**
+     * @param addInputToReport Whether to include the validated input in the resulting report's context section (when returning a GITB TRL report).
+     */
+    public void setAddInputToReport(Boolean addInputToReport) {
+        this.addInputToReport = addInputToReport;
+    }
+
+    /**
+     * @return Whether to include the SHACL shapes in the resulting report's context section (when returning a GITB TRL report).
+     */
+    public Boolean getAddShapesToReport() {
+        return addShapesToReport;
+    }
+
+    /**
+     * @param addShapesToReport Whether to include the SHACL shapes in the resulting report's context section (when returning a GITB TRL report).
+     */
+    public void setAddShapesToReport(Boolean addShapesToReport) {
+        this.addShapesToReport = addShapesToReport;
+    }
+
+    /**
+     * @return Whether to include the SHACL validation report in the resulting GITB TRL report's context section (when returning a GITB TRL report).
+     */
+    public Boolean getAddRdfReportToReport() {
+        return addRdfReportToReport;
+    }
+
+    /**
+     * @param addRdfReportToReport Whether to include the SHACL validation report in the resulting GITB TRL report's context section (when returning a GITB TRL report).
+     */
+    public void setAddRdfReportToReport(Boolean addRdfReportToReport) {
+        this.addRdfReportToReport = addRdfReportToReport;
+    }
+
+    /**
+     * @return The mime type to use for the SHACL validation report if the overall report returned is a GITB TRL report, and
+     * we have selected to include the SHACL validation report in the GITB TRL report's context section.
+     */
+    public String getRdfReportSyntax() {
+        return rdfReportSyntax;
+    }
+
+    /**
+     * @param rdfReportSyntax The mime type to use for the SHACL validation report if the overall report returned is a GITB TRL report, and
+     * we have selected to include the SHACL validation report in the GITB TRL report's context section.
+     */
+    public void setRdfReportSyntax(String rdfReportSyntax) {
+        this.rdfReportSyntax = rdfReportSyntax;
     }
 
     /**

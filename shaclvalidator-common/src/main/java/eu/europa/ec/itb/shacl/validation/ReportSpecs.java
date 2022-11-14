@@ -146,10 +146,20 @@ public class ReportSpecs {
          */
         public Builder withInputContentToInclude(Path inputContentToInclude) {
             try {
-                instance.inputContentToInclude = new String(Files.readAllBytes(inputContentToInclude));
+                return withInputContentToInclude(Files.readString(inputContentToInclude));
             } catch (IOException e) {
                 throw new IllegalStateException("Error during the transformation of the report to TAR");
             }
+        }
+
+        /**
+         * Add the input content to add to the report.
+         *
+         * @param inputContentToInclude The input model content.
+         * @return The builder.
+         */
+        public Builder withInputContentToInclude(String inputContentToInclude) {
+            instance.inputContentToInclude = inputContentToInclude;
             return this;
         }
 

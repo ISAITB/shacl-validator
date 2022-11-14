@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
  * Component to validate and parse user-provided input parameters.
  */
 @Component
-public class InputHelper extends BaseInputHelper<FileManager, DomainConfig, ApplicationConfig> {
+public class InputHelper extends BaseInputHelper<ApplicationConfig, FileManager, DomainConfig> {
 
     /**
      * Populate a file's content type from the provided input.
