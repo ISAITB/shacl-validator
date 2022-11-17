@@ -48,6 +48,8 @@ public class Input {
     private Boolean addRdfReportToReport;
     @Schema(description = "In case a GITB TRL report is requested (see reportSyntax), and the SHACL validation report is set to be included in GITB TRL report's context section, this is the mime type to use for the SHACL validation report. If returning a SHACL validation report this input is ignored.")
     private String rdfReportSyntax;
+    @Schema(description = "Whether to wrap the data added to the report (see addInputToReport, addShapesToReport and addRdfReportToReport) in CDATA blocks if producing it in the XML GITB TRL format. False results in adding data via XML escaping.", defaultValue = "true")
+    private Boolean wrapReportDataInCDATA;
 
     /**
      * @return The string representing the content to validate (string as-is, URL or base64 content).
@@ -295,4 +297,19 @@ public class Input {
     public void setLocale(String locale) {
         this.locale = locale;
     }
+
+    /**
+     * @return Whether to wrap the data added to the report (see addInputToReport, addShapesToReport and addRdfReportToReport) in CDATA blocks if producing it in the XML GITB TRL format. False results in adding data via XML escaping.
+     */
+    public Boolean getWrapReportDataInCDATA() {
+        return wrapReportDataInCDATA;
+    }
+
+    /**
+     * @param wrapReportDataInCDATA Whether to wrap the data added to the report (see addInputToReport, addShapesToReport and addRdfReportToReport) in CDATA blocks if producing it in the XML GITB TRL format. False results in adding data via XML escaping.
+     */
+    public void setWrapReportDataInCDATA(Boolean wrapReportDataInCDATA) {
+        this.wrapReportDataInCDATA = wrapReportDataInCDATA;
+    }
+
 }

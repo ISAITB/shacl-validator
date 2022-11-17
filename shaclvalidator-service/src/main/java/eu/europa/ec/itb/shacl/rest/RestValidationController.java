@@ -112,7 +112,8 @@ public class RestValidationController extends BaseRestController<DomainConfig, A
                 .body(outputStream -> {
                     if (MediaType.APPLICATION_XML.equals(reportSyntax) || MediaType.TEXT_XML.equals(reportSyntax)) {
                         // GITB TRL report (XML format).
-                        fileManager.saveReport(createTAR(in, result, domainConfig), outputStream, domainConfig);
+                        var wrapReportDataInCDATA = Objects.requireNonNullElse(in.getWrapReportDataInCDATA(), true);
+                        fileManager.saveReport(createTAR(in, result, domainConfig), outputStream, domainConfig, wrapReportDataInCDATA);
                     } else if (MediaType.APPLICATION_JSON.equals(reportSyntax)) {
                         // GITB TRL report (JSON format).
                         writeReportAsJson(outputStream, createTAR(in, result, domainConfig), domainConfig);
@@ -304,7 +305,8 @@ public class RestValidationController extends BaseRestController<DomainConfig, A
             if (MediaType.APPLICATION_XML.equals(reportSyntax) || MediaType.TEXT_XML.equals(reportSyntax)) {
                 // GITB TRL report (XML format).
                 try (var bos = new ByteArrayOutputStream()) {
-                    fileManager.saveReport(createTAR(input, result, domainConfig), bos, domainConfig);
+                    var wrapReportDataInCDATA = Objects.requireNonNullElse(input.getWrapReportDataInCDATA(), true);
+                    fileManager.saveReport(createTAR(input, result, domainConfig), bos, domainConfig, wrapReportDataInCDATA);
                     output.setReport(Base64.getEncoder().encodeToString(bos.toByteArray()));
                 } catch (IOException e) {
                     throw new ValidatorException(e);
