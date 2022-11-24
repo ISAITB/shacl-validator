@@ -25,7 +25,7 @@
     <parent>
         <groupId>eu.europa.ec.itb.commons</groupId>
         <artifactId>validator-parent</artifactId>
-        <version>1.3.0-SNAPSHOT</version>
+        <version>1.3.0</version>
         <relativePath/>
     </parent>
     <modules>
@@ -38,7 +38,7 @@
     </modules>
     <properties>
         <validatorBuild.resourceJar>validator-resources</validatorBuild.resourceJar>
-        <version.itbCommons>1.3.0-SNAPSHOT</version.itbCommons>
+        <version.itbCommons>1.3.0</version.itbCommons>
     </properties>
     <packaging>pom</packaging>
 
