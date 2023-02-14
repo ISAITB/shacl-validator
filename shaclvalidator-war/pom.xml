@@ -43,6 +43,10 @@
             <artifactId>shaclvalidator-web</artifactId>
         </dependency>
         <dependency>
+            <groupId>eu.europa.ec.itb.shacl</groupId>
+            <artifactId>shaclvalidator-resources</artifactId>
+        </dependency>
+        <dependency>
             <groupId>eu.europa.ec.itb.commons</groupId>
             <artifactId>validation-commons-war</artifactId>
         </dependency>

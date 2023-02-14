@@ -60,6 +60,11 @@
                 <artifactId>shaclvalidator-web</artifactId>
                 <version>${project.version}</version>
             </dependency>
+            <dependency>
+                <groupId>eu.europa.ec.itb.shacl</groupId>
+                <artifactId>shaclvalidator-resources</artifactId>
+                <version>${project.version}</version>
+            </dependency>
             <!-- Common modules. -->
             <dependency>
                 <groupId>eu.europa.ec.itb.commons</groupId>
