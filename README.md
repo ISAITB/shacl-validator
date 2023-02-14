@@ -84,7 +84,7 @@ and install its artefacts in your local Maven repository.
 
 ## Configuration for development
 
-When building for development you will need to provide the validator's basic configuration to allow it to bootstrap.
+When building for development you should provide the validator's basic configuration to allow it to bootstrap.
 The simplest approach to do this is to use environment variables that set the validator's
 [configuration properties](https://www.itb.ec.europa.eu/docs/guides/latest/validatingRDF/index.html#validator-configuration-properties).
 
@@ -98,13 +98,17 @@ In addition, you should include within the `validator.resourceRoot` folder addit
 each with its configuration property file and any other needed resources. A simple example of such configuration that you
 can also download and reuse, is provided in the RDF validation guide's [configuration step](https://www.itb.ec.europa.eu/docs/guides/latest/validatingRDF/index.html#step-3-prepare-validator-configuration).
 
+If you decide not to load any configurations, the generic SHACL validator configuration will be loaded instead.
+This generic configuration does not contain any validation artefacts and will instead allow you to upload your own validation schemas from the validator's UI and APIs.
+The domain of this generic validator is called **any**. you can access it like any other domain, from http://localhost:8080/shacl/any/upload.
+
 ## Using Docker
 
 If you choose Docker to run your validator you can use the [sample Dockerfile](etc/docker/shacl-validator/Dockerfile)
 as a starting point. To use this:
 1. Create a folder and copy within it the Dockerfile and JAR produced from the `shaclvalidator-war` module.
-2. Create a sub-folder (e.g. `resources`) as your resource root within which you place your domain configuration folder(s).
-3. Adapt the Dockerfile to also copy the `resources` folder and set its path within the image as the `validator.resourceRoot`:
+2. (Optional) Create a sub-folder (e.g. `resources`) as your resource root within which you place your domain configuration folder(s).
+3. (Optional) Adapt the Dockerfile to also copy the `resources` folder and set its path within the image as the `validator.resourceRoot`:
 
 ```
 ...
@@ -112,6 +116,8 @@ COPY resources /validator/resources/
 ENV validator.resourceRoot /validator/resources/
 ...
 ```  
+
+Note: If you skip step 2 and 3, only the generic validator will be available under the `any` domain.
 
 # Plugin development
 
