@@ -210,7 +210,9 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                             if (noContentSyntaxProvided) {
                                 contentSyntaxType = getExtensionContentTypeForFileName(file.getOriginalFilename());
                             }
-                            inputFile = fileManager.getFileFromInputStream(parentFolder, file.getInputStream(), contentSyntaxType, FILE_NAME_INPUT);
+                            try (var stream = file.getInputStream()) {
+                                inputFile = fileManager.getFileFromInputStream(parentFolder, stream, contentSyntaxType, FILE_NAME_INPUT);
+                            }
                             break;
                         case CONTENT_TYPE_URI:
                             if (noContentSyntaxProvided) {
@@ -498,7 +500,9 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                         if (StringUtils.isEmpty(contentSyntaxType) || contentSyntaxType.equals(EMPTY)) {
                             contentSyntaxType = getExtensionContentTypeForFileName(externalFiles[i].getOriginalFilename());
                         }
-                        inputFile = this.fileManager.getFileFromInputStream(parentFolder, externalFiles[i].getInputStream(), contentSyntaxType, null);
+                        try (var stream = externalFiles[i].getInputStream()) {
+                            inputFile = this.fileManager.getFileFromInputStream(parentFolder, stream, contentSyntaxType, null);
+                        }
                     }
                 } else if (CONTENT_TYPE_URI.equals(externalContentType[i]) && externalUri.length > i && !externalUri[i].isEmpty()) {
                     if (StringUtils.isEmpty(contentSyntaxType) || contentSyntaxType.equals(EMPTY)) {
