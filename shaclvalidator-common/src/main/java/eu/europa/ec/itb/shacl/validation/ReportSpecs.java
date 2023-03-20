@@ -21,8 +21,9 @@ public class ReportSpecs {
     private Model shapesModel;
     private SHACLReportHandler.ReportLabels reportLabels;
     private LocalisationHelper localisationHelper;
-    private boolean reportItemsOrdered;
     private boolean produceAggregateReport;
+    private DomainConfig domainConfig;
+    private String validationType;
 
     /**
      * Private as this is supposed to be constructed via its builder.
@@ -33,7 +34,7 @@ public class ReportSpecs {
      * @return Whether the report items should be ordered.
      */
     public boolean isReportItemsOrdered() {
-        return reportItemsOrdered;
+        return domainConfig.isReportsOrdered();
     }
 
     /**
@@ -93,16 +94,32 @@ public class ReportSpecs {
     }
 
     /**
+     * @return The relevant domain configuration.
+     */
+    public DomainConfig getDomainConfig() {
+        return domainConfig;
+    }
+
+    /**
+     * @return The requested validation type.
+     */
+    public String getValidationType() {
+        return validationType;
+    }
+
+    /**
      * Builder to construct the report specification.
      *
      * @param inputModel The RDF model for the input that was validated.
      * @param reportModel The RDF model of the SHACL validation report.
      * @param localisationHelper The localisation helper to assist with translations.
      * @param domainConfig The domain configuration.
+     * @param validationType The requested validation type.
+     *
      * @return The builder to use.
      */
-    public static Builder builder(Model inputModel, Model reportModel, LocalisationHelper localisationHelper, DomainConfig domainConfig) {
-        return new Builder(inputModel, reportModel, localisationHelper, domainConfig);
+    public static Builder builder(Model inputModel, Model reportModel, LocalisationHelper localisationHelper, DomainConfig domainConfig, String validationType) {
+        return new Builder(inputModel, reportModel, localisationHelper, domainConfig, validationType);
     }
 
     /**
@@ -119,14 +136,16 @@ public class ReportSpecs {
          * @param reportModel The RDF model of the SHACL validation report.
          * @param localisationHelper The localisation helper to assist with translations.
          * @param domainConfig The domain configuration.
+         * @param validationType The requested validation type.
          */
-        Builder(Model inputModel, Model reportModel, LocalisationHelper localisationHelper, DomainConfig domainConfig) {
+        Builder(Model inputModel, Model reportModel, LocalisationHelper localisationHelper, DomainConfig domainConfig, String validationType) {
             instance = new ReportSpecs();
             instance.inputModel = inputModel;
             instance.reportModel = reportModel;
             instance.localisationHelper = localisationHelper;
             instance.reportLabels = ShaclValidatorUtils.getReportLabels(localisationHelper);
-            instance.reportItemsOrdered = domainConfig.isReportsOrdered();
+            instance.domainConfig = domainConfig;
+            instance.validationType = validationType;
         }
 
         /**

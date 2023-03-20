@@ -75,11 +75,7 @@ public class ValidationServiceImpl implements ValidationService, WebServiceConte
         MDC.put("domain", domainConfig.getDomain());
         GetModuleDefinitionResponse response = new GetModuleDefinitionResponse();
         response.setModule(new ValidationModule());
-        response.getModule().setId(domainConfig.getWebServiceId());
-        response.getModule().setOperation("V");
-        response.getModule().setMetadata(new Metadata());
-        response.getModule().getMetadata().setName(domainConfig.getWebServiceId());
-        response.getModule().getMetadata().setVersion("1.0.0");
+        domainConfig.applyWebServiceMetadata(response.getModule());
         response.getModule().setInputs(new TypedParameters());
         UsageEnumeration contentUsage = UsageEnumeration.R;
         if (domainConfig.isSupportsQueries()) {
@@ -156,7 +152,7 @@ public class ValidationServiceImpl implements ValidationService, WebServiceConte
             boolean addRdfReportToReport = getInputAsBoolean(validateRequest, ValidationConstants.INPUT_ADD_RDF_REPORT_TO_REPORT, false);
 			SHACLValidator validator = ctx.getBean(SHACLValidator.class, contentToValidate, validationType, contentSyntax, externalShapes, loadImports, domainConfig, localiser);
 			ModelPair models = validator.validateAll();
-            var reportSpecs = ReportSpecs.builder(models.getInputModel(), models.getReportModel(), localiser, domainConfig);
+            var reportSpecs = ReportSpecs.builder(models.getInputModel(), models.getReportModel(), localiser, domainConfig, validator.getValidationType());
             if (addRdfReportToReport) reportSpecs = reportSpecs.withReportContentToInclude(getRdfReportToInclude(models.getReportModel(), validateRequest));
             if (addInputToReport) reportSpecs = reportSpecs.withInputContentToInclude(contentToValidate.toPath());
             if (addShapesToReport) reportSpecs = reportSpecs.withShapesToInclude(validator.getAggregatedShapes());

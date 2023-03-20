@@ -18,7 +18,6 @@ import eu.europa.ec.itb.validation.commons.web.KeyWithLabel;
 import eu.europa.ec.itb.validation.commons.web.locale.CustomLocaleResolver;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFLanguages;
 import org.slf4j.Logger;
@@ -239,7 +238,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                 SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile, validationType, contentSyntaxType, userProvidedShapes, loadImportsValue, domainConfig, localisationHelper);
                 ModelPair models = validator.validateAll();
                 ReportPair tarReport = ShaclValidatorUtils.getTAR(ReportSpecs
-                        .builder(models.getInputModel(), models.getReportModel(), localisationHelper, domainConfig)
+                        .builder(models.getInputModel(), models.getReportModel(), localisationHelper, domainConfig, validator.getValidationType())
                         .produceAggregateReport()
                         .build()
                 );

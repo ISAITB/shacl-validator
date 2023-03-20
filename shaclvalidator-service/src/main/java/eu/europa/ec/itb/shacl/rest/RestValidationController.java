@@ -89,7 +89,7 @@ public class RestValidationController extends BaseRestController<DomainConfig, A
     @Operation(summary = "Validate one RDF instance.", description="Validate a single RDF instance. The content can be provided " +
             "either within the request as a BASE64 encoded string or remotely as a URL. The RDF syntax for the input can be " +
             "determined in the request as can the syntax to produce the resulting SHACL validation report.")
-    @ApiResponse(responseCode = "200", description = "Success (for successful validation)", content = @Content)
+    @ApiResponse(responseCode = "200", description = "Success (for successful validation)", content = { @Content(mediaType = "application/ld+json"), @Content(mediaType = "application/rdf+xml"), @Content(mediaType = "text/turtle"), @Content(mediaType = "application/n-triples"), @Content(mediaType = MediaType.APPLICATION_XML_VALUE), @Content(mediaType = MediaType.APPLICATION_JSON_VALUE) })
     @ApiResponse(responseCode = "500", description = "Error (If a problem occurred with processing the request)", content = @Content)
     @ApiResponse(responseCode = "404", description = "Not found (for an invalid domain value)", content = @Content)
     @PostMapping(value = "/{domain}/api/validate", consumes = {MediaType.APPLICATION_JSON_VALUE, "application/ld+json"}, produces = { "application/ld+json", "application/rdf+xml", "text/turtle", "application/n-triples", MediaType.APPLICATION_XML_VALUE, MediaType.TEXT_XML_VALUE, MediaType.APPLICATION_JSON_VALUE})
@@ -113,10 +113,10 @@ public class RestValidationController extends BaseRestController<DomainConfig, A
                     if (MediaType.APPLICATION_XML.equals(reportSyntax) || MediaType.TEXT_XML.equals(reportSyntax)) {
                         // GITB TRL report (XML format).
                         var wrapReportDataInCDATA = Objects.requireNonNullElse(in.getWrapReportDataInCDATA(), false);
-                        fileManager.saveReport(createTAR(in, result, domainConfig), outputStream, domainConfig, wrapReportDataInCDATA);
+                        fileManager.saveReport(createTAR(in, result, domainConfig, result.getValidationType()), outputStream, domainConfig, wrapReportDataInCDATA);
                     } else if (MediaType.APPLICATION_JSON.equals(reportSyntax)) {
                         // GITB TRL report (JSON format).
-                        writeReportAsJson(outputStream, createTAR(in, result, domainConfig), domainConfig);
+                        writeReportAsJson(outputStream, createTAR(in, result, domainConfig, result.getValidationType()), domainConfig);
                     } else {
                         // SHACL validation report.
                         fileManager.writeRdfModel(outputStream, result.getReport(), reportSyntax.toString());
@@ -140,12 +140,13 @@ public class RestValidationController extends BaseRestController<DomainConfig, A
      * @param in The inputs.
      * @param result The validation result.
      * @param domainConfig The domain configuration.
+     * @param validationType The applied validation type.
      * @return The report.
      */
-    private TAR createTAR(Input in, ValidationResources result, DomainConfig domainConfig) {
+    private TAR createTAR(Input in, ValidationResources result, DomainConfig domainConfig, String validationType) {
         var reportSpecs = ReportSpecs.builder(result.getInput(), result.getReport(),
                 new LocalisationHelper(Utils.getSupportedLocale(LocaleUtils.toLocale(in.getLocale()), domainConfig)),
-                domainConfig);
+                domainConfig, validationType);
         if (Objects.requireNonNullElse(in.getAddRdfReportToReport(), false)) {
             reportSpecs = reportSpecs.withReportContentToInclude(ShaclValidatorUtils.getRdfReportToIncludeInTAR(
                     result.getReport(),
@@ -238,7 +239,8 @@ public class RestValidationController extends BaseRestController<DomainConfig, A
                     isOriginalInputNeeded(in)?Files.readString(inputFile.toPath()):null,
                     models.getInputModel(),
                     models.getReportModel(),
-                    validator.getAggregatedShapes());
+                    validator.getAggregatedShapes(),
+                    validator.getValidationType());
         } catch (ValidatorException | NotFoundException e) {
             // Localisation of the ValidatorException takes place in the ErrorHandler.
             throw e;
@@ -306,7 +308,7 @@ public class RestValidationController extends BaseRestController<DomainConfig, A
                 // GITB TRL report (XML format).
                 try (var bos = new ByteArrayOutputStream()) {
                     var wrapReportDataInCDATA = Objects.requireNonNullElse(input.getWrapReportDataInCDATA(), false);
-                    fileManager.saveReport(createTAR(input, result, domainConfig), bos, domainConfig, wrapReportDataInCDATA);
+                    fileManager.saveReport(createTAR(input, result, domainConfig, result.getValidationType()), bos, domainConfig, wrapReportDataInCDATA);
                     output.setReport(Base64.getEncoder().encodeToString(bos.toByteArray()));
                 } catch (IOException e) {
                     throw new ValidatorException(e);
