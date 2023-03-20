@@ -105,7 +105,6 @@ public class SHACLReportHandler {
         var report = new TAR();
         report.setResult(TestResultType.SUCCESS);
         report.setDate(Utils.getXMLGregorianCalendarDateTime());
-        report.setName("SHACL Validation");
         report.setReports(new TestAssertionGroupReportsType());
         report.setContext(reportContext);
         int infos = 0;
@@ -200,6 +199,10 @@ public class SHACLReportHandler {
         if (reportSpecs.isReportItemsOrdered()) {
             report.getReports().getInfoOrWarningOrError().sort(new ReportItemComparator());
         }
+        reportSpecs.getDomainConfig().applyMetadata(report, reportSpecs.getValidationType());
+        if (report.getName() == null) {
+            report.setName("SHACL Validation");
+        }
         // Create the aggregate report if needed.
         TAR aggregateReport = null;
         if (aggregateReportItems != null) {
@@ -207,6 +210,7 @@ public class SHACLReportHandler {
             aggregateReport.setContext(new AnyContent());
             aggregateReport.setResult(report.getResult());
             aggregateReport.setCounters(report.getCounters());
+            aggregateReport.setOverview(report.getOverview());
             aggregateReport.setDate(report.getDate());
             aggregateReport.setName(report.getName());
             aggregateReport.setReports(new TestAssertionGroupReportsType());

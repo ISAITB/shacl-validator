@@ -13,6 +13,7 @@ public class ValidationResources {
     private final Model input;
     private final Model report;
     private final Model shapes;
+    private final String validationType;
 
     /**
      * Constructor.
@@ -21,12 +22,14 @@ public class ValidationResources {
      * @param input The final input model that was validated.
      * @param report The produced SHACL validation report.
      * @param shapes The SHACL shapes that were used.
+     * @param validationType The applied validation type.
      */
-    public ValidationResources(String inputContent, Model input, Model report, Model shapes) {
+    public ValidationResources(String inputContent, Model input, Model report, Model shapes, String validationType) {
         this.inputContent = inputContent;
         this.input = input;
         this.report = report;
         this.shapes = shapes;
+        this.validationType = validationType;
     }
 
     /**
@@ -55,5 +58,12 @@ public class ValidationResources {
      */
     public Model getShapes() {
         return shapes;
+    }
+
+    /**
+     * @return The applied validation type.
+     */
+    public String getValidationType() {
+        return validationType;
     }
 }

@@ -231,7 +231,7 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
                             SHACLValidator validator = applicationContext.getBean(SHACLValidator.class, inputFile, type, input.getContentSyntax(), externalShapesList, loadImports, domainConfig, localiser);
                             ModelPair models = validator.validateAll();
                             // Output summary results.
-                            ReportPair tarReport = ShaclValidatorUtils.getTAR(ReportSpecs.builder(models.getInputModel(), models.getReportModel(), localiser, domainConfig).build());
+                            ReportPair tarReport = ShaclValidatorUtils.getTAR(ReportSpecs.builder(models.getInputModel(), models.getReportModel(), localiser, domainConfig, validator.getValidationType()).build());
                             FileReport reporter = new FileReport(input.getFileName(), tarReport.getDetailedReport(), requireType, type);
                             summary.append("\n").append(reporter).append("\n");
                             Model report = models.getReportModel();
