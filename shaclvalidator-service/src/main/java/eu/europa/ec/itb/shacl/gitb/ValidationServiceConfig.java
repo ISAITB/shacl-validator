@@ -3,6 +3,8 @@ package eu.europa.ec.itb.shacl.gitb;
 import javax.annotation.PostConstruct;
 import javax.xml.namespace.QName;
 
+import eu.europa.ec.itb.shacl.ApplicationConfig;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.cxf.Bus;
 import org.apache.cxf.jaxws.EndpointImpl;
 import org.apache.cxf.transport.servlet.CXFServlet;
@@ -26,7 +28,10 @@ public class ValidationServiceConfig {
 
     @Autowired
     private Bus cxfBus;
-    
+
+    @Autowired
+    private ApplicationConfig config;
+
     @Autowired
     private ApplicationContext applicationContext;
 
@@ -56,6 +61,10 @@ public class ValidationServiceConfig {
                 EndpointImpl endpoint = new EndpointImpl(cxfBus, applicationContext.getBean(ValidationServiceImpl.class, domainConfig));
                 endpoint.setEndpointName(new QName("http://www.gitb.com/vs/v1/", "ValidationServicePort"));
                 endpoint.setServiceName(new QName("http://www.gitb.com/vs/v1/", "ValidationService"));
+                if (StringUtils.isNotBlank(config.getBaseSoapEndpointUrl())) {
+                    var url = StringUtils.appendIfMissing(config.getBaseSoapEndpointUrl(), "/");
+                    endpoint.setPublishedEndpointUrl(url+domainConfig.getDomainName()+"/validation");
+                }
                 endpoint.publish("/"+domainConfig.getDomainName()+"/validation");
             }
     	}
