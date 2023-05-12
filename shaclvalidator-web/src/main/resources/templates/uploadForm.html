@@ -33,15 +33,11 @@
 		configure({
 			externalArtifactFileLabel: [[${localiser.localise('validator.label.optionContentFile')}]],
 			externalArtifactURILabel: [[${localiser.localise('validator.label.optionContentURI')}]],
-			externalArtifactSettings: {
-				default: {
-					filePlaceholder: [[${localiser.localise('validator.label.fileInputPlaceholder')}]]
-				}
-			},
 			codeTypeObj: "xml",
 			isMinimalUI: [[${minimalUI}]],
 			artifactTypes: ['default'],
 			externalArtifacts: externalArtifacts,
+            labels: [(${labelConfig})],
 			reportTemplate: 'reportShacl.hbs',
 			reportMinimalTemplate: 'reportMinimalShacl.hbs'
 		});
