@@ -273,7 +273,7 @@ function onResultsLoaded(event, data) {
         }
     });
     // Register event listeners
-    $(".downloadReport").off().on("click", function() { downloadReport($(this).attr("data-report-type")); });
-    $(".downloadShapes").off().on("click", function() { downloadShapes($(this).attr("data-content-type")); });
-    $(".downloadContent").off().on("click", function() { downloadContent($(this).attr("data-content-type")); });
+    $(".downloadReport").off().on("click", function(event) { downloadReport($(this).attr("data-report-type")); event.preventDefault(); });
+    $(".downloadShapes").off().on("click", function(event) { downloadShapes($(this).attr("data-content-type")); event.preventDefault(); });
+    $(".downloadContent").off().on("click", function(event) { downloadContent($(this).attr("data-content-type")); event.preventDefault(); });
 }
