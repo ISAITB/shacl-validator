@@ -1,4 +1,4 @@
-FROM openjdk:11.0.14-jre
+FROM eclipse-temurin:17-jdk-alpine
 
 RUN mkdir /validator
 COPY validator.jar /validator

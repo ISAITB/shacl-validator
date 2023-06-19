@@ -1,6 +1,6 @@
 package eu.europa.ec.itb.shacl.gitb;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 import javax.xml.namespace.QName;
 
 import eu.europa.ec.itb.shacl.ApplicationConfig;

@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title th:replace="fragments/common :: header">Validator</title>
+    <title th:replace="~{fragments/common :: header}">Validator</title>
     <link rel="stylesheet" th:href="@{/css/style-shacl-min.css}"/>
     <script th:src="@{/webjars/codemirror/5.62.2/mode/xml/xml.js}"></script>
     <script th:src="@{/js/lib/FileSaver.min.js}"></script>
     <script th:src="@{/js/itb-upload-shacl-min.js}"></script>
-    <script th:inline="javascript">
+    <script th:attr="nonce=${nonce}" th:inline="javascript">
 		var supportQuery = [[${config.isSupportsQueries()}]];
 		var supportQueryEndpoint = [[${config.isSupportsQueries() && config.queryEndpoint == null}]];
 		var queryCredentialsMandatory = [[${config.isQueryAuthenticationMandatory()}]];
@@ -42,21 +42,16 @@
 			reportMinimalTemplate: 'reportMinimalShacl.hbs'
 		});
     </script>
-    <script th:inline="javascript" th:if="${reportData}">
-        $(document).ready(function() {
-            displayReport([(${reportData})]);
-        });
-    </script>
 </head>
 <body th:class="${not minimalUI} ? body-ui : ''">
     <div th:classappend="${not minimalUI} ? view-section-ui : ''" class="container view-section">
         <div class="view-section-input" th:classappend="${minimalUI} ? 'minimal-ui' : 'normal-ui'" th:if="${!minimalUI || report == null}">
-            <div th:replace="fragments/input :: pageHeader(${config}, ${minimalUI})"/>
+            <div th:replace="~{fragments/input :: pageHeader(${config}, ${minimalUI})}"/>
             <form method="POST" enctype="multipart/form-data" th:action="@{${not minimalUI ? 'upload' : 'uploadm'}}" class="form-horizontal" th:fragment="form">
                 <div th:class="${minimalUI} ? panel-default : ''" th:classappend="${minimalUI} ? panel : ''">
-                    <div th:replace="fragments/input :: formHeader(${config}, ${minimalUI})"/>
+                    <div th:replace="~{fragments/input :: formHeader(${config}, ${minimalUI})}"/>
                     <div th:class="${minimalUI}?'panel-body panel-body-minimal':''">
-                        <div th:replace="fragments/input :: mainForm(${config})"/>
+                        <div th:replace="~{fragments/input :: mainForm(${config})}"/>
                         <div id="contentSyntaxTypeDiv" class="form-group">
                             <label for="contentSyntaxType" class="col-sm-2 control-label"><span th:text="${localiser.localise('validator.label.contentSyntaxLabel')}">Content syntax of the input</span><span data-toggle="tooltip" data-container="body" data-placement="right" th:attr="title=${localiser.localise('validator.label.contentSyntaxTooltip')}"> <i class="far fa-question-circle"></i></span></label>
                             <div class="col-sm-3">
@@ -66,8 +61,8 @@
                                 </select>
                             </div>
                         </div>
-                        <div th:replace="fragments/input :: externalArtifactCheck(${localiser.localise('validator.label.includeExternalShapes')}, ${localiser.localise('validator.label.externalRulesTooltip')})"/>
-                        <div th:replace="fragments/input :: externalArtifactControl('default', ${localiser.localise('validator.label.externalShapesLabel')})"/>
+                        <div th:replace="~{fragments/input :: externalArtifactCheck(${localiser.localise('validator.label.includeExternalShapes')}, ${localiser.localise('validator.label.externalRulesTooltip')})}"/>
+                        <div th:replace="~{fragments/input :: externalArtifactControl('default', ${localiser.localise('validator.label.externalShapesLabel')})}"/>
                         <div id="loadImportsDiv" class="form-group hidden">
                             <div class="col-sm-offset-2 col-sm-10">
                                 <div class="checkbox">
@@ -78,7 +73,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div th:replace="fragments/input :: submit(${config}, ${minimalUI})"/>
+                        <div th:replace="~{fragments/input :: submit(${config}, ${minimalUI})}"/>
                     </div>
                     <div th:if="${minimalUI}" id="reportPlaceholder"></div>
                 </div>
@@ -86,11 +81,11 @@
         </div>
         <th:block th:if="${!minimalUI}">
             <div id="reportPlaceholder"></div>
-            <div th:replace="fragments/common :: localeSelector(${config}, ${localiser.getLocale()})"/>
+            <div th:replace="~{fragments/common :: localeSelector(${config}, ${localiser.getLocale()})}"/>
         </th:block>
-        <div th:replace="fragments/common :: footer(${config}, ${minimalUI})"/>
+        <div th:replace="~{fragments/common :: footer(${config}, ${minimalUI})}"/>
     </div>
-    <div th:replace="fragments/common :: about">About</div>
-    <div th:replace="fragments/common :: buildInfo">Build info</div>
+    <div th:replace="~{fragments/common :: about}">About</div>
+    <div th:replace="~{fragments/common :: buildInfo}">Build info</div>
 </body>
 </html>

@@ -6,18 +6,18 @@
         </button>
         <ul class="dropdown-menu">
             {{#if (or (not report.reports) (not report.reports.infoOrWarningOrError) (lte report.reports.infoOrWarningOrError.length data.maximumReportsForDetailedOutput))}}
-                <li><a href="#" onclick="downloadReport('pdfTypeDetailed');return false;"><span>{{data.translations.reportDetailedPDF}}</span></a></li>
+                <li><a href="#" class="downloadReport" data-report-type="pdfTypeDetailed"><span>{{data.translations.reportDetailedPDF}}</span></a></li>
                 {{#if data.showAggregateReport}}
-                    <li><a href="#" onclick="downloadReport('pdfTypeAggregated');return false;"><span>{{data.translations.reportAggregatedPDF}}</span></a></li>
+                    <li><a href="#" class="downloadReport" data-report-type="pdfTypeAggregated"><span>{{data.translations.reportAggregatedPDF}}</span></a></li>
                 {{/if}}
             {{/if}}
-            <li><a href="#" onclick="downloadReport('csvTypeDetailed');return false;"><span>{{data.translations.reportDetailedCSV}}</span></a></li>
+            <li><a href="#" class="downloadReport" data-report-type="csvTypeDetailed"><span>{{data.translations.reportDetailedCSV}}</span></a></li>
             {{#if data.showAggregateReport}}
-                <li><a href="#" onclick="downloadReport('csvTypeAggregated');return false;"><span>{{data.translations.reportAggregatedCSV}}</span></a></li>
+                <li><a href="#" class="downloadReport" data-report-type="csvTypeAggregated"><span>{{data.translations.reportAggregatedCSV}}</span></a></li>
             {{/if}}
             <li role="separator" class="divider"></li>
             {{#each data.contentSyntax}}
-                <li><a href="#" onclick="downloadReport('{{label}}');return false;"><span>{{key}}</span></a></li>
+                <li><a href="#" class="downloadReport" data-report-type="{{label}}"><span>{{key}}</span></a></li>
             {{/each}}
         </ul>
     </div>
@@ -28,7 +28,7 @@
         </button>
         <ul class="dropdown-menu">
             {{#each data.contentSyntax}}
-                <li><a href="#" onclick="downloadShapes('{{label}}');return false;"><span>{{key}}</span></a></li>
+                <li><a href="#" class="downloadShapes" data-content-type="{{label}}"><span>{{key}}</span></a></li>
             {{/each}}
         </ul>
     </div>
@@ -39,7 +39,7 @@
         </button>
         <ul class="dropdown-menu">
             {{#each data.contentSyntax}}
-                <li><a href="#" onclick="downloadContent('{{label}}');return false;"><span>{{key}}</span></a></li>
+                <li><a href="#" class="downloadContent" data-content-type="{{label}}"><span>{{key}}</span></a></li>
             {{/each}}
         </ul>
     </div>

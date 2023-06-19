@@ -30,9 +30,9 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.Resource;
-import javax.jws.WebParam;
-import javax.xml.ws.WebServiceContext;
+import jakarta.annotation.Resource;
+import jakarta.jws.WebParam;
+import jakarta.xml.ws.WebServiceContext;
 import java.io.File;
 import java.util.List;
 

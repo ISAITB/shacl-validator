@@ -54,7 +54,7 @@
         </dependency>
         <dependency>
             <groupId>eu.europa.ec.itb</groupId>
-            <artifactId>gitb-types</artifactId>
+            <artifactId>gitb-types-jakarta</artifactId>
         </dependency>
         <dependency>
             <groupId>eu.europa.ec.itb.commons</groupId>
@@ -81,8 +81,8 @@
             <artifactId>jena-arq</artifactId>
         </dependency>
         <dependency>
-            <groupId>javax.annotation</groupId>
-            <artifactId>javax.annotation-api</artifactId>
+            <groupId>jakarta.annotation</groupId>
+            <artifactId>jakarta.annotation-api</artifactId>
         </dependency>
         <dependency>
             <groupId>commons-beanutils</groupId>

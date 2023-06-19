@@ -14,7 +14,7 @@
     <dependencies>
         <dependency>
             <groupId>eu.europa.ec.itb</groupId>
-            <artifactId>gitb-types</artifactId>
+            <artifactId>gitb-types-jakarta</artifactId>
         </dependency>
         <dependency>
             <groupId>eu.europa.ec.itb.commons</groupId>
@@ -49,20 +49,20 @@
             <artifactId>spring-boot-starter</artifactId>
         </dependency>
         <dependency>
-            <groupId>javax.xml.bind</groupId>
-            <artifactId>jaxb-api</artifactId>
+            <groupId>jakarta.xml.bind</groupId>
+            <artifactId>jakarta.xml.bind-api</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.glassfish.jaxb</groupId>
-            <artifactId>jaxb-runtime</artifactId>
+            <groupId>com.sun.xml.bind</groupId>
+            <artifactId>jaxb-impl</artifactId>
         </dependency>
         <dependency>
             <groupId>org.topbraid</groupId>
             <artifactId>shacl</artifactId>
         </dependency>
         <dependency>
-            <groupId>javax.annotation</groupId>
-            <artifactId>javax.annotation-api</artifactId>
+            <groupId>jakarta.annotation</groupId>
+            <artifactId>jakarta.annotation-api</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
