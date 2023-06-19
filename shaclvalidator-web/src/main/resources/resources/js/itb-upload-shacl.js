@@ -272,4 +272,8 @@ function onResultsLoaded(event, data) {
             xhr.send(null);
         }
     });
+    // Register event listeners
+    $(".downloadReport").off().on("click", function() { downloadReport($(this).attr("data-report-type")); });
+    $(".downloadShapes").off().on("click", function() { downloadShapes($(this).attr("data-content-type")); });
+    $(".downloadContent").off().on("click", function() { downloadContent($(this).attr("data-content-type")); });
 }

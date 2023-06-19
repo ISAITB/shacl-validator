@@ -47,7 +47,7 @@
         </dependency>
         <dependency>
             <groupId>eu.europa.ec.itb</groupId>
-            <artifactId>gitb-types</artifactId>
+            <artifactId>gitb-types-jakarta</artifactId>
         </dependency>
         <dependency>
             <groupId>eu.europa.ec.itb.commons</groupId>

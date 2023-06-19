@@ -17,6 +17,7 @@ import eu.europa.ec.itb.validation.commons.config.ErrorResponseTypeEnum;
 import eu.europa.ec.itb.validation.commons.error.ValidatorException;
 import eu.europa.ec.itb.validation.plugin.PluginManager;
 import eu.europa.ec.itb.validation.plugin.ValidationPlugin;
+import jakarta.xml.bind.JAXBElement;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -38,10 +39,8 @@ import org.springframework.stereotype.Component;
 import org.topbraid.jenax.util.JenaUtil;
 import org.topbraid.shacl.validation.ValidationUtil;
 
-import javax.xml.bind.JAXBElement;
 import java.io.*;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static eu.europa.ec.itb.shacl.validation.SHACLResources.VALIDATION_REPORT;
 

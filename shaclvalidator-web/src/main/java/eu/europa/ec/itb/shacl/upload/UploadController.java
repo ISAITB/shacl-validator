@@ -14,6 +14,7 @@ import eu.europa.ec.itb.validation.commons.artifact.TypedValidationArtifactInfo;
 import eu.europa.ec.itb.validation.commons.config.ErrorResponseTypeEnum;
 import eu.europa.ec.itb.validation.commons.error.ValidatorException;
 import eu.europa.ec.itb.validation.commons.web.BaseUploadController;
+import eu.europa.ec.itb.validation.commons.web.CSPNonceFilter;
 import eu.europa.ec.itb.validation.commons.web.Constants;
 import eu.europa.ec.itb.validation.commons.web.KeyWithLabel;
 import eu.europa.ec.itb.validation.commons.web.locale.CustomLocaleResolver;
@@ -32,8 +33,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.ModelAndView;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -102,6 +103,8 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
         var localisationHelper = new LocalisationHelper(domainConfig, localeResolver.resolveLocale(request, response, domainConfig, appConfig));
         attributes.put(PARAM_LOCALISER, localisationHelper);
         attributes.put(PARAM_HTML_BANNER_EXISTS, localisationHelper.propertyExists("validator.bannerHtml"));
+        attributes.put(PARAM_JAVASCRIPT_EXTENSION_EXISTS, localisationHelper.propertyExists("validator.javascriptExtension"));
+        attributes.put(PARAM_NONCE, request.getAttribute(CSPNonceFilter.CSP_NONCE_ATTRIBUTE));
         attributes.put(PARAM_LABEL_CONFIG, getDynamicLabelConfiguration(localisationHelper, domainConfig, Collections.emptyList(),
                 List.of(
                         Pair.of("validator.label.includeExternalShapes", "externalIncludeText"),
