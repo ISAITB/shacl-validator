@@ -72,6 +72,7 @@ jobs:
             [
               "itbRepoRead", "github"
             ]
+          output_file: ~/.m2/settings.xml
       - name: Install commons
         run: mvn -B install -DskipTests=true
         working-directory: commons
