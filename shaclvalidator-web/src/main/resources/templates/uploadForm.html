@@ -42,6 +42,11 @@
 			reportMinimalTemplate: 'reportMinimalShacl.hbs'
 		});
     </script>
+    <script th:attr="nonce=${nonce}" th:inline="javascript" th:if="${reportData}">
+        $(document).ready(function() {
+            displayReport([(${reportData})]);
+        });
+    </script>
 </head>
 <body th:class="${not minimalUI} ? body-ui : ''">
     <div th:classappend="${not minimalUI} ? view-section-ui : ''" class="container view-section">
