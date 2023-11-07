@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>eu.europa.ec.itb.shacl</groupId>
     <artifactId>shaclvalidator</artifactId>
-    <version>1.5.0-SNAPSHOT</version>
+    <version>1.6.0-SNAPSHOT</version>
     <name>${project.groupId}:${project.artifactId}</name>
     <description>Web and command-line application for the validation of RDF data.</description>
     <licenses>
@@ -25,7 +25,7 @@
     <parent>
         <groupId>eu.europa.ec.itb.commons</groupId>
         <artifactId>validator-parent</artifactId>
-        <version>1.5.0-SNAPSHOT</version>
+        <version>1.5.0</version>
         <relativePath/>
     </parent>
     <modules>
@@ -38,7 +38,7 @@
     </modules>
     <properties>
         <validatorBuild.resourceJar>validator-resources</validatorBuild.resourceJar>
-        <version.itbCommons>1.5.0-SNAPSHOT</version.itbCommons>
+        <version.itbCommons>1.5.0</version.itbCommons>
     </properties>
     <packaging>pom</packaging>
 
