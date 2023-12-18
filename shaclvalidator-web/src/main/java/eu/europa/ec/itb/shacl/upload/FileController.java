@@ -80,10 +80,10 @@ public class FileController {
     @GetMapping(value = "/{domain}/report", produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
     @ResponseBody
     public FileSystemResource getReport(
-            @PathVariable String domain,
-            @RequestParam String id,
-            @RequestParam String type,
-            @RequestParam String syntax,
+            @PathVariable("domain") String domain,
+            @RequestParam("id") String id,
+            @RequestParam("type") String type,
+            @RequestParam("syntax") String syntax,
             HttpServletRequest request,
             HttpServletResponse response) {
 
@@ -238,7 +238,7 @@ public class FileController {
      */
     @PostMapping(value = "/{domain}/delete/{id}")
     @ResponseBody
-    public void deleteReport(@PathVariable String domain, @PathVariable String id) {
+    public void deleteReport(@PathVariable("domain") String domain, @PathVariable("id") String id) {
         var domainConfig = domainConfigCache.getConfigForDomainName(domain);
         if (domainConfig == null || !domainConfig.getChannels().contains(ValidatorChannel.FORM)) {
             throw new NotFoundException();
