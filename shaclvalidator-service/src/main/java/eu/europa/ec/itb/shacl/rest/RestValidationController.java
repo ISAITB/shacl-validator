@@ -332,7 +332,7 @@ public class RestValidationController extends BaseRestController<DomainConfig, A
      */
     @Operation(hidden = true)
     @GetMapping(value = "/{domain}/api", produces = "application/ld+json")
-    public ResponseEntity<String> hydraApi(@PathVariable String domain) throws IOException {
+    public ResponseEntity<String> hydraApi(@PathVariable("domain") String domain) throws IOException {
         DomainConfig domainConfig = validateDomain(domain);
         String content = FileUtils.readFileToString(new File(fileManager.getHydraDocsFolder(domainConfig.getDomainName()), "api.jsonld"), Charset.defaultCharset());
         HttpHeaders responseHeaders = new HttpHeaders();
@@ -359,7 +359,7 @@ public class RestValidationController extends BaseRestController<DomainConfig, A
      */
     @Operation(hidden = true)
     @GetMapping(value = "/{domain}/api/contexts/{contextName}", produces = "application/ld+json")
-    public String hydraContexts(@PathVariable String domain, @PathVariable String contextName) throws IOException {
+    public String hydraContexts(@PathVariable("domain") String domain, @PathVariable("contextName") String contextName) throws IOException {
         DomainConfig domainConfig = validateDomain(domain);
         return FileUtils.readFileToString(new File(fileManager.getHydraDocsFolder(domainConfig.getDomainName()), "EntryPoint.jsonld"), Charset.defaultCharset());
     }
@@ -373,7 +373,7 @@ public class RestValidationController extends BaseRestController<DomainConfig, A
      */
     @Operation(hidden = true)
     @GetMapping(value = "/{domain}/api/vocab", produces = "application/ld+json")
-    public String hydraVocab(@PathVariable String domain) throws IOException {
+    public String hydraVocab(@PathVariable("domain") String domain) throws IOException {
         DomainConfig domainConfig = validateDomain(domain);
         return FileUtils.readFileToString(new File(fileManager.getHydraDocsFolder(domainConfig.getDomainName()), "vocab.jsonld"), Charset.defaultCharset());
     }
