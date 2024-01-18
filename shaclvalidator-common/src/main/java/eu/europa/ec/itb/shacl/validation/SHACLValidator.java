@@ -336,6 +336,20 @@ public class SHACLValidator {
     }
 
     /**
+     * Preprocess the RDF language to use (ensuring JSONLD1.1 support).
+     *
+     * @param inputLanguage The current language.
+     * @return The language to use.
+     */
+    private Lang processRdfLanguage(Lang inputLanguage) {
+        if (Lang.JSONLD.equals(inputLanguage)) {
+            return Lang.JSONLD11;
+        } else {
+            return inputLanguage;
+        }
+    }
+
+    /**
      * Return the aggregated model of a list of SHACL shape files.
      *
      * @return The aggregated model.
@@ -344,7 +358,7 @@ public class SHACLValidator {
         Model aggregateModel = JenaUtil.createMemoryModel();
         for (FileInfo shaclFile: shaclFiles) {
             LOG.info("Validating against [{}]", shaclFile.getFile().getName());
-            Lang rdfLanguage = RDFLanguages.contentTypeToLang(shaclFile.getType());
+            Lang rdfLanguage = processRdfLanguage(RDFLanguages.contentTypeToLang(shaclFile.getType()));
             if (rdfLanguage == null) {
                 throw new ValidatorException("validator.label.exception.unableToDetermineShaclContentType");
             }
@@ -496,7 +510,7 @@ public class SHACLValidator {
             if (lang == null) {
                 throw new ValidatorException("validator.label.exception.rdfLanguageCouldNotBeDetermined");
             }
-            contentSyntaxLang = lang;
+            contentSyntaxLang = processRdfLanguage(lang);
         }
         return contentSyntaxLang;
     }
@@ -511,7 +525,6 @@ public class SHACLValidator {
     private Model getDataModel(File dataFile, Model shapesModel) {
         // Upload the data in the Model. First set the prefixes of the model to those of the shapes model to avoid mismatches.
         Model dataModel = JenaUtil.createMemoryModel();
-        
         if (shapesModel != null) {
             dataModel.setNsPrefixes(shapesModel.getNsPrefixMap());
         }
