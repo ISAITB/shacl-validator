@@ -144,20 +144,12 @@ public class FileController {
      * @return The base name.
      */
     private String getBaseReportNameForRdfReport(String type) {
-        String baseFileName;
-        switch (type) {
-            case UploadController.DOWNLOAD_TYPE_CONTENT:
-                baseFileName = FILE_NAME_INPUT;
-                break;
-            case UploadController.DOWNLOAD_TYPE_REPORT:
-                baseFileName = FILE_NAME_REPORT;
-                break;
-            case UploadController.DOWNLOAD_TYPE_SHAPES:
-                baseFileName = FILE_NAME_SHAPES;
-                break;
-            default: throw new IllegalArgumentException("Invalid file type ["+type+"]");
-        }
-        return baseFileName;
+        return switch (type) {
+            case UploadController.DOWNLOAD_TYPE_CONTENT -> FILE_NAME_INPUT;
+            case UploadController.DOWNLOAD_TYPE_REPORT -> FILE_NAME_REPORT;
+            case UploadController.DOWNLOAD_TYPE_SHAPES -> FILE_NAME_SHAPES;
+            default -> throw new IllegalArgumentException("Invalid file type [" + type + "]");
+        };
     }
 
     /**
@@ -171,27 +163,25 @@ public class FileController {
      */
     private ReportFileInfo produceReport(String reportSyntax, File tmpFolder, LocalisationHelper localiser, DomainConfig domainConfig) {
         String extension;
-        String baseFileName;
-        switch (reportSyntax) {
-            case SYNTAX_TYPE_PDF_DETAILED:
+        String baseFileName = switch (reportSyntax) {
+            case SYNTAX_TYPE_PDF_DETAILED -> {
                 extension = "pdf";
-                baseFileName = FILE_NAME_PDF_REPORT_DETAILED;
-                break;
-            case SYNTAX_TYPE_PDF_AGGREGATED:
+                yield FILE_NAME_PDF_REPORT_DETAILED;
+            }
+            case SYNTAX_TYPE_PDF_AGGREGATED -> {
                 extension = "pdf";
-                baseFileName = FILE_NAME_PDF_REPORT_AGGREGATED;
-                break;
-            case SYNTAX_TYPE_CSV_DETAILED:
+                yield FILE_NAME_PDF_REPORT_AGGREGATED;
+            }
+            case SYNTAX_TYPE_CSV_DETAILED -> {
                 extension = "csv";
-                baseFileName = FILE_NAME_CSV_REPORT_DETAILED;
-                break;
-            case SYNTAX_TYPE_CSV_AGGREGATED:
+                yield FILE_NAME_CSV_REPORT_DETAILED;
+            }
+            case SYNTAX_TYPE_CSV_AGGREGATED -> {
                 extension = "csv";
-                baseFileName = FILE_NAME_CSV_REPORT_AGGREGATED;
-                break;
-            default:
-                throw new IllegalArgumentException("Unknown report syntax [" + reportSyntax + "]");
-        }
+                yield FILE_NAME_CSV_REPORT_AGGREGATED;
+            }
+            default -> throw new IllegalArgumentException("Unknown report syntax [" + reportSyntax + "]");
+        };
         File targetFile = new File(tmpFolder, baseFileName + "." + extension);
         if (!targetFile.exists()) {
             // Generate the requested report from the TAR XML report.
@@ -201,7 +191,7 @@ public class FileController {
                     // PDF generation
                     var tar = Utils.toTAR(xmlReport);
                     if (checkOkToProducePDF(tar, domainConfig)) {
-                        pdfReportGenerator.writeReport(tar,targetFile, (t) -> pdfReportGenerator.getReportLabels(localiser, t));
+                        pdfReportGenerator.writeReport(tar,targetFile, (t) -> pdfReportGenerator.getReportLabels(localiser, t), domainConfig.isRichTextReports());
                     } else {
                         LOG.error("Unable to produce PDF report because of too many report items");
                         throw new NotFoundException();
