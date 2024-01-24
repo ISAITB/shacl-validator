@@ -219,6 +219,8 @@ public class SHACLReportHandler {
                 aggregateReport.getReports().getInfoOrWarningOrError().sort(new ReportItemComparator());
             }
         }
+        Utils.sanitizeIfNeeded(report, reportSpecs.getDomainConfig());
+        Utils.sanitizeIfNeeded(aggregateReport, reportSpecs.getDomainConfig());
 		return new ReportPair(report, aggregateReport);
 	}
 
