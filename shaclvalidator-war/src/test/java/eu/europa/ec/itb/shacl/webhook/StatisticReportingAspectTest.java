@@ -62,7 +62,7 @@ class StatisticReportingAspectTest {
         };
         var aspect = new StatisticReportingAspect() {
             @Override
-            public void getUploadContext(JoinPoint joinPoint) {
+            public void getUploadMinimalContext(JoinPoint joinPoint) {
                 assertEquals("domain1", joinPoint.getArgs()[0]);
                 aspectCalled[0] = true;
             }
