@@ -26,9 +26,11 @@ import org.apache.jena.riot.RDFLanguages;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.propertyeditors.StringArrayPropertyEditor;
 import org.springframework.context.ApplicationContext;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.ModelAndView;
@@ -81,6 +83,18 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
     private InputHelper inputHelper;
     @Autowired
     private CustomLocaleResolver localeResolver;
+
+    /**
+     * Prevent parameter values that contain commas to be interpreted as separate values.
+     *
+     * @param binder The data binder registry.
+     */
+    @SuppressWarnings("DataFlowIssue")
+    @InitBinder
+    public void initBinder(WebDataBinder binder) {
+        // Explicitly pass null to override the default (",").
+        binder.registerCustomEditor(String[].class, new StringArrayPropertyEditor(null));
+    }
 
     /**
      * Prepare the upload page.
@@ -146,7 +160,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
      * @param loadImportsValue The load OWL imports from input flag.
      * @param contentQuery The SPARQL query to load the input with.
      * @param contentQueryEndpoint The SPARQL endpoint URL to query for the content.
-     * @param contentQueryAuthenticate Whether or not authentication is needed for the SPARQL endpoint.
+     * @param contentQueryAuthenticate Whether authentication is needed for the SPARQL endpoint.
      * @param contentQueryUsername The username to use for authentication with the SPARQL endpoint.
      * @param contentQueryPassword The password to use for authentication with the SPARQL endpoint.
      * @param request The received request.
@@ -162,10 +176,11 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                                  @RequestParam(value = "contentType", defaultValue = "") String contentType,
                                  @RequestParam(value = "validationType", defaultValue = "") String validationType,
                                  @RequestParam(value = "contentSyntaxType", defaultValue = "") String contentSyntaxType,
-                                 @RequestParam(value = "contentType-external_default", required = false) String[] externalContentType,
+                                 @RequestParam(value = "contentType-external_default", required = false, defaultValue = "") String[] externalContentType,
                                  @RequestParam(value = "inputFile-external_default", required= false) MultipartFile[] externalFiles,
-                                 @RequestParam(value = "uri-external_default", required = false, defaultValue = "-") String[] externalUri,
-                                 @RequestParam(value = "contentSyntaxType-external_default", required = false) String[] externalFilesSyntaxType,
+                                 @RequestParam(value = "uri-external_default", required = false, defaultValue = "") String[] externalUri,
+                                 @RequestParam(value = "text-external_default", required = false, defaultValue = "") String[] externalString,
+                                 @RequestParam(value = "contentSyntaxType-external_default", required = false, defaultValue = "") String[] externalFilesSyntaxType,
                                  @RequestParam(value = "loadImportsCheck", required = false, defaultValue = "false") Boolean loadImportsValue,
                                  @RequestParam(value = "contentQuery", defaultValue = "") String contentQuery,
                                  @RequestParam(value = "contentQueryEndpoint", defaultValue = "") String contentQueryEndpoint,
@@ -240,7 +255,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
             if (inputFile != null) {
                 // Proceed with the validation.
                 if (hasExternalShapes(domainConfig, validationType)) {
-                    userProvidedShapes = getExternalShapes(externalContentType, externalFiles, externalUri, externalFilesSyntaxType, parentFolder);
+                    userProvidedShapes = getExternalShapes(externalContentType, externalFiles, externalUri, externalString, externalFilesSyntaxType, parentFolder);
                 } else {
                     userProvidedShapes = Collections.emptyList();
                 }
@@ -320,7 +335,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
     /**
      * Handle the upload form's submission when the user interface is minimal.
      *
-     * @see UploadController#handleUpload(String, MultipartFile, String, String, String, String, String, String[], MultipartFile[], String[], String[], Boolean, String, String, Boolean, String, String, HttpServletRequest, HttpServletResponse)
+     * @see UploadController#handleUpload(String, MultipartFile, String, String, String, String, String, String[], MultipartFile[], String[], String[], String[], Boolean, String, String, Boolean, String, String, HttpServletRequest, HttpServletResponse)
      */
     @PostMapping(value = "/{domain}/uploadm", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
@@ -331,10 +346,11 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                                         @RequestParam(value = "contentType", defaultValue = "") String contentType,
                                         @RequestParam(value = "validationType", defaultValue = "") String validationType,
                                         @RequestParam(value = "contentSyntaxType", defaultValue = "") String contentSyntaxType,
-                                        @RequestParam(value = "contentType-external_default", required = false) String[] externalContentType,
+                                        @RequestParam(value = "contentType-external_default", required = false, defaultValue = "") String[] externalContentType,
                                         @RequestParam(value = "inputFile-external_default", required= false) MultipartFile[] externalFiles,
-                                        @RequestParam(value = "uri-external_default", required = false, defaultValue = "-") String[] externalUri,
-                                        @RequestParam(value = "contentSyntaxType-external_default", required = false) String[] externalFilesSyntaxType,
+                                        @RequestParam(value = "uri-external_default", required = false, defaultValue = "") String[] externalUri,
+                                        @RequestParam(value = "text-external_default", required = false, defaultValue = "") String[] externalString,
+                                        @RequestParam(value = "contentSyntaxType-external_default", required = false, defaultValue = "") String[] externalFilesSyntaxType,
                                         @RequestParam(value = "loadImportsCheck", required = false, defaultValue = "false") Boolean loadImportsValue,
                                         @RequestParam(value = "contentQuery", defaultValue = "") String contentQuery,
                                         @RequestParam(value = "contentQueryEndpoint", defaultValue = "") String contentQueryEndpoint,
@@ -343,13 +359,13 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                                         @RequestParam(value = "contentQueryPassword", defaultValue = "") String contentQueryPassword,
                                         HttpServletRequest request,
                                         HttpServletResponse response) {
-        return handleUpload(domain, file, uri, string, contentType, validationType, contentSyntaxType, externalContentType, externalFiles, externalUri, externalFilesSyntaxType, loadImportsValue, contentQuery, contentQueryEndpoint, contentQueryAuthenticate, contentQueryUsername, contentQueryPassword, request, response);
+        return handleUpload(domain, file, uri, string, contentType, validationType, contentSyntaxType, externalContentType, externalFiles, externalUri, externalString, externalFilesSyntaxType, loadImportsValue, contentQuery, contentQueryEndpoint, contentQueryAuthenticate, contentQueryUsername, contentQueryPassword, request, response);
     }
 
     /**
      * Handle the upload form's submission when the user interface is embedded in another web page.
      *
-     * @see UploadController#handleUpload(String, MultipartFile, String, String, String, String, String, String[], MultipartFile[], String[], String[], Boolean, String, String, Boolean, String, String, HttpServletRequest, HttpServletResponse)
+     * @see UploadController#handleUpload(String, MultipartFile, String, String, String, String, String, String[], MultipartFile[], String[], String[], String[], Boolean, String, String, Boolean, String, String, HttpServletRequest, HttpServletResponse)
      */
     @PostMapping(value = "/{domain}/upload", produces = MediaType.TEXT_HTML_VALUE)
     public ModelAndView handleUploadEmbedded(@PathVariable("domain") String domain,
@@ -359,10 +375,11 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                                              @RequestParam(value = "contentType", defaultValue = "") String contentType,
                                              @RequestParam(value = "validationType", defaultValue = "") String validationType,
                                              @RequestParam(value = "contentSyntaxType", defaultValue = "") String contentSyntaxType,
-                                             @RequestParam(value = "contentType-external_default", required = false) String[] externalContentType,
+                                             @RequestParam(value = "contentType-external_default", required = false, defaultValue = "") String[] externalContentType,
                                              @RequestParam(value = "inputFile-external_default", required= false) MultipartFile[] externalFiles,
-                                             @RequestParam(value = "uri-external_default", required = false, defaultValue = "-") String[] externalUri,
-                                             @RequestParam(value = "contentSyntaxType-external_default", required = false) String[] externalFilesSyntaxType,
+                                             @RequestParam(value = "uri-external_default", required = false, defaultValue = "") String[] externalUri,
+                                             @RequestParam(value = "text-external_default", required = false, defaultValue = "") String[] externalString,
+                                             @RequestParam(value = "contentSyntaxType-external_default", required = false, defaultValue = "") String[] externalFilesSyntaxType,
                                              @RequestParam(value = "loadImportsCheck", required = false, defaultValue = "false") Boolean loadImportsValue,
                                              @RequestParam(value = "contentQuery", defaultValue = "") String contentQuery,
                                              @RequestParam(value = "contentQueryEndpoint", defaultValue = "") String contentQueryEndpoint,
@@ -372,7 +389,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                                              HttpServletRequest request,
                                              HttpServletResponse response) {
         var uploadForm = upload(domain, request, response);
-        var uploadResult = handleUpload(domain, file, uri, string, contentType, validationType, contentSyntaxType, externalContentType, externalFiles, externalUri, externalFilesSyntaxType, loadImportsValue, contentQuery, contentQueryEndpoint, contentQueryAuthenticate, contentQueryUsername, contentQueryPassword, request, response);
+        var uploadResult = handleUpload(domain, file, uri, string, contentType, validationType, contentSyntaxType, externalContentType, externalFiles, externalUri, externalString, externalFilesSyntaxType, loadImportsValue, contentQuery, contentQueryEndpoint, contentQueryAuthenticate, contentQueryUsername, contentQueryPassword, request, response);
         uploadForm.getModel().put(Constants.PARAM_REPORT_DATA, writeResultToString(uploadResult));
         return uploadForm;
     }
@@ -380,7 +397,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
     /**
      * Handle the upload form's submission when the user interface is minimal and embedded in another web page.
      *
-     * @see UploadController#handleUpload(String, MultipartFile, String, String, String, String, String, String[], MultipartFile[], String[], String[], Boolean, String, String, Boolean, String, String, HttpServletRequest, HttpServletResponse)
+     * @see UploadController#handleUpload(String, MultipartFile, String, String, String, String, String, String[], MultipartFile[], String[], String[], String[], Boolean, String, String, Boolean, String, String, HttpServletRequest, HttpServletResponse)
      */
     @PostMapping(value = "/{domain}/uploadm", produces = MediaType.TEXT_HTML_VALUE)
     public ModelAndView handleUploadMinimalEmbedded(@PathVariable("domain") String domain,
@@ -390,10 +407,11 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                                              @RequestParam(value = "contentType", defaultValue = "") String contentType,
                                              @RequestParam(value = "validationType", defaultValue = "") String validationType,
                                              @RequestParam(value = "contentSyntaxType", defaultValue = "") String contentSyntaxType,
-                                             @RequestParam(value = "contentType-external_default", required = false) String[] externalContentType,
+                                             @RequestParam(value = "contentType-external_default", required = false, defaultValue = "") String[] externalContentType,
                                              @RequestParam(value = "inputFile-external_default", required= false) MultipartFile[] externalFiles,
-                                             @RequestParam(value = "uri-external_default", required = false, defaultValue = "-") String[] externalUri,
-                                             @RequestParam(value = "contentSyntaxType-external_default", required = false) String[] externalFilesSyntaxType,
+                                             @RequestParam(value = "uri-external_default", required = false, defaultValue = "") String[] externalUri,
+                                             @RequestParam(value = "text-external_default", required = false, defaultValue = "") String[] externalString,
+                                             @RequestParam(value = "contentSyntaxType-external_default", required = false, defaultValue = "") String[] externalFilesSyntaxType,
                                              @RequestParam(value = "loadImportsCheck", required = false, defaultValue = "false") Boolean loadImportsValue,
                                              @RequestParam(value = "contentQuery", defaultValue = "") String contentQuery,
                                              @RequestParam(value = "contentQueryEndpoint", defaultValue = "") String contentQueryEndpoint,
@@ -402,7 +420,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                                              @RequestParam(value = "contentQueryPassword", defaultValue = "") String contentQueryPassword,
                                              HttpServletRequest request,
                                              HttpServletResponse response) {
-        return handleUploadEmbedded(domain, file, uri, string, contentType, validationType, contentSyntaxType, externalContentType, externalFiles, externalUri, externalFilesSyntaxType, loadImportsValue, contentQuery, contentQueryEndpoint, contentQueryAuthenticate, contentQueryUsername, contentQueryPassword, request, response);
+        return handleUploadEmbedded(domain, file, uri, string, contentType, validationType, contentSyntaxType, externalContentType, externalFiles, externalUri, externalString, externalFilesSyntaxType, loadImportsValue, contentQuery, contentQueryEndpoint, contentQueryAuthenticate, contentQueryUsername, contentQueryPassword, request, response);
     }
 
     /**
@@ -493,38 +511,42 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
      * @param externalContentType Per shape file, the way in which it should be extracted.
      * @param externalFiles The shapes as uploaded files.
      * @param externalUri The shapes as URIs.
+     * @param externalString The shapes as direct input.
      * @param externalFilesSyntaxType The syntax (mime type) of each shape file.
      * @param parentFolder The temp folder to use for storing the shape files.
      * @return The list of stored shape files to be used.
      * @throws IOException If an IO error occurs.
      */
-    private List<FileInfo> getExternalShapes(String[] externalContentType, MultipartFile[] externalFiles, String[] externalUri, String[] externalFilesSyntaxType, File parentFolder) throws IOException {
+    private List<FileInfo> getExternalShapes(String[] externalContentType, MultipartFile[] externalFiles, String[] externalUri, String[] externalString, String[] externalFilesSyntaxType, File parentFolder) throws IOException {
         List<FileInfo> shapeFiles = new ArrayList<>();
         if (externalContentType != null) {
             for (int i=0; i<externalContentType.length; i++) {
-                File inputFile = null;
-                String contentSyntaxType = "";
-                if (externalFilesSyntaxType.length > i) {
-                    contentSyntaxType = externalFilesSyntaxType[i];
-                }
-                if (CONTENT_TYPE_FILE.equals(externalContentType[i])) {
-                    if (!externalFiles[i].isEmpty()) {
+                if (StringUtils.isNotBlank(externalContentType[i])) {
+                    File inputFile = null;
+                    String contentSyntaxType = "";
+                    if (externalFilesSyntaxType.length > i) {
+                        contentSyntaxType = externalFilesSyntaxType[i];
+                    }
+                    if (CONTENT_TYPE_FILE.equals(externalContentType[i])) {
+                        if (!externalFiles[i].isEmpty()) {
+                            if (StringUtils.isEmpty(contentSyntaxType) || contentSyntaxType.equals(EMPTY)) {
+                                contentSyntaxType = getExtensionContentTypeForFileName(externalFiles[i].getOriginalFilename());
+                            }
+                            try (var stream = externalFiles[i].getInputStream()) {
+                                inputFile = this.fileManager.getFileFromInputStream(parentFolder, stream, contentSyntaxType, null);
+                            }
+                        }
+                    } else if (CONTENT_TYPE_URI.equals(externalContentType[i]) && externalUri.length > i && !externalUri[i].isEmpty()) {
                         if (StringUtils.isEmpty(contentSyntaxType) || contentSyntaxType.equals(EMPTY)) {
-                            contentSyntaxType = getExtensionContentTypeForFileName(externalFiles[i].getOriginalFilename());
+                            contentSyntaxType = getExtensionContentTypeForURL(externalUri[i]);
                         }
-                        try (var stream = externalFiles[i].getInputStream()) {
-                            inputFile = this.fileManager.getFileFromInputStream(parentFolder, stream, contentSyntaxType, null);
-                        }
+                        inputFile = this.fileManager.getFileFromURL(parentFolder, externalUri[i]);
+                    } else if (CONTENT_TYPE_STRING.equals(externalContentType[i]) && externalString.length > i && !externalString[i].isEmpty()) {
+                        inputFile = this.fileManager.getFileFromString(parentFolder, externalString[i]);
                     }
-                } else if (CONTENT_TYPE_URI.equals(externalContentType[i]) && externalUri.length > i && !externalUri[i].isEmpty()) {
-                    if (StringUtils.isEmpty(contentSyntaxType) || contentSyntaxType.equals(EMPTY)) {
-                        contentSyntaxType = getExtensionContentTypeForURL(externalUri[i]);
+                    if (inputFile != null) {
+                        shapeFiles.add(new FileInfo(inputFile, contentSyntaxType));
                     }
-                    inputFile = this.fileManager.getFileFromURL(parentFolder, externalUri[i]);
-                }
-                if (inputFile != null) {
-                    FileInfo fi = new FileInfo(inputFile, contentSyntaxType);
-                    shapeFiles.add(fi);
                 }
             }
         }
