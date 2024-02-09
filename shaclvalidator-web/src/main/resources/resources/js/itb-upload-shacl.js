@@ -5,6 +5,7 @@ addListener('INPUT_CONTENT_TYPE_CHANGED', inputContentTypeChanged);
 addListener('VALIDATION_TYPE_CHANGED', onValidationTypeChanged);
 addListener('RESULTS_LOADED', onResultsLoaded);
 addListener('SUBMIT_STATUS_VALIDATED', onSubmitStatusValidated);
+addListener('EXTERNAL_ARTIFACT_CONTENT_TYPE_CHANGED', externalArtifactContentTypeChanged)
 addContentTypeValidator('queryType', validateQueryInputs);
 
 function onFormReady() {
@@ -162,6 +163,20 @@ function inputContentTypeChanged() {
     }
 }
 
+function externalArtifactContentTypeChanged(event, info) {
+    if (info) {
+    	var type = $('#contentType-'+info.elementId).val();
+        // Adapt content syntax selection
+        if (type == 'stringType') {
+            $('#contentSyntaxType-'+info.elementId+' option[value="empty"]').remove();
+        } else {
+            if ($('#contentSyntaxType-'+info.elementId+' option[value="empty"]').length == 0) {
+                $('#contentSyntaxType-'+info.elementId+'').prepend('<option value="empty" selected="selected">'+labelContextSyntaxDefault+'</option>');
+            }
+        }
+    }
+}
+
 function externalShapeRemoved(eventType, eventData) {
     var supportType = getExternalArtifactSupport('default');
     if (supportType == 'required') {
@@ -186,8 +201,10 @@ function externalShapeAdded(eventType, eventData) {
     var fileTextInput = $('#fileToValidate-class-external_default-'+eventData.elementIndex);
     var uriInput = $('#uriToValidate-external_default-'+eventData.elementIndex);
     var fileInput = $('#inputFile-external_default-'+eventData.elementIndex);
+    var stringInput = $('#stringToValidate-external_default-'+eventData.elementIndex);
     fileTextInput.removeClass('col-sm-11').addClass('col-sm-8');
     uriInput.removeClass('col-sm-11').addClass('col-sm-8');
+    stringInput.addClass('external-shape-code-editor');
 
     var selectElementDiv = $('<div class="contentSyntaxTypeDiv-external col-sm-'+cols+'"></div>');
     var selectElement = $('<select class="form-control" id="contentSyntaxType-external_default-'+eventData.elementIndex+'" name="contentSyntaxType-external_default"></select>');

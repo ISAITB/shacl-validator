@@ -15,6 +15,9 @@
 .query-form-group {
     margin-bottom: 15px;
 }
+.external-shape-code-editor {
+    margin-bottom: 15px;
+}
 #queryToValidate .CodeMirror {
     height: 250px;
 }
