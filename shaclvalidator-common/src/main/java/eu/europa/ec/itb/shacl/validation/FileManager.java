@@ -7,26 +7,22 @@ import eu.europa.ec.itb.validation.commons.FileInfo;
 import eu.europa.ec.itb.validation.commons.error.ValidatorException;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.CredentialsProvider;
-import org.apache.http.impl.client.BasicCredentialsProvider;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.impl.client.HttpClients;
 import org.apache.jena.atlas.web.ContentType;
+import org.apache.jena.http.auth.AuthEnv;
 import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryException;
 import org.apache.jena.query.QueryFactory;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFLanguages;
-import org.apache.jena.sparql.engine.http.QueryEngineHTTP;
+import org.apache.jena.sparql.exec.http.QueryExecutionHTTP;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.*;
+import java.net.URI;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -182,25 +178,6 @@ public class FileManager extends BaseFileManager<ApplicationConfig> {
      */
     public Path getContentFromSparqlEndpoint(SparqlQueryConfig queryConfig, File parentFolder, String fileName) {
         Model resultModel;
-        try (QueryEngineHTTP qEngine = new QueryEngineHTTP(queryConfig.getEndpoint(), getQuery(queryConfig.getQuery()))) {
-            HttpClientBuilder httpBuilder = HttpClients.custom();
-            if (queryConfig.getUsername() != null && queryConfig.getPassword() != null && !queryConfig.getUsername().isBlank() && !queryConfig.getPassword().isBlank()) {
-                CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-                credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(queryConfig.getUsername(), queryConfig.getPassword()));
-                httpBuilder.setDefaultCredentialsProvider(credentialsProvider);
-            }
-            qEngine.setClient(httpBuilder.build());
-            qEngine.setModelContentType(queryConfig.getPreferredContentType());
-            resultModel = qEngine.execConstruct();
-        } catch (Exception e) {
-            throw new ValidatorException("validator.label.exception.sparqlQueryError", e, e.getMessage());
-        }
-        /*
-            The following authentication code is what Jena proposes as the latest way of doing the authentication. The previous
-            deprecated approach is maintained however as Jena currently has a bug that inverts the request URI and HTTP method
-            when preparing the response for digest authentication. Once this is resolved, the deprecated approach (above) can be
-            replaced with the corrected one (commented below).
-
         AuthEnv.get().registerUsernamePassword(URI.create(queryConfig.getEndpoint()), queryConfig.getUsername(), queryConfig.getPassword());
         try (var query = QueryExecutionHTTP.service(queryConfig.getEndpoint())
                 .query(getQuery(queryConfig.getQuery()))
@@ -210,7 +187,6 @@ public class FileManager extends BaseFileManager<ApplicationConfig> {
         } catch (Exception e) {
             throw new ValidatorException("validator.label.exception.sparqlQueryError", e, e.getMessage());
         }
-         */
         Path modelPath = null;
         if (resultModel != null) {
             modelPath = createFile(parentFolder, getFileExtension(queryConfig.getPreferredContentType()), fileName);
