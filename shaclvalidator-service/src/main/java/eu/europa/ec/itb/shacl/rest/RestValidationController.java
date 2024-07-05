@@ -24,6 +24,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -94,9 +95,67 @@ public class RestValidationController extends BaseRestController<DomainConfig, A
     @ApiResponse(responseCode = "404", description = "Not found (for an invalid domain value)", content = @Content)
     @PostMapping(value = "/{domain}/api/validate", consumes = {MediaType.APPLICATION_JSON_VALUE, "application/ld+json"}, produces = { "application/ld+json", "application/rdf+xml", "text/turtle", "application/n-triples", MediaType.APPLICATION_XML_VALUE, MediaType.TEXT_XML_VALUE, MediaType.APPLICATION_JSON_VALUE})
     public ResponseEntity<StreamingResponseBody> validate(
-            @Parameter(required = true, name = "domain", description = "A fixed value corresponding to the specific validation domain.")
+            @Parameter(required = true, name = "domain", description = "A fixed value corresponding to the specific validation domain.",
+                    examples = {
+                            @ExampleObject(name="order", summary="Sample 'order' configuration", value="order", description = "The domain value to use for the demo 'order' validator at https://www.itb.ec.europe.eu/shacl/order/upload."),
+                            @ExampleObject(name="any", summary="Generic 'any' configuration", value = "any", description = "The domain value to use for the generic 'any' validator at https://www.itb.ec.europe.eu/shacl/any/upload used to validate RDF with user-provided shapes.")
+                    }
+            )
             @PathVariable("domain") String domain,
             @Parameter(required = true, name = "input", description = "The input for the validation (content and metadata for one RDF instance).")
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    content = @Content(
+                            examples = {
+                                    @ExampleObject(name="order1", summary = "Validate string", description = "Validate Turtle content provided as a string for the 'large' validation type of the 'order' sample validator (see https://www.itb.ec.europe.eu/shacl/order/upload). To try it out select also 'order' for the 'domain' parameter.", value = """
+                                    {
+                                        "contentToValidate": "@prefix ns0: <http:\\/\\/www.w3.org\\/ns\\/locn#> .\\n@prefix ns1: <http:\\/\\/itb.ec.europa.eu\\/sample\\/po#> .\\n\\n<http:\\/\\/my.sample.po\\/po#purchaseOrder>\\n  a <http:\\/\\/itb.ec.europa.eu\\/sample\\/po#PurchaseOrder> ;\\n  ns1:shipTo <http:\\/\\/my.sample.po\\/po#home> ;\\n  ns1:billTo <http:\\/\\/my.sample.po\\/po#home> ;\\n  ns1:hasItem <http:\\/\\/my.sample.po\\/po#item1>;\\n  ns1:hasItem  <http:\\/\\/my.sample.po\\/po#item2> .\\n\\n<http:\\/\\/my.sample.po\\/po#home>\\n  a <http:\\/\\/www.w3.org\\/ns\\/locn#Address> ;\\n  ns0:fullAddress \\"Rue du Test 123, 1000 - Brussels, Belgium\\" ;\\n  ns0:thoroughfare \\"Rue du Test\\" ;\\n  ns0:locatorDesignator \\"123\\" ;\\n  ns0:postCode \\"1000\\" ;\\n  ns0:postName \\"Brussels\\" ;\\n  ns0:adminUnitL1 \\"BE\\" .\\n\\n<http:\\/\\/my.sample.po\\/po#item1>\\n  a ns1:Item ;\\n  ns1:productName \\"Mouse\\" ;\\n  ns1:quantity 20 ;\\n  ns1:priceEUR 15.99 .\\n\\n<http:\\/\\/my.sample.po\\/po#item2>\\n  a ns1:Item ;\\n  ns1:productName \\"Keyboard\\" ;\\n  ns1:quantity 15 ;\\n  ns1:priceEUR 25.50 .",
+                                        "contentSyntax": "text/turtle",
+                                        "validationType": "large"
+                                    }
+                                    """),
+                                    @ExampleObject(name="order2", summary = "Validate remote URI", description = "Validate Turtle content provided as a URI for the 'large' validation type of the 'order' sample validator (see https://www.itb.ec.europe.eu/shacl/order/upload). To try it out select also 'order' for the 'domain' parameter.", value = """
+                                    {
+                                        "contentToValidate": "https://www.itb.ec.europa.eu/files/samples/shacl/sample-invalid.ttl",
+                                        "contentSyntax": "text/turtle",
+                                        "embeddingMethod": "URL",
+                                        "validationType": "large"
+                                    }
+                                    """),
+                                    @ExampleObject(name="order3", summary = "Validate Base64-encoded content", description = "Validate Turtle content encoded in a Base64 string for the 'large' validation type of the 'order' sample validator (see https://www.itb.ec.europe.eu/shacl/order/upload). To try it out select also 'order' for the 'domain' parameter.", value = """
+                                    {
+                                        "contentToValidate": "QHByZWZpeCBuczA6IDxodHRwOi8vd3d3LnczLm9yZy9ucy9sb2NuIz4gLgpAcHJlZml4IG5zMTogPGh0dHA6Ly9pdGIuZWMuZXVyb3BhLmV1L3NhbXBsZS9wbyM+IC4KCjxodHRwOi8vbXkuc2FtcGxlLnBvL3BvI2hvbWU+CiAgYSA8aHR0cDovL3d3dy53My5vcmcvbnMvbG9jbiNBZGRyZXNzPiA7CiAgbnMwOmZ1bGxBZGRyZXNzICJSdWUgZHUgVGVzdCAxMjMsIDEwMDAgLSBCcnVzc2VscywgQmVsZ2l1bSIgOwogIG5zMDp0aG9yb3VnaGZhcmUgIlJ1ZSBkdSBUZXN0IiA7CiAgbnMwOmxvY2F0b3JEZXNpZ25hdG9yICIxMjMiIDsKICBuczA6cG9zdENvZGUgIjEwMDAiIDsKICBuczA6cG9zdE5hbWUgIkJydXNzZWxzIiA7CiAgbnMwOmFkbWluVW5pdEwxICJCRSIgLgoKPGh0dHA6Ly9teS5zYW1wbGUucG8vcG8jcHVyY2hhc2VPcmRlcj4KICBhIDxodHRwOi8vaXRiLmVjLmV1cm9wYS5ldS9zYW1wbGUvcG8jUHVyY2hhc2VPcmRlcj4gOwogIG5zMTpzaGlwVG8gPGh0dHA6Ly9teS5zYW1wbGUucG8vcG8jaG9tZT4gOwogIG5zMTpoYXNJdGVtIDxodHRwOi8vbXkuc2FtcGxlLnBvL3BvI2l0ZW0xPiA7CiAgbnMxOmhhc0l0ZW0gPGh0dHA6Ly9teS5zYW1wbGUucG8vcG8jaXRlbTI+IC4KCjxodHRwOi8vbXkuc2FtcGxlLnBvL3BvI2l0ZW0xPgogIGEgbnMxOkl0ZW0gOwogIG5zMTpwcm9kdWN0TmFtZSAiTW91c2UiIDsKICBuczE6cXVhbnRpdHkgMjAgOwogIG5zMTpwcmljZUVVUiAxNS45OSAuCgo8aHR0cDovL215LnNhbXBsZS5wby9wbyNpdGVtMj4KICBhIG5zMTpJdGVtIDsKICBuczE6cHJvZHVjdE5hbWUgIktleWJvYXJkIiA7CiAgbnMxOnF1YW50aXR5IDMgOwogIG5zMTpwcmljZUVVUiAyNS41MCAu",
+                                        "contentSyntax": "text/turtle",
+                                        "embeddingMethod": "BASE64",
+                                        "validationType": "large"
+                                    }
+                                    """),
+                                    @ExampleObject(name="order4", summary = "Validate remote URI and produce RDF/XML report", description = "Validate Turtle content provided as a URI for the 'large' validation type of the 'order' sample validator (see https://www.itb.ec.europe.eu/shacl/order/upload), and return the report in RDF/XML. To try it out select also 'order' for the 'domain' parameter.", value = """
+                                    {
+                                        "contentToValidate": "https://www.itb.ec.europa.eu/files/samples/shacl/sample-invalid.ttl",
+                                        "contentSyntax": "text/turtle",
+                                        "embeddingMethod": "URL",
+                                        "validationType": "large",
+                                        "reportSyntax": "application/rdf+xml"
+                                    }
+                                    """),
+                                    @ExampleObject(name="any", summary = "Validate remote URI with user-provided shapes", description = "Validate Turtle content provided as a URI and using user-provided shapes, with the generic 'any' validator (see https://www.itb.ec.europe.eu/shacl/any/upload). For result of the validation request the report in Turtle format. To try it out select also 'any' for the 'domain' parameter.", value = """
+                                    {
+                                        "contentToValidate": "https://www.itb.ec.europa.eu/files/samples/shacl/sample-invalid.ttl",
+                                        "contentSyntax": "text/turtle",
+                                        "embeddingMethod": "URL",
+                                        "reportSyntax": "text/turtle",
+                                        "externalRules": [
+                                            {
+                                                "ruleSet": "https://raw.githubusercontent.com/ISAITB/validator-resources-rdf-sample/master/resources/shapes/PurchaseOrder-large-shapes.ttl",
+                                                "embeddingMethod": "URL",
+                                                "ruleSyntax": "text/turtle"
+                                            }
+                                        ]
+                                    }
+                                    """)
+                            }
+                    )
+            )
             @RequestBody Input in,
             HttpServletRequest request
     ) {
@@ -285,9 +344,67 @@ public class RestValidationController extends BaseRestController<DomainConfig, A
     @ApiResponse(responseCode = "404", description = "Not found (for an invalid domain value)", content = @Content)
     @PostMapping(value = "/{domain}/api/validateMultiple", consumes = {MediaType.APPLICATION_JSON_VALUE, "application/ld+json"}, produces = MediaType.APPLICATION_JSON_VALUE)
     public Output[] validateMultiple(
-            @Parameter(required = true, name = "domain", description = "A fixed value corresponding to the specific validation domain.")
+            @Parameter(required = true, name = "domain", description = "A fixed value corresponding to the specific validation domain.",
+                    examples = {
+                            @ExampleObject(name="order", summary="Sample 'order' configuration", value="order", description = "The domain value to use for the demo 'order' validator at https://www.itb.ec.europe.eu/shacl/order/upload."),
+                            @ExampleObject(name="any", summary="Generic 'any' configuration", value = "any", description = "The domain value to use for the generic 'any' validator at https://www.itb.ec.europe.eu/shacl/any/upload used to validate RDF with user-provided shapes.")
+                    })
             @PathVariable("domain") String domain,
             @Parameter(required = true, name = "input", description = "The input for the validation (content and metadata for one or more RDF instances).")
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    content = @Content(
+                            examples = {
+                                    @ExampleObject(name="order1", summary = "Validate remote URIs and produce RDF/XML report", description = "Validate Turtle content provided as URIs for the 'large' validation type of the 'order' sample validator (see https://www.itb.ec.europe.eu/shacl/order/upload), and return the report in RDF/XML. To try it out select also 'order' for the 'domain' parameter.", value = """
+                                    [
+                                        {
+                                            "contentToValidate": "https://www.itb.ec.europa.eu/files/samples/shacl/sample-invalid.ttl",
+                                            "contentSyntax": "text/turtle",
+                                            "embeddingMethod": "URL",
+                                            "validationType": "large",
+                                            "reportSyntax": "application/rdf+xml"
+                                        },
+                                        {
+                                            "contentToValidate": "https://www.itb.ec.europa.eu/files/samples/shacl/sample-invalid.ttl",
+                                            "contentSyntax": "text/turtle",
+                                            "embeddingMethod": "URL",
+                                            "validationType": "basic",
+                                            "reportSyntax": "application/rdf+xml"
+                                        }
+                                    ]
+                                    """),
+                                    @ExampleObject(name="any", summary = "Validate remote URIs with user-provided shapes", description = "Validate Turtle content provided as URIs and using user-provided shapes, with the generic 'any' validator (see https://www.itb.ec.europe.eu/shacl/any/upload). For result of the validation request the report in Turtle format. To try it out select also 'any' for the 'domain' parameter.", value = """
+                                    [
+                                        {
+                                            "contentToValidate": "https://www.itb.ec.europa.eu/files/samples/shacl/sample-invalid.ttl",
+                                            "contentSyntax": "text/turtle",
+                                            "embeddingMethod": "URL",
+                                            "reportSyntax": "text/turtle",
+                                            "externalRules": [
+                                                {
+                                                    "ruleSet": "https://raw.githubusercontent.com/ISAITB/validator-resources-rdf-sample/master/resources/shapes/PurchaseOrder-large-shapes.ttl",
+                                                    "embeddingMethod": "URL",
+                                                    "ruleSyntax": "text/turtle"
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "contentToValidate": "https://www.itb.ec.europa.eu/files/samples/shacl/sample-invalid.ttl",
+                                            "contentSyntax": "text/turtle",
+                                            "embeddingMethod": "URL",
+                                            "reportSyntax": "application/xml",
+                                            "externalRules": [
+                                                {
+                                                    "ruleSet": "https://raw.githubusercontent.com/ISAITB/validator-resources-rdf-sample/master/resources/shapes/PurchaseOrder-common-shapes.ttl",
+                                                    "embeddingMethod": "URL",
+                                                    "ruleSyntax": "text/turtle"
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                    """)
+                            }
+                    )
+            )
             @RequestBody Input[] inputs,
             HttpServletRequest request
     ) {
