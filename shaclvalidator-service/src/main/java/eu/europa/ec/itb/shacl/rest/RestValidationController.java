@@ -354,7 +354,7 @@ public class RestValidationController extends BaseRestController<DomainConfig, A
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     content = @Content(
                             examples = {
-                                    @ExampleObject(name="order1", summary = "Validate remote URIs and produce RDF/XML report", description = "Validate Turtle content provided as URIs for the 'large' validation type of the 'order' sample validator (see https://www.itb.ec.europe.eu/shacl/order/upload), and return the report in RDF/XML. To try it out select also 'order' for the 'domain' parameter.", value = """
+                                    @ExampleObject(name="order", summary = "Validate remote URIs and produce RDF/XML reports", description = "Validate Turtle content provided as URIs for the 'large' validation type of the 'order' sample validator (see https://www.itb.ec.europe.eu/shacl/order/upload), and return the report in RDF/XML. To try it out select also 'order' for the 'domain' parameter.", value = """
                                     [
                                         {
                                             "contentToValidate": "https://www.itb.ec.europa.eu/files/samples/shacl/sample-invalid.ttl",
