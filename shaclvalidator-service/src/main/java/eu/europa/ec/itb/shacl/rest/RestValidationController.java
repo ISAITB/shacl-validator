@@ -348,7 +348,8 @@ public class RestValidationController extends BaseRestController<DomainConfig, A
                     examples = {
                             @ExampleObject(name="order", summary="Sample 'order' configuration", value="order", description = "The domain value to use for the demo 'order' validator at https://www.itb.ec.europe.eu/shacl/order/upload."),
                             @ExampleObject(name="any", summary="Generic 'any' configuration", value = "any", description = "The domain value to use for the generic 'any' validator at https://www.itb.ec.europe.eu/shacl/any/upload used to validate RDF with user-provided shapes.")
-                    })
+                    }
+            )
             @PathVariable("domain") String domain,
             @Parameter(required = true, name = "input", description = "The input for the validation (content and metadata for one or more RDF instances).")
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
@@ -372,7 +373,7 @@ public class RestValidationController extends BaseRestController<DomainConfig, A
                                         }
                                     ]
                                     """),
-                                    @ExampleObject(name="any", summary = "Validate remote URIs with user-provided shapes", description = "Validate Turtle content provided as URIs and using user-provided shapes, with the generic 'any' validator (see https://www.itb.ec.europe.eu/shacl/any/upload). For result of the validation request the report in Turtle format. To try it out select also 'any' for the 'domain' parameter.", value = """
+                                    @ExampleObject(name="any", summary = "Validate remote URIs with user-provided shapes", description = "Validate Turtle content provided as URIs and using user-provided shapes, with the generic 'any' validator (see https://www.itb.ec.europe.eu/shacl/any/upload). For the result of the validation request the report in Turtle format. To try it out select also 'any' for the 'domain' parameter.", value = """
                                     [
                                         {
                                             "contentToValidate": "https://www.itb.ec.europa.eu/files/samples/shacl/sample-invalid.ttl",
