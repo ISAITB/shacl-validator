@@ -6,10 +6,7 @@ import eu.europa.ec.itb.shacl.util.ShaclValidatorUtils;
 import eu.europa.ec.itb.shacl.validation.FileManager;
 import eu.europa.ec.itb.shacl.validation.ReportSpecs;
 import eu.europa.ec.itb.shacl.validation.SHACLValidator;
-import eu.europa.ec.itb.validation.commons.FileInfo;
-import eu.europa.ec.itb.validation.commons.LocalisationHelper;
-import eu.europa.ec.itb.validation.commons.ReportPair;
-import eu.europa.ec.itb.validation.commons.Utils;
+import eu.europa.ec.itb.validation.commons.*;
 import eu.europa.ec.itb.validation.commons.artifact.ExternalArtifactSupport;
 import eu.europa.ec.itb.validation.commons.error.ValidatorException;
 import eu.europa.ec.itb.validation.commons.jar.BaseValidationRunner;
@@ -36,10 +33,7 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * Component that handles the actual triggering of validation and resulting reporting.
@@ -378,7 +372,7 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
             if (!inputFile.exists() || !inputFile.isFile() || !inputFile.canRead()) {
                 if (validSyntax && langExtension != null) {
                     new URL(file);
-                    inputFile = this.fileManager.getFileFromURL(parentFolder, file, langExtension.getFileExtensions().get(0), filename);
+                    inputFile = this.fileManager.getFileFromURL(parentFolder, file, langExtension.getFileExtensions().get(0), filename, null, null, null, List.of(contentType)).getFile();
                 } else {
                     throw new IllegalArgumentException("Unknown content syntax [" + contentType + "]");
                 }

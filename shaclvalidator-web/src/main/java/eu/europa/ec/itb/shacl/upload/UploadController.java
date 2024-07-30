@@ -245,7 +245,11 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                             if (noContentSyntaxProvided) {
                                 contentSyntaxType = getExtensionContentTypeForURL(uri);
                             }
-                            inputFile = this.fileManager.getFileFromURL(parentFolder, uri, fileManager.getFileExtension(contentSyntaxType), FILE_NAME_INPUT);
+                            FileInfo uriResult = this.fileManager.getFileFromURL(parentFolder, uri, fileManager.getFileExtension(contentSyntaxType), FILE_NAME_INPUT, null, null, null, getAcceptedContentTypes(contentSyntaxType));
+                            inputFile = uriResult.getFile();
+                            if (uriResult.getType() != null && !Objects.equals(contentSyntaxType, uriResult.getType())) {
+                                contentSyntaxType = uriResult.getType();
+                            }
                             break;
                         default:
                             throw new IllegalArgumentException("Unknown content type [" + contentType + "]");
@@ -540,7 +544,11 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                         if (StringUtils.isEmpty(contentSyntaxType) || contentSyntaxType.equals(EMPTY)) {
                             contentSyntaxType = getExtensionContentTypeForURL(externalUri[i]);
                         }
-                        inputFile = this.fileManager.getFileFromURL(parentFolder, externalUri[i]);
+                        FileInfo uriResult = this.fileManager.getFileFromURL(parentFolder, externalUri[i], null, null, null, null, null, getAcceptedContentTypes(contentSyntaxType));
+                        inputFile = uriResult.getFile();
+                        if (uriResult.getType() != null && !Objects.equals(contentSyntaxType, uriResult.getType())) {
+                            contentSyntaxType = uriResult.getType();
+                        }
                     } else if (CONTENT_TYPE_STRING.equals(externalContentType[i]) && externalString.length > i && !externalString[i].isEmpty()) {
                         inputFile = this.fileManager.getFileFromString(parentFolder, externalString[i]);
                     }
@@ -551,6 +559,22 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
             }
         }
         return shapeFiles;
+    }
+
+    /**
+     * Return a list of the content types to specify in a remote URI's request Accept header.
+     * <p>
+     * This either wraps the provided content type or includes all supported RDF content types.
+     *
+     * @param providedContentType The user-provided content type.
+     * @return The content types to use.
+     */
+    private List<String> getAcceptedContentTypes(String providedContentType) {
+        if (StringUtils.isEmpty(providedContentType) || providedContentType.equals(EMPTY)) {
+            return new ArrayList<>(appConfig.getContentSyntax());
+        } else {
+            return List.of(providedContentType);
+        }
     }
 
     /**

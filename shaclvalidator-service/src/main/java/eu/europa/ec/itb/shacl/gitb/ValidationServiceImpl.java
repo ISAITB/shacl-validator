@@ -119,7 +119,7 @@ public class ValidationServiceImpl implements ValidationService, WebServiceConte
 
     /**
      * The validate operation is called to validate the input and produce a validation report.
-     *
+     * <p>
      * The expected input is described for the service's client through the getModuleDefinition call.
      *
      * @param validateRequest The input parameters and configuration for the validation.
@@ -137,7 +137,7 @@ public class ValidationServiceImpl implements ValidationService, WebServiceConte
 			ValueEmbeddingEnumeration contentEmbeddingMethod = inputHelper.validateContentEmbeddingMethod(validateRequest, ValidationConstants.INPUT_EMBEDDING_METHOD);
             var queryConfig = parseQueryConfiguration(validateRequest);
 			if (queryConfig == null) {
-				contentToValidate = inputHelper.validateContentToValidate(validateRequest, ValidationConstants.INPUT_CONTENT, contentEmbeddingMethod, parentFolder);
+				contentToValidate = inputHelper.validateContentToValidate(validateRequest, ValidationConstants.INPUT_CONTENT, contentEmbeddingMethod, contentSyntax, parentFolder);
 			} else {
                 queryConfig.setPreferredContentType(contentSyntax);
 				queryConfig = inputHelper.validateSparqlConfiguration(domainConfig, queryConfig);

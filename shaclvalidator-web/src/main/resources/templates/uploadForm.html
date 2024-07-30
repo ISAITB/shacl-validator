@@ -18,6 +18,7 @@
 		var labelQueryAuthenticateLabel = [[${localiser.localise('validator.label.queryAuthenticateLabel')}]];
         var labelDownloadErrorMessage = [[${localiser.localise('validator.label.exception.downloadError')}]];
         var labelContextSyntaxDefault = [[${localiser.localise('validator.label.contentSyntaxDefault')}]];
+        var labelContextSyntaxDefaultForUri = [[${localiser.localise('validator.label.contentSyntaxDefaultForUri')}]];
 		var externalArtifacts = {};
 		var loadImportsArtifacts = {};
 		[# th:each="artifactInfoEntry : ${externalArtifactInfo}"]
@@ -60,7 +61,7 @@
                         <div th:replace="~{fragments/input :: mainForm(${config})}"/>
                         <div id="contentSyntaxTypeDiv" class="form-group">
                             <label for="contentSyntaxType" class="col-sm-2 control-label"><span th:text="${localiser.localise('validator.label.contentSyntaxLabel')}">Content syntax of the input</span><span data-toggle="tooltip" data-container="body" data-placement="right" th:attr="title=${localiser.localise('validator.label.contentSyntaxTooltip')}"> <i class="far fa-question-circle"></i></span></label>
-                            <div class="col-sm-3">
+                            <div class="col-sm-4">
                                 <select class="form-control" id="contentSyntaxType" name="contentSyntaxType">
                                     <option value="empty" selected="true" th:text="${localiser.localise('validator.label.contentSyntaxDefault')}"></option>
                                     <option th:each="type : ${contentSyntax}" th:text="${type.key}" th:attr="value=${type.label}">Type</option>
