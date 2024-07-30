@@ -139,14 +139,13 @@ function loadImportInputs() {
 function inputContentTypeChanged() {
 	var type = $('#contentType').val();
 	// Adapt content syntax selection
-    if (type == 'stringType') {
-        $('#contentSyntaxType option[value="empty"]').remove();
-    } else {
-        if ($('#contentSyntaxType option[value="empty"]').length == 0) {
-            $('#contentSyntaxType').prepend('<option value="empty" selected="selected">'+labelContextSyntaxDefault+'</option>');
-        }
+    $('#contentSyntaxType option[value="empty"]').remove();
+    if (type == 'uriType') {
+        $('#contentSyntaxType').prepend('<option value="empty" selected="selected">'+labelContextSyntaxDefaultForUri+'</option>');
+    } else if (type == 'fileType') {
+        $('#contentSyntaxType').prepend('<option value="empty" selected="selected">'+labelContextSyntaxDefault+'</option>');
     }
-	// Show or hide query fields
+    // Show or hide query fields
     if (type == 'queryType') {
         $('#contentSyntaxTypeDiv').addClass('hidden');
         $('#fileToValidate').addClass('hidden');
@@ -167,12 +166,11 @@ function externalArtifactContentTypeChanged(event, info) {
     if (info) {
     	var type = $('#contentType-'+info.elementId).val();
         // Adapt content syntax selection
-        if (type == 'stringType') {
-            $('#contentSyntaxType-'+info.elementId+' option[value="empty"]').remove();
-        } else {
-            if ($('#contentSyntaxType-'+info.elementId+' option[value="empty"]').length == 0) {
-                $('#contentSyntaxType-'+info.elementId+'').prepend('<option value="empty" selected="selected">'+labelContextSyntaxDefault+'</option>');
-            }
+        $('#contentSyntaxType-'+info.elementId+' option[value="empty"]').remove();
+        if (type == 'uriType') {
+            $('#contentSyntaxType-'+info.elementId+'').prepend('<option value="empty" selected="selected">'+labelContextSyntaxDefaultForUri+'</option>');
+        } else if (type == 'fileType') {
+            $('#contentSyntaxType-'+info.elementId+'').prepend('<option value="empty" selected="selected">'+labelContextSyntaxDefault+'</option>');
         }
     }
 }

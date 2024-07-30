@@ -277,7 +277,7 @@ public class RestValidationController extends BaseRestController<DomainConfig, A
             ValueEmbeddingEnumeration embeddingMethod = inputHelper.getEmbeddingMethod(in.getEmbeddingMethod());
             var queryConfig = in.parseQueryConfig();
             if (queryConfig == null) {
-                inputFile = inputHelper.validateContentToValidate(in.getContentToValidate(), embeddingMethod, parentFolder);
+                inputFile = inputHelper.validateContentToValidate(in.getContentToValidate(), embeddingMethod, contentSyntax, parentFolder);
             } else {
                 queryConfig = inputHelper.validateSparqlConfiguration(domainConfig, queryConfig);
                 inputFile = fileManager.getContentFromSparqlEndpoint(queryConfig, parentFolder).toFile();
