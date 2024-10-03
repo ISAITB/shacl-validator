@@ -405,7 +405,7 @@ public class SHACLValidator {
         spec.setBaseModelMaker(modelMaker);
         spec.setImportModelMaker(modelMaker);
 
-        CustomLocatorHTTP.URIS_TO_SKIP.set(domainConfig.getUrisToSkipWhenImporting());
+        CustomLocatorHTTP.PARAMS.set(new CustomLocatorHTTP.LocatorParams(domainConfig.getUrisToSkipWhenImporting(), domainConfig.getHttpVersion()));
         CustomReadFailureHandler.IMPORTS_WITH_ERRORS.set(new LinkedHashSet<>());
         Set<Pair<String, String>> importsWithErrors;
         try {
@@ -414,7 +414,7 @@ public class SHACLValidator {
             importsWithErrors = CustomReadFailureHandler.IMPORTS_WITH_ERRORS.get();
         } finally {
             CustomReadFailureHandler.IMPORTS_WITH_ERRORS.remove();
-            CustomLocatorHTTP.URIS_TO_SKIP.remove();
+            CustomLocatorHTTP.PARAMS.remove();
         }
 
         if (!importsWithErrors.isEmpty()) {
