@@ -42,6 +42,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.http.HttpClient;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -245,7 +246,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                             if (noContentSyntaxProvided) {
                                 contentSyntaxType = getExtensionContentTypeForURL(uri);
                             }
-                            FileInfo uriResult = this.fileManager.getFileFromURL(parentFolder, uri, fileManager.getFileExtension(contentSyntaxType), FILE_NAME_INPUT, null, null, null, getAcceptedContentTypes(contentSyntaxType));
+                            FileInfo uriResult = this.fileManager.getFileFromURL(parentFolder, uri, fileManager.getFileExtension(contentSyntaxType), FILE_NAME_INPUT, null, null, null, getAcceptedContentTypes(contentSyntaxType), domainConfig.getHttpVersion());
                             inputFile = uriResult.getFile();
                             if (uriResult.getType() != null && !Objects.equals(contentSyntaxType, uriResult.getType())) {
                                 contentSyntaxType = uriResult.getType();
@@ -259,7 +260,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
             if (inputFile != null) {
                 // Proceed with the validation.
                 if (hasExternalShapes(domainConfig, validationType)) {
-                    userProvidedShapes = getExternalShapes(externalContentType, externalFiles, externalUri, externalString, externalFilesSyntaxType, parentFolder);
+                    userProvidedShapes = getExternalShapes(externalContentType, externalFiles, externalUri, externalString, externalFilesSyntaxType, parentFolder, domainConfig.getHttpVersion());
                 } else {
                     userProvidedShapes = Collections.emptyList();
                 }
@@ -518,10 +519,11 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
      * @param externalString The shapes as direct input.
      * @param externalFilesSyntaxType The syntax (mime type) of each shape file.
      * @param parentFolder The temp folder to use for storing the shape files.
+     * @param httpVersion The HTTP version to use for remote lookups.
      * @return The list of stored shape files to be used.
      * @throws IOException If an IO error occurs.
      */
-    private List<FileInfo> getExternalShapes(String[] externalContentType, MultipartFile[] externalFiles, String[] externalUri, String[] externalString, String[] externalFilesSyntaxType, File parentFolder) throws IOException {
+    private List<FileInfo> getExternalShapes(String[] externalContentType, MultipartFile[] externalFiles, String[] externalUri, String[] externalString, String[] externalFilesSyntaxType, File parentFolder, HttpClient.Version httpVersion) throws IOException {
         List<FileInfo> shapeFiles = new ArrayList<>();
         if (externalContentType != null) {
             for (int i=0; i<externalContentType.length; i++) {
@@ -544,7 +546,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                         if (StringUtils.isEmpty(contentSyntaxType) || contentSyntaxType.equals(EMPTY)) {
                             contentSyntaxType = getExtensionContentTypeForURL(externalUri[i]);
                         }
-                        FileInfo uriResult = this.fileManager.getFileFromURL(parentFolder, externalUri[i], null, null, null, null, null, getAcceptedContentTypes(contentSyntaxType));
+                        FileInfo uriResult = this.fileManager.getFileFromURL(parentFolder, externalUri[i], null, null, null, null, null, getAcceptedContentTypes(contentSyntaxType), httpVersion);
                         inputFile = uriResult.getFile();
                         if (uriResult.getType() != null && !Objects.equals(contentSyntaxType, uriResult.getType())) {
                             contentSyntaxType = uriResult.getType();

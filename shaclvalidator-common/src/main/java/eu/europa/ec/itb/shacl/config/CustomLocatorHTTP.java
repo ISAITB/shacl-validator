@@ -14,6 +14,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.security.NoSuchAlgorithmException;
@@ -34,18 +35,20 @@ import static org.apache.jena.http.HttpEnv.httpClientBuilder;
  */
 public class CustomLocatorHTTP extends LocatorHTTP {
 
-    public static final ThreadLocal<Set<String>> URIS_TO_SKIP = new ThreadLocal<>();
+    public static final ThreadLocal<LocatorParams> PARAMS = new ThreadLocal<>();
     private static final Logger LOG = LoggerFactory.getLogger(CustomLocatorHTTP.class);
 
     /**
      * Convert URI string to an HTTP request.
      *
      * @param uri The URI.
+     * @param httpVersion The HTTP version to use.
      * @return The request.
      */
-    private HttpRequest toRequest(String uri) {
+    private HttpRequest toRequest(String uri, HttpClient.Version httpVersion) {
         return HttpLib.requestBuilderFor(uri).uri(HttpLib.toRequestURI(uri))
             .GET()
+            .version(httpVersion)
             .header(HttpNames.hAccept, WebContent.defaultRDFAcceptHeader)
             .build();
     }
@@ -57,20 +60,21 @@ public class CustomLocatorHTTP extends LocatorHTTP {
     public TypedInputStream performOpen(String uri) {
         TypedInputStream result = null;
         if (uri.startsWith("http://") || uri.startsWith("https://")) {
-            if (URIS_TO_SKIP.get().contains(uri)) {
+            var params = PARAMS.get();
+            if (params.urisToSkip().contains(uri)) {
                 LOG.debug("Skipped URI {}", uri);
             } else {
                 HttpResponse<InputStream> response;
                 var attemptedUrls = new HashSet<String>();
                 var uriToUse = uri;
                 try {
-                    var client = httpClientBuilder()
+                    HttpClient client = httpClientBuilder()
                             .sslContext(SSLContext.getInstance(SSLContext.getDefault().getProtocol()))
                             .build();
                     do {
                         LOG.debug("Sending request to [{}]", uriToUse);
                         attemptedUrls.add(uriToUse);
-                        response = client.send(toRequest(uriToUse), HttpResponse.BodyHandlers.ofInputStream());
+                        response = client.send(toRequest(uriToUse, params.httpVersion()), HttpResponse.BodyHandlers.ofInputStream());
                         if (response.statusCode() >= 300 && response.statusCode() <= 399) {
                             var nextLocation = response.headers().firstValue("Location");
                             if (nextLocation.isEmpty()) {
@@ -101,5 +105,13 @@ public class CustomLocatorHTTP extends LocatorHTTP {
     public String getName() {
         return "CustomLocatorHTTP" ;
     }
+
+    /**
+     * Parameters defining how remote resources are to be handled.
+     *
+     * @param urisToSkip The URIs to skip looking.
+     * @param httpVersion The HTTP version to use in the lookups.
+     */
+    public record LocatorParams(Set<String> urisToSkip, HttpClient.Version httpVersion) {}
 
 }

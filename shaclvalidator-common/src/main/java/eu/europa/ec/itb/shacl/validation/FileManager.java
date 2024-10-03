@@ -108,7 +108,7 @@ public class FileManager extends BaseFileManager<ApplicationConfig> {
         }
         Lang lang = RDFLanguages.contentTypeToLang(outputSyntax);
         if (lang == null) {
-            // Set to RDF/XML (the global default) for an unrecognised of unspecified syntax.
+            // Set to RDF/XML (the global default) for an unrecognised or unspecified syntax.
             lang = Lang.RDFXML;
         }
         var writer = rdfModel.getWriter(lang.getName());
@@ -117,18 +117,12 @@ public class FileManager extends BaseFileManager<ApplicationConfig> {
             writer.setProperty("allowBadURIs", "true");
             writer.setProperty("relativeURIs", "");
         }
-        try {
+        try (outputWriter) {
             writer.write(rdfModel, outputWriter, null);
             outputWriter.flush();
         } catch (IOException e) {
             logger.error("Error writing RDF model", e);
             throw new IllegalStateException("Error writing RDF model", e);
-        } finally {
-            try {
-                outputWriter.close();
-            } catch (IOException e) {
-                // Ignore.
-            }
         }
     }
 

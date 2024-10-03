@@ -372,7 +372,7 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
             if (!inputFile.exists() || !inputFile.isFile() || !inputFile.canRead()) {
                 if (validSyntax && langExtension != null) {
                     new URL(file);
-                    inputFile = this.fileManager.getFileFromURL(parentFolder, file, langExtension.getFileExtensions().get(0), filename, null, null, null, List.of(contentType)).getFile();
+                    inputFile = this.fileManager.getFileFromURL(parentFolder, file, langExtension.getFileExtensions().get(0), filename, null, null, null, List.of(contentType), domainConfig.getHttpVersion()).getFile();
                 } else {
                     throw new IllegalArgumentException("Unknown content syntax [" + contentType + "]");
                 }
