@@ -67,4 +67,21 @@ public class ShaclValidatorUtils {
         return fileManager.writeRdfModelToString(reportToInclude, rdfReportMimeType);
     }
 
+    /**
+     * Make sure badly reported content types are correctly handled.
+     *
+     * @param contentSyntax The input content syntax.
+     * @return The RDF content syntax to consider.
+     */
+    public static String handleEquivalentContentSyntaxes(String contentSyntax) {
+        if (contentSyntax != null) {
+            if ("text/xml".equals(contentSyntax) || "application/xml".equals(contentSyntax)) {
+                contentSyntax = "application/rdf+xml";
+            } else if ("application/json".equals(contentSyntax)) {
+                contentSyntax = "application/ld+json";
+            }
+        }
+        return contentSyntax;
+    }
+
 }

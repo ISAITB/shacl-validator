@@ -52,6 +52,7 @@ import org.topbraid.shacl.validation.ValidationUtil;
 import java.io.*;
 import java.util.*;
 
+import static eu.europa.ec.itb.shacl.util.ShaclValidatorUtils.handleEquivalentContentSyntaxes;
 import static eu.europa.ec.itb.shacl.validation.SHACLResources.VALIDATION_REPORT;
 import static org.apache.jena.riot.lang.LangJSONLD11.JSONLD_OPTIONS;
 
@@ -357,23 +358,6 @@ public class SHACLValidator {
         } else {
             return inputLanguage;
         }
-    }
-
-    /**
-     * Make sure badly reported content types are correctly handled.
-     *
-     * @param contentSyntax The input content syntax.
-     * @return The RDF content syntax to consider.
-     */
-    private String handleEquivalentContentSyntaxes(String contentSyntax) {
-        if (contentSyntax != null) {
-            if ("text/xml".equals(contentSyntax) || "application/xml".equals(contentSyntax)) {
-                contentSyntax = "application/rdf+xml";
-            } else if ("application/json".equals(contentSyntax)) {
-                contentSyntax = "application/ld+json";
-            }
-        }
-        return contentSyntax;
     }
 
     /**
