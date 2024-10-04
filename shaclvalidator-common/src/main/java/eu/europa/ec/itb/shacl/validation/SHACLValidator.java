@@ -360,6 +360,23 @@ public class SHACLValidator {
     }
 
     /**
+     * Make sure badly reported content types are correctly handled.
+     *
+     * @param contentSyntax The input content syntax.
+     * @return The RDF content syntax to consider.
+     */
+    private String handleEquivalentContentSyntaxes(String contentSyntax) {
+        if (contentSyntax != null) {
+            if ("text/xml".equals(contentSyntax) || "application/xml".equals(contentSyntax)) {
+                contentSyntax = "application/rdf+xml";
+            } else if ("application/json".equals(contentSyntax)) {
+                contentSyntax = "application/ld+json";
+            }
+        }
+        return contentSyntax;
+    }
+
+    /**
      * Return the aggregated model of a list of SHACL shape files.
      *
      * @return The aggregated model.
@@ -368,7 +385,7 @@ public class SHACLValidator {
         Model aggregateModel = JenaUtil.createMemoryModel();
         for (FileInfo shaclFile: shaclFiles) {
             LOG.info("Validating against [{}]", shaclFile.getFile().getName());
-            Lang rdfLanguage = processRdfLanguage(RDFLanguages.contentTypeToLang(shaclFile.getType()));
+            Lang rdfLanguage = processRdfLanguage(RDFLanguages.contentTypeToLang(handleEquivalentContentSyntaxes(shaclFile.getType())));
             if (rdfLanguage == null) {
                 throw new ValidatorException("validator.label.exception.unableToDetermineShaclContentType");
             }
@@ -503,9 +520,10 @@ public class SHACLValidator {
             // Determine language.
             Lang lang = null;
             if (this.contentSyntax != null) {
-                lang = RDFLanguages.contentTypeToLang(this.contentSyntax);
+                String contentSyntaxToConsider = handleEquivalentContentSyntaxes(this.contentSyntax);
+                lang = RDFLanguages.contentTypeToLang(contentSyntaxToConsider);
                 if (lang != null) {
-                    LOG.info("Using provided data content type [{}] as [{}]", this.contentSyntax, lang.getName());
+                    LOG.info("Using provided data content type [{}] as [{}]", contentSyntaxToConsider, lang.getName());
                 }
             }
             if (lang == null) {
