@@ -26,6 +26,8 @@ import java.net.URI;
 import java.nio.file.Path;
 import java.util.List;
 
+import static eu.europa.ec.itb.shacl.util.ShaclValidatorUtils.handleEquivalentContentSyntaxes;
+
 /**
  * Manages file-system operations.
  */
@@ -46,7 +48,7 @@ public class FileManager extends BaseFileManager<ApplicationConfig> {
     @Override
     public String getFileExtension(String contentType) {
         String extension = null;
-        Lang language = RDFLanguages.contentTypeToLang(contentType);
+        Lang language = RDFLanguages.contentTypeToLang(handleEquivalentContentSyntaxes(contentType));
         if (language != null) {
             extension = language.getFileExtensions().get(0);
         }
