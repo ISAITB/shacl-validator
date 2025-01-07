@@ -1,13 +1,13 @@
 package eu.europa.ec.itb.shacl;
 
 import eu.europa.ec.itb.shacl.validation.ValidationConstants;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+
+import java.util.*;
 
 /**
  * The validator application's configuration.
@@ -329,6 +329,22 @@ public class ApplicationConfig extends eu.europa.ec.itb.validation.commons.confi
      */
     public Map<String, String> getDefaultLabels() {
         return defaultLabels;
+    }
+
+    /**
+     * Return a list of the content types to specify in a remote URI's request Accept header.
+     * <p>
+     * This either wraps the provided content type or includes all supported RDF content types.
+     *
+     * @param providedContentType The user-provided content type.
+     * @return The content types to use.
+     */
+    public List<String> getAcceptedContentTypes(String providedContentType) {
+        if (StringUtils.isEmpty(providedContentType)) {
+            return new ArrayList<>(getContentSyntax());
+        } else {
+            return List.of(providedContentType);
+        }
     }
 
     /**

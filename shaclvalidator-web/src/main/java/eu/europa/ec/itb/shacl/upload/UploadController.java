@@ -18,6 +18,8 @@ import eu.europa.ec.itb.validation.commons.web.CSPNonceFilter;
 import eu.europa.ec.itb.validation.commons.web.Constants;
 import eu.europa.ec.itb.validation.commons.web.KeyWithLabel;
 import eu.europa.ec.itb.validation.commons.web.locale.CustomLocaleResolver;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -35,8 +37,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.ModelAndView;
 
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -248,8 +248,9 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                             }
                             FileInfo uriResult = this.fileManager.getFileFromURL(parentFolder, uri, fileManager.getFileExtension(contentSyntaxType), FILE_NAME_INPUT, null, null, null, getAcceptedContentTypes(contentSyntaxType), domainConfig.getHttpVersion());
                             inputFile = uriResult.getFile();
-                            if (uriResult.getType() != null && !Objects.equals(contentSyntaxType, uriResult.getType())) {
-                                contentSyntaxType = uriResult.getType();
+                            if (noContentSyntaxProvided) {
+                                // Only override the content syntax if one has not been explicitly provided as part of the input.
+                                contentSyntaxType = ShaclValidatorUtils.contentSyntaxToUse(contentSyntaxType, uriResult.getType());
                             }
                             break;
                         default:
@@ -543,13 +544,15 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                             }
                         }
                     } else if (CONTENT_TYPE_URI.equals(externalContentType[i]) && externalUri.length > i && !externalUri[i].isEmpty()) {
-                        if (StringUtils.isEmpty(contentSyntaxType) || contentSyntaxType.equals(EMPTY)) {
+                        boolean noContentSyntaxProvided = StringUtils.isEmpty(contentSyntaxType) || contentSyntaxType.equals(EMPTY);
+                        if (noContentSyntaxProvided) {
                             contentSyntaxType = getExtensionContentTypeForURL(externalUri[i]);
                         }
                         FileInfo uriResult = this.fileManager.getFileFromURL(parentFolder, externalUri[i], null, null, null, null, null, getAcceptedContentTypes(contentSyntaxType), httpVersion);
                         inputFile = uriResult.getFile();
-                        if (uriResult.getType() != null && !Objects.equals(contentSyntaxType, uriResult.getType())) {
-                            contentSyntaxType = uriResult.getType();
+                        if (noContentSyntaxProvided) {
+                            // Only override the content syntax if one has not been explicitly provided as part of the input.
+                            contentSyntaxType = ShaclValidatorUtils.contentSyntaxToUse(contentSyntaxType, uriResult.getType());
                         }
                     } else if (CONTENT_TYPE_STRING.equals(externalContentType[i]) && externalString.length > i && !externalString[i].isEmpty()) {
                         inputFile = this.fileManager.getFileFromString(parentFolder, externalString[i]);
@@ -572,11 +575,10 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
      * @return The content types to use.
      */
     private List<String> getAcceptedContentTypes(String providedContentType) {
-        if (StringUtils.isEmpty(providedContentType) || providedContentType.equals(EMPTY)) {
-            return new ArrayList<>(appConfig.getContentSyntax());
-        } else {
-            return List.of(providedContentType);
+        if (providedContentType.equals(EMPTY)) {
+            providedContentType = null;
         }
+        return appConfig.getAcceptedContentTypes(providedContentType);
     }
 
     /**
