@@ -6,7 +6,10 @@ import eu.europa.ec.itb.shacl.util.ShaclValidatorUtils;
 import eu.europa.ec.itb.shacl.validation.FileManager;
 import eu.europa.ec.itb.shacl.validation.ReportSpecs;
 import eu.europa.ec.itb.shacl.validation.SHACLValidator;
-import eu.europa.ec.itb.validation.commons.*;
+import eu.europa.ec.itb.validation.commons.FileInfo;
+import eu.europa.ec.itb.validation.commons.LocalisationHelper;
+import eu.europa.ec.itb.validation.commons.ReportPair;
+import eu.europa.ec.itb.validation.commons.Utils;
 import eu.europa.ec.itb.validation.commons.artifact.ExternalArtifactSupport;
 import eu.europa.ec.itb.validation.commons.error.ValidatorException;
 import eu.europa.ec.itb.validation.commons.jar.BaseValidationRunner;
@@ -29,11 +32,12 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import java.io.*;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+
+import static eu.europa.ec.itb.shacl.util.ShaclValidatorUtils.isRdfContentSyntax;
 
 /**
  * Component that handles the actual triggering of validation and resulting reporting.
@@ -108,7 +112,7 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
                             if (args.length > i+1) {
                                 reportSyntax = args[++i];
                             }
-                            if (!validRDFSyntax(reportSyntax)) {
+                            if (!isRdfContentSyntax(reportSyntax)) {
                                 throw new IllegalArgumentException("Unknown report syntax ["+reportSyntax+"]");
                             }
                         } else if(FLAG_REPORT_QUERY.equalsIgnoreCase(args[i])) {
@@ -339,21 +343,6 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
     }
 
     /**
-     * Validate whether the syntax provided is correct.
-     *
-     * @return The check result.
-     */
-    private boolean validRDFSyntax(String syntax) {
-    	if(!StringUtils.isBlank(syntax)) {
-    		Lang lang = RDFLanguages.contentTypeToLang(syntax.toLowerCase());
-		
-			return lang != null;
-    	}else {
-    		return false;
-    	}
-	}
-    
-    /**
      * Get the content and save it in the temp folder assigned for this validation run.
      *
      * @param file The argument corresponding to the input content's path (may be a file path or URL).
@@ -366,13 +355,26 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
     private File getContent(String file, String contentType, File parentFolder, String filename) {
         File inputFile = new File(file);
     	try {
-            contentType = getContentType(file, contentType);
-            boolean validSyntax = validRDFSyntax(contentType);
-            Lang langExtension = RDFLanguages.contentTypeToLang(contentType);
+            boolean noContentSyntaxProvided = StringUtils.isEmpty(contentType);
+            if (noContentSyntaxProvided) {
+                contentType = getContentTypeFromFileName(file, contentType);
+            }
             if (!inputFile.exists() || !inputFile.isFile() || !inputFile.canRead()) {
-                if (validSyntax && langExtension != null) {
-                    new URL(file);
-                    inputFile = this.fileManager.getFileFromURL(parentFolder, file, langExtension.getFileExtensions().get(0), filename, null, null, null, List.of(contentType), domainConfig.getHttpVersion()).getFile();
+                boolean validSyntax = isRdfContentSyntax(contentType);
+                String extension = null;
+                if (validSyntax) {
+                    Lang langExtension = RDFLanguages.contentTypeToLang(contentType);
+                    if (langExtension != null && !langExtension.getFileExtensions().isEmpty()) {
+                        extension = langExtension.getFileExtensions().get(0);
+                    }
+                }
+                FileInfo uriResult = this.fileManager.getFileFromURL(parentFolder, file, extension, filename, null, null, null, appConfig.getAcceptedContentTypes(contentType), domainConfig.getHttpVersion());
+                if (noContentSyntaxProvided) {
+                    // Only override the content syntax if one has not been explicitly provided as part of the input.
+                    contentType = ShaclValidatorUtils.contentSyntaxToUse(contentType, uriResult.getType());
+                }
+                if (isRdfContentSyntax(contentType)) {
+                    inputFile = uriResult.getFile();
                 } else {
                     throw new IllegalArgumentException("Unknown content syntax [" + contentType + "]");
                 }
@@ -396,7 +398,7 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
      *                    content.
      * @return The content type to consider.
      */
-    private String getContentType(String contentToValidate, String contentType) {
+    private String getContentTypeFromFileName(String contentToValidate, String contentType) {
     	if (StringUtils.isBlank(contentType)) {
     		ContentType ct = RDFLanguages.guessContentType(contentToValidate);
     		if(ct!=null) {
@@ -416,9 +418,8 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
      */
     private FileInfo getExternalShapes(String file, String contentType, File parentFolder) {
 		File f = getContent(file, contentType, parentFolder, UUID.randomUUID() +"."+FilenameUtils.getExtension(file));
-		contentType = getContentType(file, contentType);
-				
-		if(validRDFSyntax(contentType)) {
+		contentType = getContentTypeFromFileName(file, contentType);
+		if (isRdfContentSyntax(contentType)) {
 			return new FileInfo(f, contentType);
 		}else {
             throw new IllegalArgumentException("The RDF language could not be determined for the provided external shape ["+file+"]");			

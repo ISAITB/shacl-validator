@@ -2,6 +2,7 @@ package eu.europa.ec.itb.shacl.validation;
 
 import eu.europa.ec.itb.shacl.ApplicationConfig;
 import eu.europa.ec.itb.shacl.SparqlQueryConfig;
+import eu.europa.ec.itb.shacl.util.ShaclValidatorUtils;
 import eu.europa.ec.itb.validation.commons.BaseFileManager;
 import eu.europa.ec.itb.validation.commons.FileInfo;
 import eu.europa.ec.itb.validation.commons.error.ValidatorException;
@@ -56,19 +57,30 @@ public class FileManager extends BaseFileManager<ApplicationConfig> {
     }
 
     /**
-     * @see BaseFileManager#getContentTypeForFile(File, String)
+     * @see BaseFileManager#getContentTypeForFile(FileInfo, String)
      *
      * @param file The file of which to retrieve the content type.
      * @param declaredContentType The content type declared in the validator's inputs.
      * @return The content type to consider.
      */
     @Override
-    protected String getContentTypeForFile(File file, String declaredContentType) {
-        if (StringUtils.isBlank(declaredContentType)) {
-            ContentType detectedContentType = RDFLanguages.guessContentType(file.getName());
+    protected String getContentTypeForFile(FileInfo file, String declaredContentType) {
+        boolean noContentSyntaxProvided = StringUtils.isBlank(declaredContentType);
+        /*
+         * Step 1: Use the content type provided as part of the inputs. If none is provided then
+         * attempt to determine the content type from the name of the file being processed.
+         *
+         * Step 2: In case as part of the file loading process we determined a content type,
+         * consider this as well. Practically this only occurs when the file is loaded from a remote server
+         * in which case the server may have returned a content type as part of the response's headers.
+         */
+        if (noContentSyntaxProvided) {
+            ContentType detectedContentType = RDFLanguages.guessContentType(file.getFile().getName());
             if (detectedContentType != null) {
                 declaredContentType = detectedContentType.getContentTypeStr();
             }
+            // Only override the content syntax if one has not been explicitly provided as part of the input.
+            declaredContentType = ShaclValidatorUtils.contentSyntaxToUse(declaredContentType, file.getType());
         }
         return declaredContentType;
     }

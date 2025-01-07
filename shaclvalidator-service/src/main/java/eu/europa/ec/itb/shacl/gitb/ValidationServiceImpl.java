@@ -137,7 +137,9 @@ public class ValidationServiceImpl implements ValidationService, WebServiceConte
 			ValueEmbeddingEnumeration contentEmbeddingMethod = inputHelper.validateContentEmbeddingMethod(validateRequest, ValidationConstants.INPUT_EMBEDDING_METHOD);
             var queryConfig = parseQueryConfiguration(validateRequest);
 			if (queryConfig == null) {
-				contentToValidate = inputHelper.validateContentToValidate(validateRequest, ValidationConstants.INPUT_CONTENT, contentEmbeddingMethod, contentSyntax, parentFolder, domainConfig.getHttpVersion());
+                var contentInfo = inputHelper.validateContentToValidate(validateRequest, ValidationConstants.INPUT_CONTENT, contentEmbeddingMethod, contentSyntax, parentFolder, domainConfig.getHttpVersion());
+				contentToValidate = contentInfo.getFile();
+                contentSyntax = contentInfo.getType();
 			} else {
                 queryConfig.setPreferredContentType(contentSyntax);
 				queryConfig = inputHelper.validateSparqlConfiguration(domainConfig, queryConfig);

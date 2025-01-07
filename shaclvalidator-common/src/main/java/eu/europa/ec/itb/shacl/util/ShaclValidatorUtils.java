@@ -1,5 +1,6 @@
 package eu.europa.ec.itb.shacl.util;
 
+import com.apicatalog.jsonld.StringUtils;
 import eu.europa.ec.itb.shacl.validation.FileManager;
 import eu.europa.ec.itb.shacl.validation.ReportSpecs;
 import eu.europa.ec.itb.shacl.validation.SHACLReportHandler;
@@ -10,11 +11,21 @@ import org.apache.jena.query.QueryExecution;
 import org.apache.jena.query.QueryExecutionFactory;
 import org.apache.jena.query.QueryFactory;
 import org.apache.jena.rdf.model.Model;
+import org.springframework.util.MimeType;
+import org.springframework.util.MimeTypeUtils;
 
 /**
  * Class with utility methods.
  */
 public class ShaclValidatorUtils {
+
+    public static final MimeType TYPE_TEXT_XML = new MimeType("text", "xml");
+    public static final MimeType TYPE_TEXT_TURTLE = new MimeType("text", "turtle");
+    public static final MimeType TYPE_APPLICATION_XML = new MimeType("application", "xml");
+    public static final MimeType TYPE_APPLICATION_RDF_XML = new MimeType("application", "rdf+xml");
+    public static final MimeType TYPE_APPLICATION_JSON = new MimeType("application", "json");
+    public static final MimeType TYPE_APPLICATION_JSON_LD = new MimeType("application", "ld+json");
+    public static final MimeType TYPE_APPLICATION_N_TRIPLES = new MimeType("application", "n-triples");
 
     /**
      * Constructor to prevent instantiation.
@@ -74,14 +85,75 @@ public class ShaclValidatorUtils {
      * @return The RDF content syntax to consider.
      */
     public static String handleEquivalentContentSyntaxes(String contentSyntax) {
+        if (StringUtils.isNotBlank(contentSyntax)) {
+            var resolvedType = handleEquivalentContentSyntaxes(MimeTypeUtils.parseMimeType(contentSyntax));
+            return "%s/%s".formatted(resolvedType.getType(), resolvedType.getSubtype());
+        }
+        return contentSyntax;
+    }
+
+    /**
+     * Make sure badly reported content types are correctly handled.
+     *
+     * @param contentSyntax The input content syntax.
+     * @return The RDF content syntax to consider.
+     */
+    public static MimeType handleEquivalentContentSyntaxes(MimeType contentSyntax) {
         if (contentSyntax != null) {
-            if ("text/xml".equals(contentSyntax) || "application/xml".equals(contentSyntax)) {
-                contentSyntax = "application/rdf+xml";
-            } else if ("application/json".equals(contentSyntax)) {
-                contentSyntax = "application/ld+json";
+            if (TYPE_TEXT_XML.equalsTypeAndSubtype(contentSyntax) || TYPE_APPLICATION_XML.equalsTypeAndSubtype(contentSyntax)) {
+                contentSyntax = TYPE_APPLICATION_RDF_XML;
+            } else if (TYPE_APPLICATION_JSON.equalsTypeAndSubtype(contentSyntax)) {
+                contentSyntax = TYPE_APPLICATION_JSON_LD;
             }
         }
         return contentSyntax;
+    }
+
+    /**
+     * Check to see if the provided content syntax is valid for RDF content.
+     *
+     * @param contentSyntax The syntax to check.
+     * @return The check result.
+     */
+    public static boolean isRdfContentSyntax(String contentSyntax) {
+        if (StringUtils.isNotBlank(contentSyntax)) {
+            var providedType = handleEquivalentContentSyntaxes(MimeTypeUtils.parseMimeType(contentSyntax));
+            return isRdfContentSyntax(providedType);
+        }
+        return false;
+    }
+
+    /**
+     * Check to see if the provided content syntax is valid for RDF content (this assumes equivalent syntaxes have already been applied).
+     *
+     * @param contentSyntax The syntax to check.
+     * @return The check result.
+     */
+    private static boolean isRdfContentSyntax(MimeType contentSyntax) {
+        if (contentSyntax != null) {
+            return TYPE_APPLICATION_RDF_XML.equalsTypeAndSubtype(contentSyntax) ||
+                    TYPE_APPLICATION_JSON_LD.equalsTypeAndSubtype(contentSyntax) ||
+                    TYPE_APPLICATION_N_TRIPLES.equalsTypeAndSubtype(contentSyntax) ||
+                    TYPE_TEXT_TURTLE.equalsTypeAndSubtype(contentSyntax);
+        }
+        return false;
+    }
+
+    /**
+     * Determine the content type to use for given RDF content.
+     *
+     * @param contentSyntaxFromInput The content type determined from inputs (direct input or file name deduction).
+     * @param candidateContentSyntax The content type to consider as a candidate to replace the inputted one.
+     * @return The content type string to use.
+     */
+    public static String contentSyntaxToUse(String contentSyntaxFromInput, String candidateContentSyntax) {
+        if (StringUtils.isNotBlank(candidateContentSyntax)) {
+            MimeType candidateType = handleEquivalentContentSyntaxes(MimeTypeUtils.parseMimeType(candidateContentSyntax));
+            if (isRdfContentSyntax(candidateType)) {
+                return "%s/%s".formatted(candidateType.getType(), candidateType.getSubtype());
+            }
+        }
+        return handleEquivalentContentSyntaxes(contentSyntaxFromInput);
     }
 
 }
