@@ -30,6 +30,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.jena.ontology.OntDocumentManager;
 import org.apache.jena.ontology.OntModel;
 import org.apache.jena.ontology.OntModelSpec;
+import org.apache.jena.ontology.models.ModelMaker;
 import org.apache.jena.query.QueryExecution;
 import org.apache.jena.query.QueryExecutionFactory;
 import org.apache.jena.rdf.model.*;
@@ -401,7 +402,7 @@ public class SHACLValidator {
     private void createImportedModels(Model aggregateModel) {
     	Set<String> reachedURIs = new HashSet<>();
     	
-        ModelMaker modelMaker = ModelFactory.createMemModelMaker();   
+        ModelMaker modelMaker = ModelFactory.createMemModelMaker();
         OntModelSpec spec = new OntModelSpec( OntModelSpec.OWL_MEM_RULE_INF );
         spec.setBaseModelMaker(modelMaker);
         spec.setImportModelMaker(modelMaker);
