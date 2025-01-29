@@ -575,7 +575,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
      * @return The content types to use.
      */
     private List<String> getAcceptedContentTypes(String providedContentType) {
-        if (providedContentType.equals(EMPTY)) {
+        if (Objects.equals(providedContentType, EMPTY)) {
             providedContentType = null;
         }
         return appConfig.getAcceptedContentTypes(providedContentType);
