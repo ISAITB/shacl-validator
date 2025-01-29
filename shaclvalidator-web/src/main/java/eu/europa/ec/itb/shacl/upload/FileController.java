@@ -12,6 +12,8 @@ import eu.europa.ec.itb.validation.commons.ValidatorChannel;
 import eu.europa.ec.itb.validation.commons.report.ReportGeneratorBean;
 import eu.europa.ec.itb.validation.commons.web.errors.NotFoundException;
 import eu.europa.ec.itb.validation.commons.web.locale.CustomLocaleResolver;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.filefilter.TrueFileFilter;
@@ -27,8 +29,6 @@ import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.topbraid.jenax.util.JenaUtil;
 
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileWriter;
@@ -78,7 +78,6 @@ public class FileController {
      * @return The response.
      */
     @GetMapping(value = "/{domain}/report", produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
-    @ResponseBody
     public FileSystemResource getReport(
             @PathVariable("domain") String domain,
             @RequestParam("id") String id,
@@ -107,10 +106,10 @@ public class FileController {
             String extension = fileManager.getFileExtension(syntax);
             reportFileInfo = new ReportFileInfo(extension, new File(tmpFolder, getBaseReportNameForRdfReport(type)+"."+extension));
         }
-        if (!reportFileInfo.getFile().toPath().normalize().startsWith(tmpFolder.toPath())) {
+        if (!reportFileInfo.file().toPath().normalize().startsWith(tmpFolder.toPath())) {
             throw new IllegalStateException("Requested invalid file path");
         }
-        if (!reportFileInfo.getFile().exists()) {
+        if (!reportFileInfo.file().exists()) {
             // File doesn't exist. Create it based on an existing file.
             File existingFileOfRequestedType = getFileByType(tmpFolder, type);
             Lang lang = RDFLanguages.filenameToLang(existingFileOfRequestedType.getName());
@@ -120,21 +119,21 @@ public class FileController {
             }
             String existingSyntax = lang.getContentType().getContentTypeStr();
             Model fileModel = JenaUtil.createMemoryModel();
-            try (FileInputStream in = new FileInputStream(existingFileOfRequestedType); FileWriter out = new FileWriter(reportFileInfo.getFile())) {
+            try (FileInputStream in = new FileInputStream(existingFileOfRequestedType); FileWriter out = new FileWriter(reportFileInfo.file())) {
                 fileModel.read(in, null, existingSyntax);
                 fileManager.writeRdfModel(out, fileModel, syntax);
             } catch (IOException e) {
                 // Delete the target file (if produced) to make sure we don't cache it for future requests.
-                FileUtils.deleteQuietly(reportFileInfo.getFile());
+                FileUtils.deleteQuietly(reportFileInfo.file());
                 throw new NotFoundException();
             } catch (RuntimeException e) {
                 // Delete the target file (if produced) to make sure we don't cache it for future requests.
-                FileUtils.deleteQuietly(reportFileInfo.getFile());
+                FileUtils.deleteQuietly(reportFileInfo.file());
                 throw e;
             }
         }
-        response.setHeader("Content-Disposition", "attachment; filename=" + type.replace("Type", "") +"."+reportFileInfo.getExtension());
-        return new FileSystemResource(reportFileInfo.getFile());
+        response.setHeader("Content-Disposition", "attachment; filename=" + type.replace("Type", "") +"."+reportFileInfo.extension());
+        return new FileSystemResource(reportFileInfo.file());
     }
 
     /**
@@ -227,7 +226,6 @@ public class FileController {
      * @param id The report files' ID.
      */
     @PostMapping(value = "/{domain}/delete/{id}")
-    @ResponseBody
     public void deleteReport(@PathVariable("domain") String domain, @PathVariable("id") String id) {
         var domainConfig = domainConfigCache.getConfigForDomainName(domain);
         if (domainConfig == null || !domainConfig.getChannels().contains(ValidatorChannel.FORM)) {
@@ -282,35 +280,9 @@ public class FileController {
 
     /**
      * Wrapper class to communicate information on a generated report.
+
+     * @param extension The report's file extension.
+     * @param file      The report.
      */
-    private static class ReportFileInfo {
-
-        private final String extension;
-        private final File file;
-
-        /**
-         * Constructor.
-         *
-         * @param extension The report's file extension.
-         * @param file The report.
-         */
-        private ReportFileInfo(String extension, File file) {
-            this.extension = extension;
-            this.file = file;
-        }
-
-        /**
-         * @return The file extension.
-         */
-        public String getExtension() {
-            return extension;
-        }
-
-        /**
-         * @return The file.
-         */
-        public File getFile() {
-            return file;
-        }
-    }
+    private record ReportFileInfo(String extension, File file) {}
 }
