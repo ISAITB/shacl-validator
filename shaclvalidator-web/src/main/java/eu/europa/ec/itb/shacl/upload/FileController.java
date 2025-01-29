@@ -158,7 +158,7 @@ public class FileController {
      * @param tmpFolder The temporary folder to use for generated files.
      * @param localiser The localisation helper.
      * @param domainConfig The domain configuration.
-     * @return The information reltated to the generated report.
+     * @return The information related to the generated report.
      */
     private ReportFileInfo produceReport(String reportSyntax, File tmpFolder, LocalisationHelper localiser, DomainConfig domainConfig) {
         String extension;
