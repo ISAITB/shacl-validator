@@ -318,7 +318,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
             result.setMessage(e.getMessageForDisplay(localisationHelper));
             forceCleanup = true;
         } catch (Exception e) {
-            logger.error("An error occurred during the validation [" + e.getMessage() + "]", e);
+            logger.error("An error occurred during the validation [{}]", e.getMessage(), e);
             if (e.getMessage() != null) {
                 result.setMessage(localisationHelper.localise("validator.label.exception.unexpectedErrorDuringValidationWithParams", e.getMessage()));
             } else {
