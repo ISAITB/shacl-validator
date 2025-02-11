@@ -44,7 +44,7 @@ function createQueryFields() {
                '<div class="container-fluid extra-query-field">'+
                    '<div class="checkbox col-sm-3 extra-query-field-left">'+
                        '<label>'+
-                           '<input type="checkbox" id="queryAuthenticate" name="contentQueryAuthenticate" '+(queryCredentialsMandatory?'checked disabled':'onclick="toggleQueryCredentials()"')+'> <span>'+labelQueryAuthenticateLabel+'</span>'+
+                           '<input type="checkbox" id="queryAuthenticate" name="contentQueryAuthenticate"'+(queryCredentialsMandatory?' checked disabled':'')+'> <span>'+labelQueryAuthenticateLabel+'</span>'+
                        '</label>'+
                    '</div>'+
                    '<div id="queryCredentialsDiv" class="col-sm-9 extra-query-field '+(!queryCredentialsMandatory?'hidden':'')+'">'+
@@ -72,6 +72,9 @@ function createQueryFields() {
        '</div>'+
      '</div>';
     $('#fileToValidate').parent().append($(fieldContent));
+    if (!queryCredentialsMandatory) {
+        $("#queryAuthenticate").on("click", toggleQueryCredentials);
+    }
     CodeMirror.fromTextArea(document.getElementById('query-editor'), {
         lineNumbers: true
     }).on('change', function(){
