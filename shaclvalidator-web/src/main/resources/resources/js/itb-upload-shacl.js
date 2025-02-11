@@ -34,7 +34,7 @@ function createQueryFields() {
         fieldContent += ''+
            '<div class="row query-form-group">'+
                '<div class="col-sm-12 extra-query-field">'+
-                   '<input type="url" placeholder="'+labelQueryEndpointInputPlaceholder+'" class="form-control" id="queryEndpoint" name="contentQueryEndpoint" oninput="checkForSubmit()">'+
+                   '<input type="url" placeholder="'+labelQueryEndpointInputPlaceholder+'" class="form-control" id="queryEndpoint" name="contentQueryEndpoint"">'+
                '</div>'+
            '</div>';
     }
@@ -50,10 +50,10 @@ function createQueryFields() {
                    '<div id="queryCredentialsDiv" class="col-sm-9 extra-query-field '+(!queryCredentialsMandatory?'hidden':'')+'">'+
                        '<div class="container-fluid extra-query-field">'+
                            '<div class="col-sm-6">'+
-                               '<input type="text" placeholder="'+labelQueryUsernameInputPlaceholder+'" class="form-control" id="queryUsername" name="contentQueryUsername" oninput="checkForSubmit()">'+
+                               '<input type="text" placeholder="'+labelQueryUsernameInputPlaceholder+'" class="form-control" id="queryUsername" name="contentQueryUsername">'+
                            '</div>'+
                            '<div class="col-sm-6 extra-query-field-right">'+
-                               '<input type="password" placeholder="'+labelQueryPasswordInputPlaceholder+'" class="form-control" id="queryPassword" name="contentQueryPassword" oninput="checkForSubmit()">'+
+                               '<input type="password" placeholder="'+labelQueryPasswordInputPlaceholder+'" class="form-control" id="queryPassword" name="contentQueryPassword">'+
                            '</div>'+
                        '</div>'+
                    '</div>'+
@@ -72,8 +72,13 @@ function createQueryFields() {
        '</div>'+
      '</div>';
     $('#fileToValidate').parent().append($(fieldContent));
+    $('#queryEndpoint').on('input', checkForSubmit);
+    if (supportQueryCredentials) {
+        $('#queryUsername').on('input', checkForSubmit);
+        $('#queryPassword').on('input', checkForSubmit);
+    }
     if (!queryCredentialsMandatory) {
-        $("#queryAuthenticate").on("click", toggleQueryCredentials);
+        $('#queryAuthenticate').on('click', toggleQueryCredentials);
     }
     CodeMirror.fromTextArea(document.getElementById('query-editor'), {
         lineNumbers: true
