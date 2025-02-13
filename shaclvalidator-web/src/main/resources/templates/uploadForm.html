@@ -20,16 +20,21 @@
         var labelContextSyntaxDefault = [[${localiser.localise('validator.label.contentSyntaxDefault')}]];
         var labelContextSyntaxDefaultForUri = [[${localiser.localise('validator.label.contentSyntaxDefaultForUri')}]];
 		var externalArtifacts = {};
-		var loadImportsArtifacts = {};
 		[# th:each="artifactInfoEntry : ${externalArtifactInfo}"]
 			externalArtifacts[[# th:text="${artifactInfoEntry.key}" /]] = {}
 			[# th:each="artifactTypeInfoEntry : ${artifactInfoEntry.value}"]
 				externalArtifacts[[# th:text="${artifactInfoEntry.key}" /]][[# th:text="${artifactTypeInfoEntry.key}" /]] = [# th:text="${artifactTypeInfoEntry.value}" /];
 			[/]
 		[/]
-		[# th:each="artifactInfoEntry : ${loadImportsInfo}"]
-			loadImportsArtifacts[[# th:text="${artifactInfoEntry.key}" /]] = {}
-			loadImportsArtifacts[[# th:text="${artifactInfoEntry.key}" /]] = [# th:text="${artifactInfoEntry.value}" /];
+		var loadImportsChoice = {};
+		[# th:each="entry : ${loadImportsInfo}"]
+			loadImportsChoice[[# th:text="${entry.key}" /]] = {}
+			loadImportsChoice[[# th:text="${entry.key}" /]] = [# th:text="${entry.value}" /];
+		[/]
+		var defaultLoadImports = {};
+		[# th:each="entry : ${config.defaultLoadImportsType}"]
+			defaultLoadImports[[# th:text="${entry.key}" /]] = {}
+			defaultLoadImports[[# th:text="${entry.key}" /]] = [# th:text="${entry.value}" /];
 		[/]
 		configure({
 			externalArtifactFileLabel: [[${localiser.localise('validator.label.optionContentFile')}]],
