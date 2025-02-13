@@ -134,11 +134,12 @@ function loadImportInputs() {
     $("#loadImportsCheck").prop('checked', false);	
     var validationType = getCompleteValidationType();
     if (validationType) {
-    	if(loadImportsArtifacts[validationType] == 'REQUIRED' || loadImportsArtifacts[validationType] == 'OPTIONAL'){
+    	if(loadImportsChoice[validationType] == 'REQUIRED' || loadImportsChoice[validationType] == 'OPTIONAL'){
+    	    var checkByDefault = defaultLoadImports[validationType] == true;
     		$('#loadImportsDiv').removeClass('hidden');
-    	    $("#loadImportsCheck").prop('checked', false);
+    	    $("#loadImportsCheck").prop('checked', checkByDefault);
     	}
-    	if(loadImportsArtifacts[validationType] == 'NONE'){
+    	if(loadImportsChoice[validationType] == 'NONE'){
     		$('#loadImportsDiv').addClass('hidden');
     	}
     }
