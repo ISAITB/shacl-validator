@@ -1,3 +1,7 @@
+![Banner](https://www.itb.ec.europa.eu/files/banners/rdfvalidator_banner.png)
+
+# SHACL validator
+
 ![BuildStatus](https://github.com/ISAITB/shacl-validator/actions/workflows/main.yml/badge.svg)
 [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=ISAITB_shacl-validator&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=ISAITB_shacl-validator)
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=ISAITB_shacl-validator&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=ISAITB_shacl-validator)
@@ -7,10 +11,6 @@
 [![licence](https://img.shields.io/github/license/ISAITB/shacl-validator.svg?color=blue)](https://github.com/ISAITB/shacl-validator/blob/master/LICENCE.txt)
 [![docs](https://img.shields.io/static/v1?label=docs&message=Test%20Bed%20guides&color=blue)](https://www.itb.ec.europa.eu/docs/guides/latest/validatingRDF/)
 [![docker](https://img.shields.io/docker/pulls/isaitb/shacl-validator?color=blue&logo=docker&logoColor=white)](https://hub.docker.com/r/isaitb/shacl-validator)
-
-# SHACL validator
-
-![Banner](https://www.itb.ec.europa.eu/files/banners/rdfvalidator_banner.png)
 
 The **SHACL validator** is a web application to validate RDF data against [SHACL shapes](https://www.w3.org/TR/shacl/).
 The application provides a fully reusable core that requires only configuration to determine the supported specifications,
