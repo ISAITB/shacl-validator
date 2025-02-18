@@ -10,6 +10,8 @@
 
 # SHACL validator
 
+![Banner](https://www.itb.ec.europa.eu/files/banners/rdfvalidator_banner.png)
+
 The **SHACL validator** is a web application to validate RDF data against [SHACL shapes](https://www.w3.org/TR/shacl/).
 The application provides a fully reusable core that requires only configuration to determine the supported specifications,
 configured validation types and other validator customisations. The web application allows validation via:
