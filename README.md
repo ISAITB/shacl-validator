@@ -10,6 +10,7 @@
 [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=ISAITB_shacl-validator&metric=bugs)](https://sonarcloud.io/summary/new_code?id=ISAITB_shacl-validator)
 [![licence](https://img.shields.io/github/license/ISAITB/shacl-validator.svg?color=blue)](https://github.com/ISAITB/shacl-validator/blob/master/LICENCE.txt)
 [![docs](https://img.shields.io/static/v1?label=docs&message=Test%20Bed%20guides&color=blue)](https://www.itb.ec.europa.eu/docs/guides/latest/validatingRDF/)
+[![Gurubase](https://img.shields.io/badge/Gurubase-Ask%20ITB%20Guru-006BFF?color=blue)](https://gurubase.io/g/itb)
 [![docker](https://img.shields.io/docker/pulls/isaitb/shacl-validator?color=blue&logo=docker&logoColor=white)](https://hub.docker.com/r/isaitb/shacl-validator)
 
 The **SHACL validator** is a web application to validate RDF data against [SHACL shapes](https://www.w3.org/TR/shacl/).
