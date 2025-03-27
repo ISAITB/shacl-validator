@@ -14,6 +14,7 @@ import eu.europa.ec.itb.shacl.DomainConfig;
 import eu.europa.ec.itb.shacl.ExtendedValidatorException;
 import eu.europa.ec.itb.shacl.ModelPair;
 import eu.europa.ec.itb.shacl.config.CustomLocatorHTTP;
+import eu.europa.ec.itb.shacl.util.ShaclValidatorUtils;
 import eu.europa.ec.itb.shacl.util.StatementTranslator;
 import eu.europa.ec.itb.validation.commons.FileInfo;
 import eu.europa.ec.itb.validation.commons.LocalisationHelper;
@@ -53,6 +54,7 @@ import org.topbraid.shacl.validation.ValidationUtil;
 import java.io.*;
 import java.util.*;
 
+import static eu.europa.ec.itb.shacl.util.ShaclValidatorUtils.getStatementSafe;
 import static eu.europa.ec.itb.shacl.util.ShaclValidatorUtils.handleEquivalentContentSyntaxes;
 import static eu.europa.ec.itb.shacl.validation.SHACLResources.VALIDATION_REPORT;
 import static org.apache.jena.riot.lang.LangJSONLD11.JSONLD_OPTIONS;
@@ -137,7 +139,7 @@ public class SHACLValidator {
     public ModelPair validateAll() {
     	LOG.info("Starting validation..");
     	try {
-            Model validationReport = validateAgainstPlugins(validateAgainstShacl());
+            Model validationReport = setOverallResult(validateAgainstPlugins(validateAgainstShacl()));
             processForLocale(validationReport);
             return new ModelPair(dataModel, validationReport);
         } finally {
@@ -201,6 +203,47 @@ public class SHACLValidator {
         request.getInput().add(Utils.createInputItem("tempFolder", pluginTmpFolder.getAbsolutePath()));
         request.getInput().add(Utils.createInputItem("locale", localiser.getLocale().toString()));
         return request;
+    }
+
+    /**
+     * Ensure that violations in the report always result in an overall report failure.
+     *
+     * @param validationReport The original report.
+     * @return The updated report.
+     */
+    private Model setOverallResult(Model validationReport) {
+        Resource reportResource = validationReport.listSubjectsWithProperty(RDF.type, VALIDATION_REPORT).nextResource();
+        if (reportResource != null) {
+            Statement conformsStatement = reportResource.getProperty(SHACLResources.CONFORMS);
+            if (conformsStatement.getBoolean() && hasViolations(validationReport)) {
+                conformsStatement.changeLiteralObject(false);
+            }
+        }
+        return validationReport;
+    }
+
+    /**
+     * Check to see whether the provided report includes at least one violation.
+     *
+     * @param validationReport The report to check.
+     * @return The check result.
+     */
+    private boolean hasViolations(Model validationReport) {
+        NodeIterator resultIterator = validationReport.listObjectsOfProperty(validationReport.getProperty(RESULT_URI));
+        while (resultIterator.hasNext()) {
+            RDFNode node = resultIterator.next();
+            StmtIterator statementIterator = validationReport.listStatements(node.asResource(), null, (RDFNode) null);
+            while (statementIterator.hasNext()) {
+                Statement statement = statementIterator.next();
+                if (statement.getPredicate().hasURI("http://www.w3.org/ns/shacl#resultSeverity")) {
+                    String severity = getStatementSafe(statement);
+                    if (ShaclValidatorUtils.isErrorSeverity(severity)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     /**
