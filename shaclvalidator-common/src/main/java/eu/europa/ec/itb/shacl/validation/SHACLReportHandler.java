@@ -3,6 +3,7 @@ package eu.europa.ec.itb.shacl.validation;
 import com.gitb.core.AnyContent;
 import com.gitb.core.ValueEmbeddingEnumeration;
 import com.gitb.tr.*;
+import eu.europa.ec.itb.shacl.util.ShaclValidatorUtils;
 import eu.europa.ec.itb.shacl.util.StatementTranslator;
 import eu.europa.ec.itb.validation.commons.AggregateReportItems;
 import eu.europa.ec.itb.validation.commons.ReportItemComparator;
@@ -19,6 +20,7 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.function.Function;
 
+import static eu.europa.ec.itb.shacl.util.ShaclValidatorUtils.getStatementSafe;
 import static eu.europa.ec.itb.shacl.validation.SHACLValidator.RESULT_MESSAGE_URI;
 import static eu.europa.ec.itb.shacl.validation.SHACLValidator.RESULT_URI;
 
@@ -71,32 +73,6 @@ public class SHACLReportHandler {
 	}
 
     /**
-     * Convert the provided RDF statement to a string.
-     *
-     * @param statement The statement.
-     * @return The resulting string.
-     */
-	private String getStatementSafe(Statement statement) {
-	    String result = null;
-        if (statement != null) {
-            try {
-                RDFNode node = statement.getObject();
-                if (node.isAnon()) {
-                    result = "";
-                } else if (node.isLiteral()) {
-                    result = node.asLiteral().getLexicalForm();
-                } else {
-                    result = node.toString();
-                }
-            } catch (Exception e) {
-                logger.warn("Error while getting statement string", e);
-                result = "";
-            }
-        }
-        return result;
-    }
-
-    /**
      * Create the TAR report.
      *
      * @return The TAR report.
@@ -116,70 +92,67 @@ public class SHACLReportHandler {
             aggregateReportItems = new AggregateReportItems(objectFactory, reportSpecs.getLocalisationHelper());
         }
 		if (reportSpecs.getReportModel() != null) {
-            NodeIterator niResult = reportSpecs.getReportModel().listObjectsOfProperty(reportSpecs.getReportModel().getProperty("http://www.w3.org/ns/shacl#conforms"));
             NodeIterator niValidationResult = reportSpecs.getReportModel().listObjectsOfProperty(reportSpecs.getReportModel().getProperty(RESULT_URI));
             var reports = new ArrayList<JAXBElement<TestAssertionReportType>>();
 
-            if (niResult.hasNext() && !niResult.next().asLiteral().getBoolean()) {
-            	while(niValidationResult.hasNext()) {
-            		RDFNode node = niValidationResult.next();
-            		StmtIterator it = reportSpecs.getReportModel().listStatements(node.asResource(), null, (RDFNode)null);
+            while (niValidationResult.hasNext()) {
+                RDFNode node = niValidationResult.next();
+                StmtIterator it = reportSpecs.getReportModel().listStatements(node.asResource(), null, (RDFNode)null);
 
-        			BAR error = new BAR();
-        			String focusNode = "";
-        			String resultPath = "";
-        			String severity = "";
-                    String value = "";
-                    String shape = "";
+                BAR error = new BAR();
+                String focusNode = "";
+                String resultPath = "";
+                String severity = "";
+                String value = "";
+                String shape = "";
 
-                    var statementTranslator = new StatementTranslator();
-            		while(it.hasNext()) {
-            			Statement statement = it.next();
-                        if(statement.getPredicate().hasURI(RESULT_MESSAGE_URI)) {
-                            statementTranslator.processStatement(statement);
-                        }
-            			if(statement.getPredicate().hasURI("http://www.w3.org/ns/shacl#focusNode")) {
-            				focusNode = getStatementSafe(statement);
-            			}
-            			if(statement.getPredicate().hasURI("http://www.w3.org/ns/shacl#resultPath")) {
-            				resultPath = getStatementSafe(statement);
-            			}
-            			if(statement.getPredicate().hasURI("http://www.w3.org/ns/shacl#sourceShape")) {
-            				shape = getStatementSafe(statement);
-            			}
-            			if(statement.getPredicate().hasURI("http://www.w3.org/ns/shacl#resultSeverity")) {
-            				severity = getStatementSafe(statement);
-            			}
-                        if(statement.getPredicate().hasURI("http://www.w3.org/ns/shacl#value")) {
-                            value = getStatementSafe(statement);
-                        }
-            		}
-                    if (focusNode != null && additionalInfoTemplate.isEnabled()) {
-                        error.setAssertionID(additionalInfoTemplate.apply(focusNode));
+                var statementTranslator = new StatementTranslator();
+                while(it.hasNext()) {
+                    Statement statement = it.next();
+                    if(statement.getPredicate().hasURI(RESULT_MESSAGE_URI)) {
+                        statementTranslator.processStatement(statement);
                     }
-                    error.setDescription(getStatementSafe(statementTranslator.getTranslation(reportSpecs.getLocalisationHelper().getLocale()).getMatchedStatement()));
-            		error.setLocation(createStringMessageFromParts(new String[] {reportSpecs.getReportLabels().getFocusNode(), reportSpecs.getReportLabels().getResultPath()}, new String[] {focusNode, resultPath}));
-                    error.setTest(createStringMessageFromParts(new String[] {reportSpecs.getReportLabels().getShape(), reportSpecs.getReportLabels().getValue()}, new String[] {shape, value}));
-                    JAXBElement<TestAssertionReportType> element;
-                    String shapeFinal = shape;
-                    Function<JAXBElement<TestAssertionReportType>, String> classifierFn = e -> String.format("%s|%s|%s", shapeFinal, e.getName().getLocalPart(), ((BAR)e.getValue()).getDescription());
-                    if (severity.equals("http://www.w3.org/ns/shacl#Info")) {
-                        element = this.objectFactory.createTestAssertionGroupReportsTypeInfo(error);
-                        infos += 1;
-                        if (aggregateReportItems != null) aggregateReportItems.updateForReportItem(element, classifierFn);
-                    } else if (severity.equals("http://www.w3.org/ns/shacl#Warning")) {
-                        element = this.objectFactory.createTestAssertionGroupReportsTypeWarning(error);
-                        warnings += 1;
-                        if (aggregateReportItems != null) aggregateReportItems.updateForReportItem(element, classifierFn);
-                    } else { // ERROR, FATAL_ERROR
-                        element = this.objectFactory.createTestAssertionGroupReportsTypeError(error);
-                        errors += 1;
-                        if (aggregateReportItems != null) aggregateReportItems.updateForReportItem(element, classifierFn);
+                    if(statement.getPredicate().hasURI("http://www.w3.org/ns/shacl#focusNode")) {
+                        focusNode = getStatementSafe(statement);
                     }
-                    reports.add(element);
-            	}
-                report.getReports().getInfoOrWarningOrError().addAll(reports);
+                    if(statement.getPredicate().hasURI("http://www.w3.org/ns/shacl#resultPath")) {
+                        resultPath = getStatementSafe(statement);
+                    }
+                    if(statement.getPredicate().hasURI("http://www.w3.org/ns/shacl#sourceShape")) {
+                        shape = getStatementSafe(statement);
+                    }
+                    if(statement.getPredicate().hasURI("http://www.w3.org/ns/shacl#resultSeverity")) {
+                        severity = getStatementSafe(statement);
+                    }
+                    if(statement.getPredicate().hasURI("http://www.w3.org/ns/shacl#value")) {
+                        value = getStatementSafe(statement);
+                    }
+                }
+                if (focusNode != null && additionalInfoTemplate.isEnabled()) {
+                    error.setAssertionID(additionalInfoTemplate.apply(focusNode));
+                }
+                error.setDescription(getStatementSafe(statementTranslator.getTranslation(reportSpecs.getLocalisationHelper().getLocale()).getMatchedStatement()));
+                error.setLocation(createStringMessageFromParts(new String[] {reportSpecs.getReportLabels().getFocusNode(), reportSpecs.getReportLabels().getResultPath()}, new String[] {focusNode, resultPath}));
+                error.setTest(createStringMessageFromParts(new String[] {reportSpecs.getReportLabels().getShape(), reportSpecs.getReportLabels().getValue()}, new String[] {shape, value}));
+                JAXBElement<TestAssertionReportType> element;
+                String shapeFinal = shape;
+                Function<JAXBElement<TestAssertionReportType>, String> classifierFn = e -> String.format("%s|%s|%s", shapeFinal, e.getName().getLocalPart(), ((BAR)e.getValue()).getDescription());
+                if (ShaclValidatorUtils.isInfoSeverity(severity)) {
+                    element = this.objectFactory.createTestAssertionGroupReportsTypeInfo(error);
+                    infos += 1;
+                    if (aggregateReportItems != null) aggregateReportItems.updateForReportItem(element, classifierFn);
+                } else if (ShaclValidatorUtils.isWarningSeverity(severity)) {
+                    element = this.objectFactory.createTestAssertionGroupReportsTypeWarning(error);
+                    warnings += 1;
+                    if (aggregateReportItems != null) aggregateReportItems.updateForReportItem(element, classifierFn);
+                } else { // ERROR, FATAL_ERROR
+                    element = this.objectFactory.createTestAssertionGroupReportsTypeError(error);
+                    errors += 1;
+                    if (aggregateReportItems != null) aggregateReportItems.updateForReportItem(element, classifierFn);
+                }
+                reports.add(element);
             }
+            report.getReports().getInfoOrWarningOrError().addAll(reports);
 		} else {
             BAR error1 = new BAR();
             error1.setDescription(reportSpecs.getLocalisationHelper().localise("validator.label.exception.unableToGenerateReportDueToContentProblem"));

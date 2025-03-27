@@ -11,8 +11,14 @@ import org.apache.jena.query.QueryExecution;
 import org.apache.jena.query.QueryExecutionFactory;
 import org.apache.jena.query.QueryFactory;
 import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.RDFNode;
+import org.apache.jena.rdf.model.Statement;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.util.MimeType;
 import org.springframework.util.MimeTypeUtils;
+
+import java.util.Objects;
 
 /**
  * Class with utility methods.
@@ -26,6 +32,8 @@ public class ShaclValidatorUtils {
     public static final MimeType TYPE_APPLICATION_JSON = new MimeType("application", "json");
     public static final MimeType TYPE_APPLICATION_JSON_LD = new MimeType("application", "ld+json");
     public static final MimeType TYPE_APPLICATION_N_TRIPLES = new MimeType("application", "n-triples");
+
+    private static final Logger logger = LoggerFactory.getLogger(ShaclValidatorUtils.class);
 
     /**
      * Constructor to prevent instantiation.
@@ -154,6 +162,62 @@ public class ShaclValidatorUtils {
             }
         }
         return handleEquivalentContentSyntaxes(contentSyntaxFromInput);
+    }
+
+    /**
+     * Check whether the provided severity level indicates an information message.
+     *
+     * @param severity The severity level
+     * @return The check result.
+     */
+    public static boolean isInfoSeverity(String severity) {
+        return Objects.equals(severity, "http://www.w3.org/ns/shacl#Info");
+    }
+
+    /**
+     * Check whether the provided severity level indicates a warning message.
+     *
+     * @param severity The severity level
+     * @return The check result.
+     */
+    public static boolean isWarningSeverity(String severity) {
+        return Objects.equals(severity, "http://www.w3.org/ns/shacl#Warning");
+    }
+
+    /**
+     * Check whether the provided severity level indicates an error message.
+     *
+     * @param severity The severity level
+     * @return The check result.
+     */
+    public static boolean isErrorSeverity(String severity) {
+        return !isInfoSeverity(severity) && !isWarningSeverity(severity);
+    }
+
+    /**
+     * Convert the provided RDF statement to a string.
+     *
+     * @param statement The statement.
+     * @return The resulting string.
+     */
+    public static String getStatementSafe(Statement statement) {
+        String result = null;
+        if (statement != null) {
+            try {
+                RDFNode node = statement.getObject();
+                if (node.isAnon()) {
+                    result = "";
+                } else if (node.isLiteral()) {
+                    result = node.asLiteral().getLexicalForm();
+                } else {
+                    result = node.toString();
+                }
+            } catch (Exception e) {
+                logger.warn("Error while getting statement string", e);
+                result = "";
+            }
+        }
+        return result;
     }
 
 }
