@@ -23,16 +23,16 @@ This product depends on software developed by third parties as listed in the fol
 | Eclipse Public License - v1.0, GNU Lesser General Public License (LGPL), Version 2.1 | Logback Core Module | ch.qos.logback:logback-core | 1.5.18 | http://logback.qos.ch/logback-core |
 | Apache License, Version 2.0 | Titanium JSON-LD 1.1 (JRE11) | com.apicatalog:titanium-json-ld | 1.4.1 | https://github.com/filip26/titanium-json-ld |
 | Apache License, Version 2.0 | ClassMate | com.fasterxml:classmate | 1.7.0 | https://github.com/FasterXML/java-classmate |
-| Apache License, Version 2.0 | Jackson-annotations | com.fasterxml.jackson.core:jackson-annotations | 2.19.0 | https://github.com/FasterXML/jackson |
-| Apache License, Version 2.0 | Jackson-core | com.fasterxml.jackson.core:jackson-core | 2.19.0 | https://github.com/FasterXML/jackson-core |
-| Apache License, Version 2.0 | jackson-databind | com.fasterxml.jackson.core:jackson-databind | 2.19.0 | https://github.com/FasterXML/jackson |
-| Apache License, Version 2.0 | Jackson-dataformat-YAML | com.fasterxml.jackson.dataformat:jackson-dataformat-yaml | 2.19.0 | https://github.com/FasterXML/jackson-dataformats-text |
-| Apache License, Version 2.0 | Jackson datatype: jdk8 | com.fasterxml.jackson.datatype:jackson-datatype-jdk8 | 2.19.0 | https://github.com/FasterXML/jackson-modules-java8/jackson-datatype-jdk8 |
-| Apache License, Version 2.0 | Jackson datatype: JSR310 | com.fasterxml.jackson.datatype:jackson-datatype-jsr310 | 2.19.0 | https://github.com/FasterXML/jackson-modules-java8/jackson-datatype-jsr310 |
-| Apache License, Version 2.0 | Jackson-module-parameter-names | com.fasterxml.jackson.module:jackson-module-parameter-names | 2.19.0 | https://github.com/FasterXML/jackson-modules-java8/jackson-module-parameter-names |
+| Apache License, Version 2.0 | Jackson-annotations | com.fasterxml.jackson.core:jackson-annotations | 2.19.1 | https://github.com/FasterXML/jackson |
+| Apache License, Version 2.0 | Jackson-core | com.fasterxml.jackson.core:jackson-core | 2.19.1 | https://github.com/FasterXML/jackson-core |
+| Apache License, Version 2.0 | jackson-databind | com.fasterxml.jackson.core:jackson-databind | 2.19.1 | https://github.com/FasterXML/jackson |
+| Apache License, Version 2.0 | Jackson-dataformat-YAML | com.fasterxml.jackson.dataformat:jackson-dataformat-yaml | 2.19.1 | https://github.com/FasterXML/jackson-dataformats-text |
+| Apache License, Version 2.0 | Jackson datatype: jdk8 | com.fasterxml.jackson.datatype:jackson-datatype-jdk8 | 2.19.1 | https://github.com/FasterXML/jackson-modules-java8/jackson-datatype-jdk8 |
+| Apache License, Version 2.0 | Jackson datatype: JSR310 | com.fasterxml.jackson.datatype:jackson-datatype-jsr310 | 2.19.1 | https://github.com/FasterXML/jackson-modules-java8/jackson-datatype-jsr310 |
+| Apache License, Version 2.0 | Jackson-module-parameter-names | com.fasterxml.jackson.module:jackson-module-parameter-names | 2.19.1 | https://github.com/FasterXML/jackson-modules-java8/jackson-module-parameter-names |
 | Apache License, Version 2.0 | Woodstox | com.fasterxml.woodstox:woodstox-core | 7.1.0 | https://github.com/FasterXML/woodstox |
 | MIT License | dexx | com.github.andrewoma.dexx:collection | 0.7 | https://github.com/andrewoma/dexx |
-| Apache License, Version 2.0 | Caffeine cache | com.github.ben-manes.caffeine:caffeine | 3.2.0 | https://github.com/ben-manes/caffeine |
+| Apache License, Version 2.0 | Caffeine cache | com.github.ben-manes.caffeine:caffeine | 3.2.1 | https://github.com/ben-manes/caffeine |
 | Apache License, Version 2.0 | FindBugs-jsr305 | com.google.code.findbugs:jsr305 | 3.0.2 | http://findbugs.sourceforge.net/ |
 | Apache License, Version 2.0 | Gson | com.google.code.gson:gson | 2.9.0 | https://github.com/google/gson/gson |
 | Apache License, Version 2.0 | error-prone annotations | com.google.errorprone:error_prone_annotations | 2.3.4 | http://nexus.sonatype.org/oss-repository-hosting.html/error_prone_parent/error_prone_annotations |
@@ -57,8 +57,8 @@ This product depends on software developed by third parties as listed in the fol
 | Apache License, Version 2.0 | PDFBox-Graphics2d | de.rototor.pdfbox:graphics2d | 0.32 | https://github.com/rototor/pdfbox-graphics2d/graphics2d |
 | European Union Public Licence (EUPL) Version 1.2 | gitb-types-jakarta | eu.europa.ec.itb:gitb-types-jakarta | 1.26.0 | https://interoperable-europe.ec.europa.eu/collection/interoperability-test-bed-repository/solution/interoperability-test-bed/gitb-types-jakarta |
 | MIT License | ClassGraph | io.github.classgraph:classgraph | 4.8.149 | https://github.com/classgraph/classgraph |
-| Apache License, Version 2.0 | micrometer-commons | io.micrometer:micrometer-commons | 1.15.0 | https://github.com/micrometer-metrics/micrometer |
-| Apache License, Version 2.0 | micrometer-observation | io.micrometer:micrometer-observation | 1.15.0 | https://github.com/micrometer-metrics/micrometer |
+| Apache License, Version 2.0 | micrometer-commons | io.micrometer:micrometer-commons | 1.15.1 | https://github.com/micrometer-metrics/micrometer |
+| Apache License, Version 2.0 | micrometer-observation | io.micrometer:micrometer-observation | 1.15.1 | https://github.com/micrometer-metrics/micrometer |
 | Apache License, Version 2.0 | swagger-annotations-jakarta | io.swagger.core.v3:swagger-annotations-jakarta | 2.2.25 | https://github.com/swagger-api/swagger-core/modules/swagger-annotations-jakarta |
 | Apache License, Version 2.0 | swagger-core-jakarta | io.swagger.core.v3:swagger-core-jakarta | 2.2.25 | https://github.com/swagger-api/swagger-core/modules/swagger-core-jakarta |
 | Apache License, Version 2.0 | swagger-models-jakarta | io.swagger.core.v3:swagger-models-jakarta | 2.2.25 | https://github.com/swagger-api/swagger-core/modules/swagger-models-jakarta |
@@ -77,19 +77,19 @@ This product depends on software developed by third parties as listed in the fol
 | Apache License, Version 2.0 | Apache Commons CSV | org.apache.commons:commons-csv | 1.12.0 | https://commons.apache.org/proper/commons-csv/ |
 | Apache License, Version 2.0 | Apache Commons Lang | org.apache.commons:commons-lang3 | 3.17.0 | https://commons.apache.org/proper/commons-lang/ |
 | Apache License, Version 2.0 | Apache Commons Text | org.apache.commons:commons-text | 1.12.0 | https://commons.apache.org/proper/commons-text |
-| Apache License, Version 2.0 | Apache CXF Core | org.apache.cxf:cxf-core | 4.1.0 | https://cxf.apache.org |
-| Apache License, Version 2.0 | Apache CXF Runtime SOAP Binding | org.apache.cxf:cxf-rt-bindings-soap | 4.1.0 | https://cxf.apache.org |
-| Apache License, Version 2.0 | Apache CXF Runtime XML Binding | org.apache.cxf:cxf-rt-bindings-xml | 4.1.0 | https://cxf.apache.org |
-| Apache License, Version 2.0 | Apache CXF Runtime JAXB DataBinding | org.apache.cxf:cxf-rt-databinding-jaxb | 4.1.0 | https://cxf.apache.org |
-| Apache License, Version 2.0 | Apache CXF Metrics Feature | org.apache.cxf:cxf-rt-features-metrics | 4.1.0 | https://cxf.apache.org/cxf-rt-features-metrics |
-| Apache License, Version 2.0 | Apache CXF Runtime JAX-WS Frontend | org.apache.cxf:cxf-rt-frontend-jaxws | 4.1.0 | https://cxf.apache.org |
-| Apache License, Version 2.0 | Apache CXF Runtime Simple Frontend | org.apache.cxf:cxf-rt-frontend-simple | 4.1.0 | https://cxf.apache.org |
-| Apache License, Version 2.0 | Apache CXF Runtime HTTP Transport | org.apache.cxf:cxf-rt-transports-http | 4.1.0 | https://cxf.apache.org |
-| Apache License, Version 2.0 | Apache CXF Runtime WS Addressing | org.apache.cxf:cxf-rt-ws-addr | 4.1.0 | https://cxf.apache.org |
-| Apache License, Version 2.0 | Apache CXF Runtime WS Policy | org.apache.cxf:cxf-rt-ws-policy | 4.1.0 | https://cxf.apache.org |
-| Apache License, Version 2.0 | Apache CXF Runtime Core for WSDL | org.apache.cxf:cxf-rt-wsdl | 4.1.0 | https://cxf.apache.org |
-| Apache License, Version 2.0 | Apache CXF Spring Boot Autoconfigure | org.apache.cxf:cxf-spring-boot-autoconfigure | 4.1.0 | https://cxf.apache.org |
-| Apache License, Version 2.0 | Apache CXF Spring Boot Starter JAX-WS | org.apache.cxf:cxf-spring-boot-starter-jaxws | 4.1.0 | https://cxf.apache.org |
+| Apache License, Version 2.0 | Apache CXF Core | org.apache.cxf:cxf-core | 4.1.2 | https://cxf.apache.org |
+| Apache License, Version 2.0 | Apache CXF Runtime SOAP Binding | org.apache.cxf:cxf-rt-bindings-soap | 4.1.2 | https://cxf.apache.org |
+| Apache License, Version 2.0 | Apache CXF Runtime XML Binding | org.apache.cxf:cxf-rt-bindings-xml | 4.1.2 | https://cxf.apache.org |
+| Apache License, Version 2.0 | Apache CXF Runtime JAXB DataBinding | org.apache.cxf:cxf-rt-databinding-jaxb | 4.1.2 | https://cxf.apache.org |
+| Apache License, Version 2.0 | Apache CXF Metrics Feature | org.apache.cxf:cxf-rt-features-metrics | 4.1.2 | https://cxf.apache.org/cxf-rt-features-metrics |
+| Apache License, Version 2.0 | Apache CXF Runtime JAX-WS Frontend | org.apache.cxf:cxf-rt-frontend-jaxws | 4.1.2 | https://cxf.apache.org |
+| Apache License, Version 2.0 | Apache CXF Runtime Simple Frontend | org.apache.cxf:cxf-rt-frontend-simple | 4.1.2 | https://cxf.apache.org |
+| Apache License, Version 2.0 | Apache CXF Runtime HTTP Transport | org.apache.cxf:cxf-rt-transports-http | 4.1.2 | https://cxf.apache.org |
+| Apache License, Version 2.0 | Apache CXF Runtime WS Addressing | org.apache.cxf:cxf-rt-ws-addr | 4.1.2 | https://cxf.apache.org |
+| Apache License, Version 2.0 | Apache CXF Runtime WS Policy | org.apache.cxf:cxf-rt-ws-policy | 4.1.2 | https://cxf.apache.org |
+| Apache License, Version 2.0 | Apache CXF Runtime Core for WSDL | org.apache.cxf:cxf-rt-wsdl | 4.1.2 | https://cxf.apache.org |
+| Apache License, Version 2.0 | Apache CXF Spring Boot Autoconfigure | org.apache.cxf:cxf-spring-boot-autoconfigure | 4.1.2 | https://cxf.apache.org |
+| Apache License, Version 2.0 | Apache CXF Spring Boot Starter JAX-WS | org.apache.cxf:cxf-spring-boot-starter-jaxws | 4.1.2 | https://cxf.apache.org |
 | Apache License, Version 2.0 | Apache HttpClient | org.apache.httpcomponents.client5:httpclient5 | 5.4.4 | https://hc.apache.org/httpcomponents-client-5.4.x/5.4.4/httpclient5/ |
 | Apache License, Version 2.0 | Apache HttpComponents Core HTTP/1.1 | org.apache.httpcomponents.core5:httpcore5 | 5.3.4 | https://hc.apache.org/httpcomponents-core-5.3.x/5.3.4/httpcore5/ |
 | Apache License, Version 2.0 | Apache HttpComponents Core HTTP/2 | org.apache.httpcomponents.core5:httpcore5-h2 | 5.3.4 | https://hc.apache.org/httpcomponents-core-5.3.x/5.3.4/httpcore5-h2/ |
@@ -142,7 +142,7 @@ This product depends on software developed by third parties as listed in the fol
 | Apache License, Version 2.0 | JBoss Logging 3 | org.jboss.logging:jboss-logging | 3.6.1.Final | http://www.jboss.org |
 | MIT License | jsoup Java HTML Parser | org.jsoup:jsoup | 1.15.4 | https://jsoup.org/ |
 | Apache License, Version 2.0 | JSpecify annotations | org.jspecify:jspecify | 1.0.0 | http://jspecify.org/ |
-| The 3-Clause BSD License | asm | org.ow2.asm:asm | 9.7.1 | http://asm.ow2.io/ |
+| The 3-Clause BSD License | asm | org.ow2.asm:asm | 9.8 | http://asm.ow2.io/ |
 | Apache License, Version 2.0 | org.roaringbitmap:RoaringBitmap | org.roaringbitmap:RoaringBitmap | 1.3.0 | https://github.com/RoaringBitmap/RoaringBitmap |
 | Apache License, Version 2.0 | JCL 1.2 implemented over SLF4J | org.slf4j:jcl-over-slf4j | 2.0.17 | http://www.slf4j.org |
 | MIT License | JUL to SLF4J bridge | org.slf4j:jul-to-slf4j | 2.0.17 | http://www.slf4j.org |
@@ -150,29 +150,29 @@ This product depends on software developed by third parties as listed in the fol
 | Apache License, Version 2.0 | springdoc-openapi-starter-common | org.springdoc:springdoc-openapi-starter-common | 2.7.0 | https://springdoc.org/springdoc-openapi-starter-common/ |
 | Apache License, Version 2.0 | springdoc-openapi-starter-webmvc-api | org.springdoc:springdoc-openapi-starter-webmvc-api | 2.7.0 | https://springdoc.org/springdoc-openapi-starter-webmvc-api/ |
 | Apache License, Version 2.0 | springdoc-openapi-starter-webmvc-ui | org.springdoc:springdoc-openapi-starter-webmvc-ui | 2.7.0 | https://springdoc.org/springdoc-openapi-starter-webmvc-ui/ |
-| Apache License, Version 2.0 | Spring AOP | org.springframework:spring-aop | 6.2.7 | https://github.com/spring-projects/spring-framework |
-| Apache License, Version 2.0 | Spring Beans | org.springframework:spring-beans | 6.2.7 | https://github.com/spring-projects/spring-framework |
-| Apache License, Version 2.0 | Spring Context | org.springframework:spring-context | 6.2.7 | https://github.com/spring-projects/spring-framework |
-| Apache License, Version 2.0 | Spring Core | org.springframework:spring-core | 6.2.7 | https://github.com/spring-projects/spring-framework |
-| Apache License, Version 2.0 | Spring Expression Language (SpEL) | org.springframework:spring-expression | 6.2.7 | https://github.com/spring-projects/spring-framework |
-| Apache License, Version 2.0 | Spring Commons Logging Bridge | org.springframework:spring-jcl | 6.2.7 | https://github.com/spring-projects/spring-framework |
-| Apache License, Version 2.0 | Spring Web | org.springframework:spring-web | 6.2.7 | https://github.com/spring-projects/spring-framework |
-| Apache License, Version 2.0 | Spring Web MVC | org.springframework:spring-webmvc | 6.2.7 | https://github.com/spring-projects/spring-framework |
-| Apache License, Version 2.0 | spring-boot | org.springframework.boot:spring-boot | 3.5.0 | https://spring.io/projects/spring-boot |
-| Apache License, Version 2.0 | spring-boot-autoconfigure | org.springframework.boot:spring-boot-autoconfigure | 3.5.0 | https://spring.io/projects/spring-boot |
-| Apache License, Version 2.0 | spring-boot-starter | org.springframework.boot:spring-boot-starter | 3.5.0 | https://spring.io/projects/spring-boot |
-| Apache License, Version 2.0 | spring-boot-starter-aop | org.springframework.boot:spring-boot-starter-aop | 3.5.0 | https://spring.io/projects/spring-boot |
-| Apache License, Version 2.0 | spring-boot-starter-json | org.springframework.boot:spring-boot-starter-json | 3.5.0 | https://spring.io/projects/spring-boot |
-| Apache License, Version 2.0 | spring-boot-starter-logging | org.springframework.boot:spring-boot-starter-logging | 3.5.0 | https://spring.io/projects/spring-boot |
-| Apache License, Version 2.0 | spring-boot-starter-security | org.springframework.boot:spring-boot-starter-security | 3.5.0 | https://spring.io/projects/spring-boot |
-| Apache License, Version 2.0 | spring-boot-starter-thymeleaf | org.springframework.boot:spring-boot-starter-thymeleaf | 3.5.0 | https://spring.io/projects/spring-boot |
-| Apache License, Version 2.0 | spring-boot-starter-tomcat | org.springframework.boot:spring-boot-starter-tomcat | 3.5.0 | https://spring.io/projects/spring-boot |
-| Apache License, Version 2.0 | spring-boot-starter-validation | org.springframework.boot:spring-boot-starter-validation | 3.5.0 | https://spring.io/projects/spring-boot |
-| Apache License, Version 2.0 | spring-boot-starter-web | org.springframework.boot:spring-boot-starter-web | 3.5.0 | https://spring.io/projects/spring-boot |
-| Apache License, Version 2.0 | spring-security-config | org.springframework.security:spring-security-config | 6.5.0 | https://spring.io/projects/spring-security |
-| Apache License, Version 2.0 | spring-security-core | org.springframework.security:spring-security-core | 6.5.0 | https://spring.io/projects/spring-security |
-| Apache License, Version 2.0 | spring-security-crypto | org.springframework.security:spring-security-crypto | 6.5.0 | https://spring.io/projects/spring-security |
-| Apache License, Version 2.0 | spring-security-web | org.springframework.security:spring-security-web | 6.5.0 | https://spring.io/projects/spring-security |
+| Apache License, Version 2.0 | Spring AOP | org.springframework:spring-aop | 6.2.8 | https://github.com/spring-projects/spring-framework |
+| Apache License, Version 2.0 | Spring Beans | org.springframework:spring-beans | 6.2.8 | https://github.com/spring-projects/spring-framework |
+| Apache License, Version 2.0 | Spring Context | org.springframework:spring-context | 6.2.8 | https://github.com/spring-projects/spring-framework |
+| Apache License, Version 2.0 | Spring Core | org.springframework:spring-core | 6.2.8 | https://github.com/spring-projects/spring-framework |
+| Apache License, Version 2.0 | Spring Expression Language (SpEL) | org.springframework:spring-expression | 6.2.8 | https://github.com/spring-projects/spring-framework |
+| Apache License, Version 2.0 | Spring Commons Logging Bridge | org.springframework:spring-jcl | 6.2.8 | https://github.com/spring-projects/spring-framework |
+| Apache License, Version 2.0 | Spring Web | org.springframework:spring-web | 6.2.8 | https://github.com/spring-projects/spring-framework |
+| Apache License, Version 2.0 | Spring Web MVC | org.springframework:spring-webmvc | 6.2.8 | https://github.com/spring-projects/spring-framework |
+| Apache License, Version 2.0 | spring-boot | org.springframework.boot:spring-boot | 3.5.3 | https://spring.io/projects/spring-boot |
+| Apache License, Version 2.0 | spring-boot-autoconfigure | org.springframework.boot:spring-boot-autoconfigure | 3.5.3 | https://spring.io/projects/spring-boot |
+| Apache License, Version 2.0 | spring-boot-starter | org.springframework.boot:spring-boot-starter | 3.5.3 | https://spring.io/projects/spring-boot |
+| Apache License, Version 2.0 | spring-boot-starter-aop | org.springframework.boot:spring-boot-starter-aop | 3.5.3 | https://spring.io/projects/spring-boot |
+| Apache License, Version 2.0 | spring-boot-starter-json | org.springframework.boot:spring-boot-starter-json | 3.5.3 | https://spring.io/projects/spring-boot |
+| Apache License, Version 2.0 | spring-boot-starter-logging | org.springframework.boot:spring-boot-starter-logging | 3.5.3 | https://spring.io/projects/spring-boot |
+| Apache License, Version 2.0 | spring-boot-starter-security | org.springframework.boot:spring-boot-starter-security | 3.5.3 | https://spring.io/projects/spring-boot |
+| Apache License, Version 2.0 | spring-boot-starter-thymeleaf | org.springframework.boot:spring-boot-starter-thymeleaf | 3.5.3 | https://spring.io/projects/spring-boot |
+| Apache License, Version 2.0 | spring-boot-starter-tomcat | org.springframework.boot:spring-boot-starter-tomcat | 3.5.3 | https://spring.io/projects/spring-boot |
+| Apache License, Version 2.0 | spring-boot-starter-validation | org.springframework.boot:spring-boot-starter-validation | 3.5.3 | https://spring.io/projects/spring-boot |
+| Apache License, Version 2.0 | spring-boot-starter-web | org.springframework.boot:spring-boot-starter-web | 3.5.3 | https://spring.io/projects/spring-boot |
+| Apache License, Version 2.0 | spring-security-config | org.springframework.security:spring-security-config | 6.5.1 | https://spring.io/projects/spring-security |
+| Apache License, Version 2.0 | spring-security-core | org.springframework.security:spring-security-core | 6.5.1 | https://spring.io/projects/spring-security |
+| Apache License, Version 2.0 | spring-security-crypto | org.springframework.security:spring-security-crypto | 6.5.1 | https://spring.io/projects/spring-security |
+| Apache License, Version 2.0 | spring-security-web | org.springframework.security:spring-security-web | 6.5.1 | https://spring.io/projects/spring-security |
 | Apache License, Version 2.0 | thymeleaf | org.thymeleaf:thymeleaf | 3.1.3.RELEASE | http://www.thymeleaf.org/thymeleaf-lib/thymeleaf |
 | Apache License, Version 2.0 | thymeleaf-spring6 | org.thymeleaf:thymeleaf-spring6 | 3.1.3.RELEASE | http://www.thymeleaf.org/thymeleaf-lib/thymeleaf-spring6 |
 | Apache License, Version 2.0 | TopBraid SHACL API | org.topbraid:shacl | 1.4.4 | http://topbraid.org/shacl/api |
@@ -1999,79 +1999,6 @@ Portions of this software are from Apache Xerces and were originally based on th
 
 This product includes software developed at the Open Geospatial Consortium:
 http://www.opengeospatial.org/ogc/software
-```
-
-### Apache Tomcat (org.apache.tomcat.embed.*)
-
-```
-Apache Tomcat
-Copyright 1999-2025 The Apache Software Foundation
-
-This product includes software developed at
-The Apache Software Foundation (https://www.apache.org/).
-
-This software contains code derived from netty-native
-developed by the Netty project
-(https://netty.io, https://github.com/netty/netty-tcnative/)
-and from finagle-native developed at Twitter
-(https://github.com/twitter/finagle).
-
-This software contains code derived from jgroups-kubernetes
-developed by the JGroups project (http://www.jgroups.org/).
-
-The Windows Installer is built with the Nullsoft
-Scriptable Install System (NSIS), which is
-open source software.  The original software and
-related information is available at
-http://nsis.sourceforge.net.
-
-Java compilation software for JSP pages is provided by the Eclipse
-JDT Core Batch Compiler component, which is open source software.
-The original software and related information is available at
-https://www.eclipse.org/jdt/core/.
-
-org.apache.tomcat.util.json.JSONParser.jj is a public domain javacc grammar
-for JSON written by Robert Fischer.
-https://github.com/RobertFischer/json-parser
-
-For portions of the Tomcat JNI OpenSSL API and the OpenSSL JSSE integration
-The org.apache.tomcat.jni and the org.apache.tomcat.net.openssl packages
-are derivative work originating from the Netty project and the finagle-native
-project developed at Twitter
-* Copyright 2014 The Netty Project
-* Copyright 2014 Twitter
-
-For portions of the Tomcat cloud support
-The org.apache.catalina.tribes.membership.cloud package contains derivative
-work originating from the jgroups project.
-https://github.com/jgroups-extras/jgroups-kubernetes
-Copyright 2002-2018 Red Hat Inc.
-
-The original XML Schemas for Java EE Deployment Descriptors:
- - javaee_5.xsd
- - javaee_web_services_1_2.xsd
- - javaee_web_services_client_1_2.xsd
- - javaee_6.xsd
- - javaee_web_services_1_3.xsd
- - javaee_web_services_client_1_3.xsd
- - jsp_2_2.xsd
- - web-app_3_0.xsd
- - web-common_3_0.xsd
- - web-fragment_3_0.xsd
- - javaee_7.xsd
- - javaee_web_services_1_4.xsd
- - javaee_web_services_client_1_4.xsd
- - jsp_2_3.xsd
- - web-app_3_1.xsd
- - web-common_3_1.xsd
- - web-fragment_3_1.xsd
- - javaee_8.xsd
- - web-app_4_0.xsd
- - web-common_4_0.xsd
- - web-fragment_4_0.xsd
-
-may be obtained from:
-http://www.oracle.com/webfolder/technetwork/jsc/xml/ns/javaee/index.html
 ```
 
 ### AspectJ (org.aspectj.*)
