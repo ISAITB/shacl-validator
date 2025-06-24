@@ -1,0 +1,93 @@
+publiccodeYmlVersion: 0.4.0
+name: Interoperability Test Bed - SHACL validator
+applicationSuite: ""
+url: https://github.com/ISAITB/shacl-validator
+softwareVersion: 1.8.0
+releaseDate: 2025-04-08
+logo: https://www.itb.ec.europa.eu/files/itb_logo_simple.png
+platforms:
+  - web
+  - linux
+  - windows
+  - mac
+categories:
+  - test-management
+usedBy:
+  - European Commission
+  - World Health Organization
+  - European Maritime Safety Agency
+  - Publications Office of the European Union
+  - IHE Europe
+developmentStatus: stable
+softwareType: standalone/web
+description:
+  en:
+    localisedName: Interoperability Test Bed - SHACL validator
+    shortDescription: Customisable web application for the validation of RDF data
+      via various APIs.
+    longDescription: >-
+      The Interoperability Test Bed's SHACL validator is a web application for the
+      validation of RDF data against SHACL shapes. It supports a web user interface,
+      as well as SOAP and REST APIs for machine-to-machine integration. It can also
+      be (re)used as the implementation of a validation step in GITB TDL test cases,
+      the executable test cases used in the Interoperability Test Bed for conformance
+      testing. The validator is fully configuration-driven allowing its customisation
+      for the needs of specific projects and organisations, ranging from the
+      configuration of supported types of validation to its look  and feel. 
+
+      The validator is supported by the European Commission's DIGIT which also
+      provides hosting for eligible public validators on its cloud
+      infrastructure. In such a case, operation is managed by DIGIT but the
+      validator's configuration and updates remain fully under the control of
+      its owner. Alternatively, the validator can also be self-hosted by using
+      its public Docker image and providing it with the project's specific
+      configuration.
+    documentation: https://www.itb.ec.europa.eu/docs/guides/latest/validatingRDF/
+    apiDocumentation: https://www.itb.ec.europa.eu/shacl/swagger-ui/index.html
+    features:
+      - Data validation
+      - Reporting
+      - Quality control
+      - Quality assurance
+    screenshots:
+      - https://www.itb.ec.europa.eu/files/screenshots/validator_01_form.png
+      - https://www.itb.ec.europa.eu/files/screenshots/validator_02_report.png
+      - https://www.itb.ec.europa.eu/files/screenshots/validator_03_report_details.png
+    videos:
+      - https://youtu.be/_e-XFqYZBR0
+legal:
+  license: EUPL-1.2
+maintenance:
+  type: internal
+  contacts:
+    - name: Test Bed team
+      email: DIGIT-ITB@ec.europa.eu
+      phone: ""
+      affiliation: European Commission, DIGIT
+localisation:
+  localisationReady: true
+  availableLanguages:
+    - en
+    - bg
+    - cs
+    - da
+    - de
+    - el
+    - es
+    - et
+    - fi
+    - fr
+    - ga
+    - hr
+    - hu
+    - it
+    - lt
+    - lv
+    - mt
+    - nl
+    - pl
+    - pt
+    - ro
+    - sk
+    - sl
+    - sv
