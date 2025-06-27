@@ -82,9 +82,10 @@ public class CustomLocatorHTTP extends LocatorHTTP {
                 HttpResponse<InputStream> response;
                 var attemptedUrls = new HashSet<String>();
                 var uriToUse = uri;
-                try (HttpClient client = httpClientBuilder()
-                        .sslContext(SSLContext.getInstance(SSLContext.getDefault().getProtocol()))
-                        .build()) {
+                try {
+                    HttpClient client = httpClientBuilder()
+                            .sslContext(SSLContext.getInstance(SSLContext.getDefault().getProtocol()))
+                            .build();
                     do {
                         LOG.debug("Sending request to [{}]", uriToUse);
                         attemptedUrls.add(uriToUse);
