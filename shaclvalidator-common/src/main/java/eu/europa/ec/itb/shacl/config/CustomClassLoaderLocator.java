@@ -29,13 +29,13 @@ import org.slf4j.LoggerFactory;
  */
 public class CustomClassLoaderLocator extends LocatorClassLoader {
 
-    private static final Logger LOG = LoggerFactory.getLogger(CustomClassLoaderLocator.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(CustomClassLoaderLocator.class);
 
     /**
-     * @param _classLoader The classloader to use.
+     * @param classLoader The classloader to use.
      */
-    public CustomClassLoaderLocator(ClassLoader _classLoader) {
-        super(_classLoader);
+    public CustomClassLoaderLocator(ClassLoader classLoader) {
+        super(classLoader);
     }
 
     /**
@@ -49,8 +49,8 @@ public class CustomClassLoaderLocator extends LocatorClassLoader {
         if (uriSchemeName == null || uriSchemeName.equalsIgnoreCase("file") || uriSchemeName.equalsIgnoreCase("jar")) {
             return super.open(resourceName);
         } else {
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("Skipping resource: {}", resourceName);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Skipping resource: {}", resourceName);
             }
             return null ;
         }

@@ -56,6 +56,7 @@ public class Translations extends eu.europa.ec.itb.validation.commons.web.dto.Tr
     /**
      * @return The label value.
      */
+    @Override
     public String getDownloadReportButton() {
         return downloadReportButton;
     }
@@ -63,6 +64,7 @@ public class Translations extends eu.europa.ec.itb.validation.commons.web.dto.Tr
     /**
      * @param downloadReportButton The value to use for the label.
      */
+    @Override
     public void setDownloadReportButton(String downloadReportButton) {
         this.downloadReportButton = downloadReportButton;
     }

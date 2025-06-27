@@ -28,7 +28,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 @Schema(description = "A set of rules to apply to the validation.")
 public class RuleSet {
 
-    @Schema(required = true, description = "The RDF containing the rules to apply (shapes).")
+    @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "The RDF containing the rules to apply (shapes).")
     private String ruleSet;
     @Schema(description = "The way in which to interpret the value for ruleSet. If not provided, the method will be determined from the ruleSet value.", allowableValues = FileContent.EMBEDDING_STRING+","+FileContent.EMBEDDING_URL+","+FileContent.EMBEDDING_BASE_64)
     private String embeddingMethod;

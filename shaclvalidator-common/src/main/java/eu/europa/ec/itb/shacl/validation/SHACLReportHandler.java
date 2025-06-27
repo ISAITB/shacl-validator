@@ -24,12 +24,10 @@ import eu.europa.ec.itb.validation.commons.AggregateReportItems;
 import eu.europa.ec.itb.validation.commons.ReportItemComparator;
 import eu.europa.ec.itb.validation.commons.ReportPair;
 import eu.europa.ec.itb.validation.commons.Utils;
+import jakarta.xml.bind.JAXBElement;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jena.rdf.model.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import jakarta.xml.bind.JAXBElement;
 import java.io.StringWriter;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -43,8 +41,6 @@ import static eu.europa.ec.itb.shacl.validation.SHACLValidator.RESULT_URI;
  * Class to handle a SHACL validation report and produce a TAR report.
  */
 public class SHACLReportHandler {
-
-    private static final Logger logger = LoggerFactory.getLogger(SHACLReportHandler.class);
 
     private final ObjectFactory objectFactory = new ObjectFactory();
     private final AnyContent reportContext;

@@ -205,7 +205,7 @@ public class FileController {
                     // PDF generation
                     var tar = Utils.toTAR(xmlReport);
                     if (checkOkToProducePDF(tar, domainConfig)) {
-                        pdfReportGenerator.writeReport(tar,targetFile, (t) -> pdfReportGenerator.getReportLabels(localiser, t), domainConfig.isRichTextReports());
+                        pdfReportGenerator.writeReport(tar,targetFile, t -> pdfReportGenerator.getReportLabels(localiser, t), domainConfig.isRichTextReports());
                     } else {
                         LOG.error("Unable to produce PDF report because of too many report items");
                         throw new NotFoundException();

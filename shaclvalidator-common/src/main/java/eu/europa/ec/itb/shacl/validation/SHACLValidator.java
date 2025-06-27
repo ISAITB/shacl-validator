@@ -289,10 +289,10 @@ public class SHACLValidator {
                             // Add plugin results to report.
                             List<Statement> statements = new ArrayList<>();
                             for (JAXBElement<TestAssertionReportType> item: response.getReport().getReports().getInfoOrWarningOrError()) {
-                                if (item.getValue() instanceof BAR) {
-                                    if (StringUtils.isBlank(((BAR) item.getValue()).getLocation())) {
+                                if (item.getValue() instanceof BAR barItem) {
+                                    if (StringUtils.isBlank(barItem.getLocation())) {
                                         LOG.warn("Plugin [{}] report item without location. Skipping.", pluginName);
-                                    } else if (StringUtils.isBlank(((BAR) item.getValue()).getAssertionID())) {
+                                    } else if (StringUtils.isBlank(barItem.getAssertionID())) {
                                         LOG.warn("Plugin [{}] report item without assertion ID. Skipping.", pluginName);
                                     } else {
                                         Resource itemResource = validationReport.createResource();
@@ -300,7 +300,7 @@ public class SHACLValidator {
                                         // Map TDL report item to validation result:
                                         statements.add(validationReport.createStatement(itemResource, RDF.type, validationReport.createResource(SHACLResources.SHACL_VALIDATION_RESULT)));
                                         // Description -> result message
-                                        if (StringUtils.isNotBlank(((BAR)item.getValue()).getDescription())) {
+                                        if (StringUtils.isNotBlank(barItem.getDescription())) {
                                             statements.add(validationReport.createLiteralStatement(itemResource, SHACLResources.RESULT_MESSAGE, ((BAR)item.getValue()).getDescription()));
                                         }
                                         // Location -> focus node (e.g. "http://my.sample.po/po#item3")
@@ -310,11 +310,11 @@ public class SHACLValidator {
                                         // Assertion ID -> source constraint component (e.g. "http://www.w3.org/ns/shacl#MinExclusiveConstraintComponent")
                                         statements.add(validationReport.createStatement(itemResource, SHACLResources.SOURCE_CONSTRAINT_COMPONENT, validationReport.createResource(((BAR) item.getValue()).getAssertionID())));
                                         // Value -> value
-                                        if (StringUtils.isNotBlank(((BAR)item.getValue()).getValue())) {
+                                        if (StringUtils.isNotBlank(barItem.getValue())) {
                                             statements.add(validationReport.createLiteralStatement(itemResource, SHACLResources.VALUE, ((BAR) item.getValue()).getValue()));
                                         }
                                         // Test -> result path (e.g. "http://itb.ec.europa.eu/sample/po#quantity")
-                                        if (StringUtils.isNotBlank(((BAR)item.getValue()).getTest())) {
+                                        if (StringUtils.isNotBlank(barItem.getTest())) {
                                             statements.add(validationReport.createStatement(itemResource, SHACLResources.RESULT_PATH, validationReport.createResource(((BAR) item.getValue()).getTest())));
                                         }
                                     }

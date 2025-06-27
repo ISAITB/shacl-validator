@@ -25,6 +25,7 @@ class FileControllerTest extends BaseTest {
     DomainConfigCache domainConfigCache;
 
     @BeforeEach
+    @Override
     protected void setup() throws IOException {
         super.setup();
         fileManager = mock(FileManager.class);
@@ -32,6 +33,7 @@ class FileControllerTest extends BaseTest {
     }
 
     @AfterEach
+    @Override
     protected void teardown() {
         super.teardown();
         reset(fileManager, domainConfigCache);
