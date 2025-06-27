@@ -60,7 +60,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.http.HttpClient;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static eu.europa.ec.itb.validation.commons.web.Constants.*;
 
