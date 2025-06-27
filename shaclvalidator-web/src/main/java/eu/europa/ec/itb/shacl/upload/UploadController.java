@@ -24,6 +24,7 @@ import eu.europa.ec.itb.shacl.validation.SHACLValidator;
 import eu.europa.ec.itb.validation.commons.FileInfo;
 import eu.europa.ec.itb.validation.commons.LocalisationHelper;
 import eu.europa.ec.itb.validation.commons.ReportPair;
+import eu.europa.ec.itb.validation.commons.Utils;
 import eu.europa.ec.itb.validation.commons.artifact.ExternalArtifactSupport;
 import eu.europa.ec.itb.validation.commons.artifact.TypedValidationArtifactInfo;
 import eu.europa.ec.itb.validation.commons.config.ErrorResponseTypeEnum;
@@ -519,7 +520,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
     private String getExtensionContentTypeForURL(String urlString) {
         URL url;
         try {
-            url = new URL(urlString);
+            url = Utils.parseUrl(urlString);
         } catch (MalformedURLException e) {
             throw new ValidatorException("validator.label.exception.unableToProcessURI");
         }
@@ -613,7 +614,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
             Lang lang = RDFLanguages.contentTypeToLang(cs);
             types.add(new KeyWithLabel(lang.getLabel(), lang.getContentType().getContentTypeStr()));
         }
-        return types.stream().sorted(Comparator.comparing(KeyWithLabel::getKey)).collect(Collectors.toList());
+        return types.stream().sorted(Comparator.comparing(KeyWithLabel::getKey)).toList();
     }
 
 }

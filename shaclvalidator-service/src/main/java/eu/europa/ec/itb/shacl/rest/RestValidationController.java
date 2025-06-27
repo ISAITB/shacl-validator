@@ -43,6 +43,7 @@ import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.LocaleUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -61,14 +62,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
-import jakarta.servlet.http.HttpServletRequest;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * REST controller to allow triggering the validator via its REST API.
@@ -340,7 +339,7 @@ public class RestValidationController extends BaseRestController<DomainConfig, A
     private List<FileInfo> getExternalShapes(DomainConfig domainConfig, String validationType, List<RuleSet> externalRules, File parentFolder) {
         List<FileContent> shapeContents = null;
         if (externalRules != null) {
-            shapeContents = externalRules.stream().map(RuleSet::toFileContent).collect(Collectors.toList());
+            shapeContents = externalRules.stream().map(RuleSet::toFileContent).toList();
         }
         return inputHelper.validateExternalArtifacts(domainConfig, shapeContents, validationType, null, parentFolder);
     }

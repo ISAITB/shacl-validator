@@ -18,14 +18,13 @@ package eu.europa.ec.itb.shacl.config;
 import eu.europa.ec.itb.shacl.DomainConfig;
 import eu.europa.ec.itb.shacl.validation.CustomReadFailureHandler;
 import eu.europa.ec.itb.validation.commons.config.DomainPluginConfigProvider;
+import jakarta.annotation.PostConstruct;
 import org.apache.jena.ontology.OntDocumentManager;
 import org.apache.jena.riot.adapters.AdapterFileManager;
 import org.apache.jena.riot.system.stream.LocatorFTP;
 import org.apache.jena.riot.system.stream.LocatorFile;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import jakarta.annotation.PostConstruct;
 
 
 /**

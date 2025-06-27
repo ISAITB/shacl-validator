@@ -20,15 +20,14 @@ import eu.europa.ec.itb.validation.commons.artifact.ExternalArtifactSupport;
 import eu.europa.ec.itb.validation.commons.config.ErrorResponseTypeEnum;
 import eu.europa.ec.itb.validation.commons.config.ParseUtils;
 import eu.europa.ec.itb.validation.commons.config.WebDomainConfigCache;
+import jakarta.annotation.PostConstruct;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import jakarta.annotation.PostConstruct;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.stream.Collectors;
 
 import static eu.europa.ec.itb.validation.commons.config.ParseUtils.*;
 
@@ -78,7 +77,7 @@ public class DomainConfigCache extends WebDomainConfigCache<DomainConfig> {
         super.addDomainConfiguration(domainConfig, config);
         addValidationArtifactInfo("validator.shaclFile", "validator.externalShapes", null, domainConfig, config);
         domainConfig.setDefaultReportSyntax(config.getString("validator.defaultReportSyntax", appConfig.getDefaultReportSyntax()));
-        domainConfig.setWebContentSyntax(Arrays.stream(StringUtils.split(config.getString("validator.contentSyntax", ""), ',')).map(String::trim).collect(Collectors.toList()));
+        domainConfig.setWebContentSyntax(Arrays.stream(StringUtils.split(config.getString("validator.contentSyntax", ""), ',')).map(String::trim).toList());
         domainConfig.setMergeModelsBeforeValidation(config.getBoolean("validator.mergeModelsBeforeValidation", true));
         // SPARQL query configuration - start
         domainConfig.setQueryEndpoint(config.getString("validator.queryEndpoint"));

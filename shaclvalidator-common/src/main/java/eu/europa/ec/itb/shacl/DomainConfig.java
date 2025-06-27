@@ -87,7 +87,7 @@ public class DomainConfig extends WebDomainConfig {
         if (validationType == null) {
             return ErrorResponseTypeEnum.LOG;
         } else {
-            return importedShapeErrorResponse.computeIfAbsent(validationType, (key) -> ErrorResponseTypeEnum.LOG);
+            return importedShapeErrorResponse.computeIfAbsent(validationType, key -> ErrorResponseTypeEnum.LOG);
         }
     }
 
