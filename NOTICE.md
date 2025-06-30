@@ -44,19 +44,19 @@ This product depends on software developed by third parties as listed in the fol
 | Apache License, Version 2.0 | OWASP Java HTML Sanitizer | com.googlecode.owasp-java-html-sanitizer:owasp-java-html-sanitizer | 20220608.1 | https://github.com/OWASP/java-html-sanitizer/owasp-java-html-sanitizer |
 | Apache License, Version 2.0 | MaxMind DB Reader | com.maxmind.db:maxmind-db | 2.0.0 | http://dev.maxmind.com/ |
 | Apache License, Version 2.0 | MaxMind GeoIP2 API | com.maxmind.geoip2:geoip2 | 3.0.1 | https://dev.maxmind.com/geoip?lang=en |
-| GNU Lesser General Public License (LGPL), Version 2.1 | Openhtmltopdf Core Renderer | com.openhtmltopdf:openhtmltopdf-core | 1.0.10 | https://github.com/danfickle/openhtmltopdf/openhtmltopdf-core |
-| GNU Lesser General Public License (LGPL), Version 2.1 | Openhtmltopdf PDF Rendering (Apache PDF-BOX 2) | com.openhtmltopdf:openhtmltopdf-pdfbox | 1.0.10 | https://github.com/danfickle/openhtmltopdf/openhtmltopdf-pdfbox |
-| GNU Lesser General Public License (LGPL), Version 2.1 | Openhtmltopdf slf4j Support | com.openhtmltopdf:openhtmltopdf-slf4j | 1.0.10 | https://github.com/danfickle/openhtmltopdf/openhtmltopdf-slf4j |
-| GNU Lesser General Public License (LGPL), Version 2.1 | Openhtmltopdf SVG Support | com.openhtmltopdf:openhtmltopdf-svg-support | 1.0.10 | https://github.com/danfickle/openhtmltopdf/openhtmltopdf-svg-support |
 | Eclipse Distribution License - v1.0 | istack common utility code runtime | com.sun.istack:istack-commons-runtime | 4.1.2 | https://projects.eclipse.org/projects/ee4j/istack-commons/istack-commons-runtime |
 | Eclipse Distribution License - v1.0 | Old JAXB Core | com.sun.xml.bind:jaxb-core | 4.0.5 | https://eclipse-ee4j.github.io/jaxb-ri/ |
 | Eclipse Distribution License - v1.0 | Old JAXB Runtime | com.sun.xml.bind:jaxb-impl | 4.0.4 | https://eclipse-ee4j.github.io/jaxb-ri/ |
 | Apache License, Version 2.0 | Apache Commons Codec | commons-codec:commons-codec | 1.18.0 | https://commons.apache.org/proper/commons-codec/ |
 | Apache License, Version 2.0 | Apache Commons IO | commons-io:commons-io | 2.17.0 | https://commons.apache.org/proper/commons-io/ |
 | Apache License, Version 2.0 | Logging | commons-logging:commons-logging | 1.0.4 | http://jakarta.apache.org/commons/logging/ |
-| Apache License, Version 2.0 | PDFBox-Graphics2d | de.rototor.pdfbox:graphics2d | 0.32 | https://github.com/rototor/pdfbox-graphics2d/graphics2d |
+| Apache License, Version 2.0 | PDFBox-Graphics2d | de.rototor.pdfbox:graphics2d | 3.0.1 | https://github.com/rototor/pdfbox-graphics2d/graphics2d |
 | European Union Public Licence (EUPL) Version 1.2 | gitb-types-jakarta | eu.europa.ec.itb:gitb-types-jakarta | 1.26.0 | https://interoperable-europe.ec.europa.eu/collection/interoperability-test-bed-repository/solution/interoperability-test-bed/gitb-types-jakarta |
 | MIT License | ClassGraph | io.github.classgraph:classgraph | 4.8.149 | https://github.com/classgraph/classgraph |
+| GNU Lesser General Public License (LGPL), Version 2.1 | Openhtmltopdf Core Renderer | io.github.openhtmltopdf:openhtmltopdf-core | 1.1.28 | https://github.com/openhtmltopdf/openhtmltopdf/openhtmltopdf-core |
+| GNU Lesser General Public License (LGPL), Version 2.1 | Openhtmltopdf PDF Rendering (Apache PDF-BOX 3) | io.github.openhtmltopdf:openhtmltopdf-pdfbox | 1.1.28 | https://github.com/openhtmltopdf/openhtmltopdf/openhtmltopdf-pdfbox |
+| GNU Lesser General Public License (LGPL), Version 2.1 | Openhtmltopdf slf4j Support | io.github.openhtmltopdf:openhtmltopdf-slf4j | 1.1.28 | https://github.com/openhtmltopdf/openhtmltopdf/openhtmltopdf-slf4j |
+| GNU Lesser General Public License (LGPL), Version 2.1 | Openhtmltopdf SVG Support | io.github.openhtmltopdf:openhtmltopdf-svg-support | 1.1.28 | https://github.com/openhtmltopdf/openhtmltopdf/openhtmltopdf-svg-support |
 | Apache License, Version 2.0 | micrometer-commons | io.micrometer:micrometer-commons | 1.15.1 | https://github.com/micrometer-metrics/micrometer |
 | Apache License, Version 2.0 | micrometer-observation | io.micrometer:micrometer-observation | 1.15.1 | https://github.com/micrometer-metrics/micrometer |
 | Apache License, Version 2.0 | swagger-annotations-jakarta | io.swagger.core.v3:swagger-annotations-jakarta | 2.2.25 | https://github.com/swagger-api/swagger-core/modules/swagger-annotations-jakarta |
@@ -100,9 +100,10 @@ This product depends on software developed by third parties as listed in the fol
 | Apache License, Version 2.0 | Apache Log4j API | org.apache.logging.log4j:log4j-api | 2.24.3 | https://logging.apache.org/log4j/2.x/log4j/log4j-api/ |
 | Apache License, Version 2.0 | Log4j API to SLF4J Adapter | org.apache.logging.log4j:log4j-to-slf4j | 2.24.3 | https://logging.apache.org/log4j/2.x/log4j/log4j-to-slf4j/ |
 | Apache License, Version 2.0 | Apache Neethi | org.apache.neethi:neethi | 3.2.1 | https://ws.apache.org/neethi/ |
-| Apache License, Version 2.0 | Apache FontBox | org.apache.pdfbox:fontbox | 2.0.31 | http://pdfbox.apache.org/ |
-| Apache License, Version 2.0 | Apache PDFBox | org.apache.pdfbox:pdfbox | 2.0.31 | https://www.apache.org/pdfbox-parent/pdfbox/ |
-| Apache License, Version 2.0 | Apache XmpBox | org.apache.pdfbox:xmpbox | 2.0.24 | https://www.apache.org/pdfbox-parent/xmpbox/ |
+| Apache License, Version 2.0 | Apache FontBox | org.apache.pdfbox:fontbox | 3.0.5 | http://pdfbox.apache.org/ |
+| Apache License, Version 2.0 | Apache PDFBox | org.apache.pdfbox:pdfbox | 3.0.5 | https://www.apache.org/pdfbox-parent/pdfbox/ |
+| Apache License, Version 2.0 | Apache PDFBox io | org.apache.pdfbox:pdfbox-io | 3.0.5 | https://www.apache.org/pdfbox-parent/pdfbox-io/ |
+| Apache License, Version 2.0 | Apache XmpBox | org.apache.pdfbox:xmpbox | 3.0.3 | https://www.apache.org/pdfbox-parent/xmpbox/ |
 | Apache License, Version 2.0 | Apache Thrift | org.apache.thrift:libthrift | 0.21.0 | http://thrift.apache.org |
 | Apache License, Version 2.0 | tomcat-embed-core | org.apache.tomcat.embed:tomcat-embed-core | 10.1.42 | https://tomcat.apache.org/ |
 | Apache License, Version 2.0 | tomcat-embed-el | org.apache.tomcat.embed:tomcat-embed-el | 10.1.42 | https://tomcat.apache.org/ |
@@ -126,7 +127,7 @@ This product depends on software developed by third parties as listed in the fol
 | Apache License, Version 2.0 | org.apache.xmlgraphics:batik-transcoder | org.apache.xmlgraphics:batik-transcoder | 1.17 | http://xmlgraphics.apache.org/batik/batik-transcoder/ |
 | Apache License, Version 2.0 | org.apache.xmlgraphics:batik-util | org.apache.xmlgraphics:batik-util | 1.17 | http://xmlgraphics.apache.org/batik/batik-util/ |
 | Apache License, Version 2.0 | org.apache.xmlgraphics:batik-xml | org.apache.xmlgraphics:batik-xml | 1.17 | http://xmlgraphics.apache.org/batik/batik-xml/ |
-| Apache License, Version 2.0 | Apache XML Graphics Commons | org.apache.xmlgraphics:xmlgraphics-commons | 2.6 | http://xmlgraphics.apache.org/commons/ |
+| Apache License, Version 2.0 | Apache XML Graphics Commons | org.apache.xmlgraphics:xmlgraphics-commons | 2.9 | http://xmlgraphics.apache.org/commons/ |
 | Eclipse Public License - v1.0 | AspectJ weaver | org.aspectj:aspectjweaver | 1.9.6 | https://www.eclipse.org/aspectj/ |
 | Apache License, Version 2.0 | attoparser | org.attoparser:attoparser | 2.0.7.RELEASE | https://www.attoparser.org |
 | MIT License | Checker Qual | org.checkerframework:checker-qual | 3.5.0 | https://checkerframework.org |
