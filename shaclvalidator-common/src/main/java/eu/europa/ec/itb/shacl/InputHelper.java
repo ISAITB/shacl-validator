@@ -23,6 +23,7 @@ import eu.europa.ec.itb.validation.commons.FileContent;
 import eu.europa.ec.itb.validation.commons.artifact.ExternalArtifactSupport;
 import eu.europa.ec.itb.validation.commons.error.ValidatorException;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.springframework.stereotype.Component;
 
 /**
@@ -40,7 +41,7 @@ public class InputHelper extends BaseInputHelper<ApplicationConfig, FileManager,
      */
     @Override
     public void populateFileContentFromInput(FileContent fileContent, AnyContent inputItem) {
-        if (StringUtils.equals(inputItem.getName(), ValidationConstants.INPUT_RULE_SYNTAX)) {
+        if (Strings.CS.equals(inputItem.getName(), ValidationConstants.INPUT_RULE_SYNTAX)) {
             fileContent.setContentType(inputItem.getValue());
         }
     }

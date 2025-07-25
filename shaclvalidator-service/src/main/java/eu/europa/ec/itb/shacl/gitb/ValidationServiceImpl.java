@@ -16,8 +16,8 @@
 package eu.europa.ec.itb.shacl.gitb;
 
 import com.gitb.core.*;
-import com.gitb.vs.Void;
 import com.gitb.vs.*;
+import com.gitb.vs.Void;
 import eu.europa.ec.itb.shacl.DomainConfig;
 import eu.europa.ec.itb.shacl.InputHelper;
 import eu.europa.ec.itb.shacl.ModelPair;
@@ -33,9 +33,12 @@ import eu.europa.ec.itb.validation.commons.ReportPair;
 import eu.europa.ec.itb.validation.commons.Utils;
 import eu.europa.ec.itb.validation.commons.error.ValidatorException;
 import eu.europa.ec.itb.validation.commons.web.WebServiceContextProvider;
+import jakarta.annotation.Resource;
+import jakarta.jws.WebParam;
+import jakarta.xml.ws.WebServiceContext;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.LocaleUtils;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.jena.rdf.model.Model;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,9 +48,6 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
-import jakarta.annotation.Resource;
-import jakarta.jws.WebParam;
-import jakarta.xml.ws.WebServiceContext;
 import java.io.File;
 import java.util.List;
 
@@ -250,16 +250,16 @@ public class ValidationServiceImpl implements ValidationService, WebServiceConte
         String queryUsername = null;
         String queryPassword = null;
         for (AnyContent inputItem : request.getInput()) {
-             if (StringUtils.equals(inputItem.getName(), ValidationConstants.INPUT_CONTENT_QUERY)) {
+             if (Strings.CS.equals(inputItem.getName(), ValidationConstants.INPUT_CONTENT_QUERY)) {
                  query = inputItem.getValue();
              }
-             if (StringUtils.equals(inputItem.getName(), ValidationConstants.INPUT_CONTENT_QUERY_ENDPOINT)) {
+             if (Strings.CS.equals(inputItem.getName(), ValidationConstants.INPUT_CONTENT_QUERY_ENDPOINT)) {
                  queryEndpoint = inputItem.getValue();
              }
-             if (StringUtils.equals(inputItem.getName(), ValidationConstants.INPUT_CONTENT_QUERY_USERNAME)) {
+             if (Strings.CS.equals(inputItem.getName(), ValidationConstants.INPUT_CONTENT_QUERY_USERNAME)) {
                  queryUsername = inputItem.getValue();
              }
-             if (StringUtils.equals(inputItem.getName(), ValidationConstants.INPUT_CONTENT_QUERY_PASSWORD)) {
+             if (Strings.CS.equals(inputItem.getName(), ValidationConstants.INPUT_CONTENT_QUERY_PASSWORD)) {
                  queryPassword = inputItem.getValue();
              }
          }
