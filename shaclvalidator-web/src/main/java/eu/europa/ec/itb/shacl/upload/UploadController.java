@@ -218,9 +218,10 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
         boolean forceCleanup = false;
         try {
             // Check validation type.
-            if (validationType.isBlank()) {
-                validationType = null;
+            if (!isOwnSubmission(request)) {
+                validationType = inputHelper.determineValidationType(validationType, domain, domainConfig);
             }
+            validationType = inputHelper.validateValidationType(domainConfig, validationType);
             if (domainConfig.hasMultipleValidationTypes() && (validationType == null || !domainConfig.getType().contains(validationType))) {
                 // A validation type is required.
                 result.setMessage(localisationHelper.localise("validator.label.exception.providedValidationTypeInvalid"));

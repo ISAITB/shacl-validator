@@ -73,7 +73,8 @@ public class ValidationServiceConfig {
     public void publishValidationServices() {
     	for (DomainConfig domainConfig: domainConfigCache.getAllDomainConfigurations()) {
             if (domainConfig.getChannels().contains(ValidatorChannel.SOAP_API)) {
-                EndpointImpl endpoint = new EndpointImpl(cxfBus, applicationContext.getBean(ValidationServiceImpl.class, domainConfig));
+                DomainConfig resolvedDomainConfig = domainConfigCache.getConfigForDomainName(domainConfig.getDomainName());
+                EndpointImpl endpoint = new EndpointImpl(cxfBus, applicationContext.getBean(ValidationServiceImpl.class, resolvedDomainConfig, domainConfig));
                 endpoint.setEndpointName(new QName("http://www.gitb.com/vs/v1/", "ValidationServicePort"));
                 endpoint.setServiceName(new QName("http://www.gitb.com/vs/v1/", "ValidationService"));
                 if (StringUtils.isNotBlank(config.getBaseSoapEndpointUrl())) {
