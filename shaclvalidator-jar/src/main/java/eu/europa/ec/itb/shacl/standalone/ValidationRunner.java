@@ -273,12 +273,12 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
                             }
                         } catch (ValidatorException e) {
                             LOGGER_FEEDBACK.info("\nAn error occurred while executing the validation: {}", e.getMessageForDisplay(localiser));
-                            LOGGER.error(String.format("An error occurred while executing the validation: %s", e.getMessageForLog()), e);
+                            LOGGER.error("An error occurred while executing the validation: {}", e.getMessageForLog(), e);
                             break;
 
                         } catch (Exception e) {
                             LOGGER_FEEDBACK.info("\nAn error occurred while executing the validation.");
-                            LOGGER.error(String.format("An error occurred while executing the validation: %s", e.getMessage()), e);
+                            LOGGER.error("An error occurred while executing the validation: {}", e.getMessage(), e);
                             break;
 
                         }
