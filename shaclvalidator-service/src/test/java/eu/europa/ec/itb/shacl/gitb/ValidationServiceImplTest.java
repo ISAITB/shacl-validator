@@ -57,7 +57,7 @@ class ValidationServiceImplTest {
                 descriptionEntryOf(ValidationConstants.INPUT_CONTENT_QUERY_PASSWORD),
                 descriptionEntryOf(ValidationConstants.INPUT_LOCALE)
         )).when(domainConfig).getWebServiceDescription();
-        var service = new ValidationServiceImpl(domainConfig);
+        var service = new ValidationServiceImpl(domainConfig, domainConfig);
         var result = service.getModuleDefinition(new Void());
         assertNotNull(result);
         assertNotNull(result.getModule());

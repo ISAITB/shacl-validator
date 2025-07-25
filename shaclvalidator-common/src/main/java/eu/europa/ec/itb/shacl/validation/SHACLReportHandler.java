@@ -222,13 +222,13 @@ public class SHACLReportHandler {
         StringBuilder str = new StringBuilder();
         for (int i=0; i < labels.length; i++) {
 	        if (StringUtils.isNotBlank(values[i])) {
-	            if (str.length() > 0) {
+	            if (!str.isEmpty()) {
 	                str.append(" - ");
                 }
 	            str.append(String.format("[%s] - [%s]", labels[i], values[i]));
             }
         }
-        if (str.length() > 0) {
+        if (!str.isEmpty()) {
             return str.toString();
         } else {
             return null;

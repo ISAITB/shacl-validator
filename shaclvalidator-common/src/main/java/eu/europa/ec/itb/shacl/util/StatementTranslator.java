@@ -84,7 +84,7 @@ public class StatementTranslator {
 
     /**
      * Get the translation information for the collected statements.
-     *
+     * <p>
      * This method must be called after all relevant statements have been processed. Once called it should not be called again
      * as calling it adapts its collected state.
      *

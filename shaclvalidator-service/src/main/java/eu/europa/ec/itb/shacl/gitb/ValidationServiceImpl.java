@@ -60,6 +60,7 @@ public class ValidationServiceImpl implements ValidationService, WebServiceConte
 
     private static final Logger logger = LoggerFactory.getLogger(ValidationServiceImpl.class);
     private final DomainConfig domainConfig;
+    private final DomainConfig requestedDomainConfig;
 
     @Autowired
 	InputHelper inputHelper;
@@ -74,9 +75,11 @@ public class ValidationServiceImpl implements ValidationService, WebServiceConte
      * Constructor.
      *
      * @param domainConfig The domain configuration (each domain has its own instance).
+     * @param requestedDomainConfig The resolved domain configuration (in case of aliases).
      */
-    public ValidationServiceImpl(DomainConfig domainConfig) {
+    public ValidationServiceImpl(DomainConfig domainConfig, DomainConfig requestedDomainConfig) {
         this.domainConfig = domainConfig;
+        this.requestedDomainConfig = requestedDomainConfig;
     }
     
     /**
@@ -161,7 +164,7 @@ public class ValidationServiceImpl implements ValidationService, WebServiceConte
                 contentToValidate = fileManager.getContentFromSparqlEndpoint(queryConfig, parentFolder).toFile();
                 contentSyntax = queryConfig.getPreferredContentType();
 			}
-			String validationType = inputHelper.validateValidationType(domainConfig, validateRequest, ValidationConstants.INPUT_VALIDATION_TYPE);
+            String validationType = inputHelper.validateValidationType(requestedDomainConfig.getDomainName(), domainConfig, validateRequest, ValidationConstants.INPUT_VALIDATION_TYPE);
 			List<FileInfo> externalShapes = inputHelper.validateExternalArtifacts(domainConfig, validateRequest, ValidationConstants.INPUT_EXTERNAL_RULES, ValidationConstants.INPUT_RULE_SET, ValidationConstants.INPUT_EMBEDDING_METHOD, validationType, null, parentFolder);
 			Boolean loadImports = inputHelper.validateLoadInputs(domainConfig, getInputLoadImports(validateRequest), validationType);
 			boolean addInputToReport = getInputAsBoolean(validateRequest, ValidationConstants.INPUT_ADD_INPUT_TO_REPORT, false);

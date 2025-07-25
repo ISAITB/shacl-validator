@@ -174,6 +174,8 @@ public class RestValidationController extends BaseRestController<DomainConfig, A
             HttpServletRequest request
     ) {
         DomainConfig domainConfig = validateDomain(domain);
+        // Consider the case that we have a cross-domain alias and resolve the validation type accordingly.
+        in.setValidationType(inputHelper.determineValidationType(in.getValidationType(), domain, domainConfig));
         var reportSyntax = getValidationReportSyntax(in.getReportSyntax(), getAcceptHeader(request, domainConfig.getDefaultReportSyntax()));
         /*
          * Important: We call executeValidationProcess here and not in the return statement because the StreamingResponseBody
@@ -431,6 +433,8 @@ public class RestValidationController extends BaseRestController<DomainConfig, A
         int i = 0;
         for (Input input: inputs) {
             Output output = new Output();
+            // Consider the case that we have a cross-domain alias and resolve the validation type accordingly.
+            input.setValidationType(inputHelper.determineValidationType(input.getValidationType(), domain, domainConfig));
             var reportSyntax = getValidationReportSyntax(input.getReportSyntax(), acceptHeader);
             if (MediaType.APPLICATION_JSON.equals(reportSyntax)) {
                 // We don't support a JSON GITB TRL when validating multiple inputs.

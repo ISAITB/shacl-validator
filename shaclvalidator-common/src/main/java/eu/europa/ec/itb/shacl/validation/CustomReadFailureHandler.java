@@ -32,7 +32,7 @@ public class CustomReadFailureHandler implements OntDocumentManager.ReadFailureH
 
     /**
      * Log and record the failure.
-     *
+     * <p>
      * {@inheritDoc}
      */
     @Override
