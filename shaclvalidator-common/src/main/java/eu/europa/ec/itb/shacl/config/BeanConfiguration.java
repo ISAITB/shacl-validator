@@ -15,12 +15,12 @@
 
 package eu.europa.ec.itb.shacl.config;
 
+import eu.europa.ec.itb.shacl.CustomJenaFileManager;
 import eu.europa.ec.itb.shacl.DomainConfig;
 import eu.europa.ec.itb.shacl.validation.CustomReadFailureHandler;
 import eu.europa.ec.itb.validation.commons.config.DomainPluginConfigProvider;
 import jakarta.annotation.PostConstruct;
 import org.apache.jena.ontology.OntDocumentManager;
-import org.apache.jena.riot.adapters.AdapterFileManager;
 import org.apache.jena.riot.system.stream.LocatorFTP;
 import org.apache.jena.riot.system.stream.LocatorFile;
 import org.springframework.context.annotation.Bean;
@@ -46,7 +46,7 @@ public class BeanConfiguration {
     @PostConstruct
     public void initialise() {
         // Setup FileManager.
-        var fileManager = AdapterFileManager.get();
+        var fileManager = CustomJenaFileManager.get();
         fileManager.getStreamManager().clearLocators();
         fileManager.getStreamManager().addLocator(new LocatorFile()) ;
         fileManager.getStreamManager().addLocator(new CustomLocatorHTTP()) ;
