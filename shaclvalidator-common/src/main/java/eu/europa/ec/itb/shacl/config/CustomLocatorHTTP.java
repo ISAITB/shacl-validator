@@ -16,8 +16,10 @@
 package eu.europa.ec.itb.shacl.config;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.jena.atlas.web.ContentType;
 import org.apache.jena.atlas.web.TypedInputStream;
 import org.apache.jena.http.HttpLib;
+import org.apache.jena.riot.RDFLanguages;
 import org.apache.jena.riot.WebContent;
 import org.apache.jena.riot.system.stream.LocatorHTTP;
 import org.apache.jena.riot.web.HttpNames;
@@ -32,8 +34,11 @@ import java.io.InputStream;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import static org.apache.jena.http.HttpEnv.httpClientBuilder;
@@ -76,40 +81,51 @@ public class CustomLocatorHTTP extends LocatorHTTP {
         TypedInputStream result = null;
         if (uri.startsWith("http://") || uri.startsWith("https://")) {
             var params = PARAMS.get();
-            if (params.urisToSkip().contains(uri)) {
-                LOG.debug("Skipped URI {}", uri);
-            } else {
-                HttpResponse<InputStream> response;
-                var attemptedUrls = new HashSet<String>();
-                var uriToUse = uri;
+            if (params.uriMappings.containsKey(uri)) {
+                LOG.debug("Mapping URI {} to local file", uri);
+                Path file = params.uriMappings.get(uri);
+                ContentType contentType = RDFLanguages.guessContentType(file.getFileName().toString());
                 try {
-                    HttpClient client = httpClientBuilder()
-                            .sslContext(SSLContext.getInstance(SSLContext.getDefault().getProtocol()))
-                            .build();
-                    do {
-                        LOG.debug("Sending request to [{}]", uriToUse);
-                        attemptedUrls.add(uriToUse);
-                        response = client.send(toRequest(uriToUse, params.httpVersion()), HttpResponse.BodyHandlers.ofInputStream());
-                        if (response.statusCode() >= 300 && response.statusCode() <= 399) {
-                            var nextLocation = response.headers().firstValue("Location");
-                            if (nextLocation.isEmpty()) {
-                                nextLocation = response.headers().firstValue("location");
+                    return new TypedInputStream(Files.newInputStream(file), contentType);
+                } catch (IOException e) {
+                    throw new IllegalStateException(String.format("Unexpected error while reading URI [%s] from local file", uri), e);
+                }
+            } else {
+                if (params.urisToSkip().contains(uri)) {
+                    LOG.debug("Skipped URI {}", uri);
+                } else {
+                    HttpResponse<InputStream> response;
+                    var attemptedUrls = new HashSet<String>();
+                    var uriToUse = uri;
+                    try {
+                        HttpClient client = httpClientBuilder()
+                                .sslContext(SSLContext.getInstance(SSLContext.getDefault().getProtocol()))
+                                .build();
+                        do {
+                            LOG.debug("Sending request to [{}]", uriToUse);
+                            attemptedUrls.add(uriToUse);
+                            response = client.send(toRequest(uriToUse, params.httpVersion()), HttpResponse.BodyHandlers.ofInputStream());
+                            if (response.statusCode() >= 300 && response.statusCode() <= 399) {
+                                var nextLocation = response.headers().firstValue("Location");
+                                if (nextLocation.isEmpty()) {
+                                    nextLocation = response.headers().firstValue("location");
+                                }
+                                if (nextLocation.isPresent()) {
+                                    uriToUse = nextLocation.get();
+                                }
                             }
-                            if (nextLocation.isPresent()) {
-                                uriToUse = nextLocation.get();
-                            }
-                        }
-                    } while (!attemptedUrls.contains(uriToUse));
-                    // Ensure we fully consume the response to avoid any blocked threads.
-                    var bos = new ByteArrayOutputStream();
-                    IOUtils.copy(response.body(), bos);
-                    HttpLib.handleHttpStatusCode(response);
-                    result = new TypedInputStream(new ByteArrayInputStream(bos.toByteArray()), HttpLib.responseHeader(response, HttpNames.hContentType));
-                } catch (IOException | InterruptedException | NoSuchAlgorithmException e) {
-                    Thread.currentThread().interrupt();
-                    throw new IllegalStateException(String.format("Unexpected error while reading URI [%s]", uri), e);
-                } finally {
-                    LOG.debug("Received response from [{}]", uri);
+                        } while (!attemptedUrls.contains(uriToUse));
+                        // Ensure we fully consume the response to avoid any blocked threads.
+                        var bos = new ByteArrayOutputStream();
+                        IOUtils.copy(response.body(), bos);
+                        HttpLib.handleHttpStatusCode(response);
+                        result = new TypedInputStream(new ByteArrayInputStream(bos.toByteArray()), HttpLib.responseHeader(response, HttpNames.hContentType));
+                    } catch (IOException | InterruptedException | NoSuchAlgorithmException e) {
+                        Thread.currentThread().interrupt();
+                        throw new IllegalStateException(String.format("Unexpected error while reading URI [%s]", uri), e);
+                    } finally {
+                        LOG.debug("Received response from [{}]", uri);
+                    }
                 }
             }
         }
@@ -126,7 +142,8 @@ public class CustomLocatorHTTP extends LocatorHTTP {
      *
      * @param urisToSkip The URIs to skip looking.
      * @param httpVersion The HTTP version to use in the lookups.
+     * @param uriMappings The local URI to path mappings to consider.
      */
-    public record LocatorParams(Set<String> urisToSkip, HttpClient.Version httpVersion) {}
+    public record LocatorParams(Set<String> urisToSkip, HttpClient.Version httpVersion, Map<String, Path> uriMappings) {}
 
 }
