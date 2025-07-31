@@ -25,6 +25,7 @@ import com.gitb.tr.BAR;
 import com.gitb.tr.TestAssertionReportType;
 import com.gitb.vs.ValidateRequest;
 import com.gitb.vs.ValidationResponse;
+import eu.europa.ec.itb.shacl.CustomJenaFileManager;
 import eu.europa.ec.itb.shacl.DomainConfig;
 import eu.europa.ec.itb.shacl.ExtendedValidatorException;
 import eu.europa.ec.itb.shacl.ModelPair;
@@ -466,6 +467,7 @@ public class SHACLValidator {
         spec.setImportModelMaker(modelMaker);
 
         CustomLocatorHTTP.PARAMS.set(new CustomLocatorHTTP.LocatorParams(domainConfig.getUrisToSkipWhenImporting(), domainConfig.getHttpVersion(), domainConfig.getOwlImportMappings()));
+        CustomJenaFileManager.PARAMS.set(new CustomJenaFileManager.CacheParams(domainConfig.getOwlImportMappings().keySet()));
         CustomReadFailureHandler.IMPORTS_WITH_ERRORS.set(new LinkedHashSet<>());
         Set<Pair<String, String>> importsWithErrors;
         try {
@@ -475,6 +477,7 @@ public class SHACLValidator {
         } finally {
             CustomReadFailureHandler.IMPORTS_WITH_ERRORS.remove();
             CustomLocatorHTTP.PARAMS.remove();
+            CustomJenaFileManager.PARAMS.remove();
         }
 
         if (!importsWithErrors.isEmpty()) {
