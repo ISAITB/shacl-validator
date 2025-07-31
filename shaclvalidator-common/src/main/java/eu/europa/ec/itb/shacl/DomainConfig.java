@@ -21,6 +21,7 @@ import eu.europa.ec.itb.validation.commons.artifact.ValidationArtifactInfo;
 import eu.europa.ec.itb.validation.commons.config.ErrorResponseTypeEnum;
 import eu.europa.ec.itb.validation.commons.config.WebDomainConfig;
 
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -45,6 +46,21 @@ public class DomainConfig extends WebDomainConfig {
     private Map<String, ErrorResponseTypeEnum> importedShapeErrorResponse;
     private Set<String> urisToIgnoreForImportErrors;
     private Set<String> urisToSkipWhenImporting;
+    private Map<String, Path> owlImportMappings;
+
+    /**
+     * @return The mapping of URIs to local files used in owl:imports.
+     */
+    public Map<String, Path> getOwlImportMappings() {
+        return owlImportMappings;
+    }
+
+    /**
+     * @param owlImportMappings The mapping of URIs to local files used in owl:imports.
+     */
+    public void setOwlImportMappings(Map<String, Path> owlImportMappings) {
+        this.owlImportMappings = owlImportMappings;
+    }
 
     /**
      * @return The URIs to ignore for import errors.
