@@ -21,6 +21,7 @@ import org.apache.jena.riot.system.stream.StreamManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -78,16 +79,41 @@ public class CustomJenaFileManager extends AdapterFileManager {
         var params = PARAMS.get();
         if (uri != null && params.urisToNotCache().contains(uri)) {
             LOG.debug("Skipping caching for URI {}", uri);
+            params.nonCachedModels.put(uri, m);
         } else {
             super.addCacheModel(uri, m);
         }
     }
 
     /**
+     * When retrieving a model from the cache make sure to also check models recorded in the
+     * ThreadLocal cache.
+     */
+    @Override
+    public Model getFromCache(String filenameOrURI) {
+        Model loadedModel =  super.getFromCache(filenameOrURI);
+        if (loadedModel == null) {
+            // Check also to see if this was loaded but not cached.
+            loadedModel = PARAMS.get().nonCachedModels.get(filenameOrURI);
+        }
+        return loadedModel;
+    }
+
+    /**
+     * When retrieving a model from the cache make sure to also check models recorded in the
+     * ThreadLocal cache.
+     */
+    @Override
+    public boolean hasCachedModel(String filenameOrURI) {
+        return super.hasCachedModel(filenameOrURI) || PARAMS.get().nonCachedModels.containsKey(filenameOrURI);
+    }
+
+    /**
      * ThreadLocal data relevant to managing the caching behaviour.
      *
      * @param urisToNotCache The URIs to not cache.
+     * @param nonCachedModels The models that were loaded but not cached.
      */
-    public record CacheParams(Set<String> urisToNotCache) {}
+    public record CacheParams(Set<String> urisToNotCache, Map<String, Model> nonCachedModels) {}
 
 }

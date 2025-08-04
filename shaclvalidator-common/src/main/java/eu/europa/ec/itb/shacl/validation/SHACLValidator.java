@@ -467,7 +467,7 @@ public class SHACLValidator {
         spec.setImportModelMaker(modelMaker);
 
         CustomLocatorHTTP.PARAMS.set(new CustomLocatorHTTP.LocatorParams(domainConfig.getUrisToSkipWhenImporting(), domainConfig.getHttpVersion(), domainConfig.getOwlImportMappings()));
-        CustomJenaFileManager.PARAMS.set(new CustomJenaFileManager.CacheParams(domainConfig.getOwlImportMappings().keySet()));
+        CustomJenaFileManager.PARAMS.set(new CustomJenaFileManager.CacheParams(domainConfig.getOwlImportMappings().keySet(), new HashMap<>()));
         CustomReadFailureHandler.IMPORTS_WITH_ERRORS.set(new LinkedHashSet<>());
         Set<Pair<String, String>> importsWithErrors;
         try {
