@@ -31,10 +31,12 @@ import java.util.Set;
  */
 public class DomainConfig extends WebDomainConfig {
 
+    public static final String FILE_NAME_SHAPES = "shapesFile";
+
     private String defaultReportSyntax;
     private boolean mergeModelsBeforeValidation;
-    Map<String, Boolean> defaultLoadImportsType;
-    Map<String, ExternalArtifactSupport> userInputForLoadImportsType;
+    private Map<String, Boolean> defaultLoadImportsType;
+    private Map<String, ExternalArtifactSupport> userInputForLoadImportsType;
     private List<String> webContentSyntax;
     private boolean supportsQueries;
     private String queryEndpoint;
@@ -47,6 +49,50 @@ public class DomainConfig extends WebDomainConfig {
     private Set<String> urisToIgnoreForImportErrors;
     private Set<String> urisToSkipWhenImporting;
     private Map<String, Path> owlImportMappings;
+    private Map<String, Boolean> preloadImports;
+
+    /**
+     * Check to see if the shapes report can be cached.
+     * <p>
+     * We check this because a SHACL shape model can be quite large and take time to serialise.
+     * We can cache this report for a given validation type if no user-provided shapes are
+     * supported and the type does not define remotely loaded shapes.
+     *
+     * @param validationType The validation type to check for.
+     * @return The check result.
+     */
+    public boolean canCacheShapes(String validationType) {
+        TypedValidationArtifactInfo info = getArtifactInfo().get(validationType);
+        return info != null
+                && info.getOverallExternalArtifactSupport() == ExternalArtifactSupport.NONE
+                && !info.hasRemoteArtifacts();
+    }
+
+    /**
+     * Check to see whether any validation types are set for OWL import preloading.
+     *
+     * @return The check result.
+     */
+    public boolean isPreloadingImportsForAnyType() {
+        return preloadImports != null && preloadImports.values().stream().anyMatch(preload -> preload);
+    }
+
+    /**
+     * Check to see whether OWL imports should be preloaded for the provided (full) validation type.
+     *
+     * @param validationType The validation type.
+     * @return Whether imports should be preloaded.
+     */
+    public boolean preloadImportsForType(String validationType) {
+        if (preloadImports != null) {
+            return preloadImports.getOrDefault(validationType, false);
+        }
+        return false;
+    }
+
+    public void setPreloadImports(Map<String, Boolean> preloadImports) {
+        this.preloadImports = preloadImports;
+    }
 
     /**
      * @return The mapping of URIs to local files used in owl:imports.

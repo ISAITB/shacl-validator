@@ -137,6 +137,9 @@ public class DomainConfigCache extends WebDomainConfigCache<DomainConfig> {
         });
         domainConfig.setOwlImportMappings(mappingMap);
         // Local mapping files for URIs used in owl:imports - end
+        // Preload imports - start
+        domainConfig.setPreloadImports(parseBooleanMap("validator.preloadImports", config, domainConfig.getType(), config.getBoolean("validator.preloadImports", false)));
+        // Preload imports - end
     }
 
 }

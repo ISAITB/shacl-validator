@@ -161,7 +161,7 @@ public class FileController {
         return switch (type) {
             case UploadController.DOWNLOAD_TYPE_CONTENT -> FILE_NAME_INPUT;
             case UploadController.DOWNLOAD_TYPE_REPORT -> FILE_NAME_REPORT;
-            case UploadController.DOWNLOAD_TYPE_SHAPES -> FILE_NAME_SHAPES;
+            case UploadController.DOWNLOAD_TYPE_SHAPES -> DomainConfig.FILE_NAME_SHAPES;
             default -> throw new IllegalArgumentException("Invalid file type [" + type + "]");
         };
     }
@@ -277,7 +277,7 @@ public class FileController {
                     }
                     break;
                 case UploadController.DOWNLOAD_TYPE_SHAPES:
-                    if (filename.equals(UploadController.FILE_NAME_SHAPES)) {
+                    if (filename.equals(DomainConfig.FILE_NAME_SHAPES)) {
                         file = fileTmp;
                     }
                     break;

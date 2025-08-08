@@ -16,6 +16,7 @@
 package eu.europa.ec.itb.shacl.validation;
 
 import eu.europa.ec.itb.shacl.ApplicationConfig;
+import eu.europa.ec.itb.shacl.DomainConfig;
 import eu.europa.ec.itb.shacl.SparqlQueryConfig;
 import eu.europa.ec.itb.shacl.util.ShaclValidatorUtils;
 import eu.europa.ec.itb.validation.commons.BaseFileManager;
@@ -39,8 +40,11 @@ import org.springframework.stereotype.Component;
 
 import java.io.*;
 import java.net.URI;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static eu.europa.ec.itb.shacl.util.ShaclValidatorUtils.handleEquivalentContentSyntaxes;
 
@@ -54,6 +58,19 @@ public class FileManager extends BaseFileManager<ApplicationConfig> {
 
     @Autowired
     private ApplicationConfig appConfig;
+    private final ConcurrentHashMap<String, Path> shaclModelCache = new ConcurrentHashMap<>();
+
+    /**
+     * Create a cache key to use for SHACL model file lookup.
+     *
+     * @param domainConfig The domain configuration.
+     * @param validationType The validation type to consider.
+     * @param contentSyntax The content systax of the report.
+     * @return The key.
+     */
+    private String toShaclModelCacheKey(DomainConfig domainConfig, String validationType, String contentSyntax) {
+        return "%s|%s|%s".formatted(domainConfig.getDomain(), validationType, contentSyntax);
+    }
 
     /**
      * @see BaseFileManager#getFileExtension(String)
@@ -122,6 +139,48 @@ public class FileManager extends BaseFileManager<ApplicationConfig> {
      */
     public void writeRdfModel(OutputStream outputStream, Model rdfModel, String outputSyntax) {
         writeRdfModel(new OutputStreamWriter(outputStream), rdfModel, outputSyntax);
+    }
+
+    /**
+     * Write the provided SHACL shape model to the output path.
+     *
+     * @param outputPath The output path to write to.
+     * @param rdfModel The model to write.
+     * @param validationType The current validation type.
+     * @param outputSyntax The output syntax.
+     * @param domainConfig The current domain configuration.
+     * @throws IOException If an IO error occurs.
+     */
+    public void writeShaclShapes(Path outputPath, Model rdfModel, String validationType, String outputSyntax, DomainConfig domainConfig) throws IOException {
+        if (outputSyntax == null) {
+            outputSyntax = domainConfig.getDefaultReportSyntax();
+            if (outputSyntax == null) {
+                outputSyntax = appConfig.getDefaultReportSyntax();
+            }
+        }
+        String outputSyntaxToUse = outputSyntax;
+        if (domainConfig.canCacheShapes(validationType)) {
+            // Write the model to a file and cache it.
+            String cacheKey = toShaclModelCacheKey(domainConfig, validationType, outputSyntax);
+            Path cachedPath = shaclModelCache.computeIfAbsent(cacheKey, (key) -> {
+                Path shaclModelCacheFolder = getTempFolder().toPath().resolve("shacl-model-cache");
+                try {
+                    Files.createDirectories(shaclModelCacheFolder);
+                    Path shaclModelFile = shaclModelCacheFolder.resolve(UUID.randomUUID().toString());
+                    try (var out = new OutputStreamWriter(Files.newOutputStream(shaclModelFile))) {
+                        writeRdfModel(out, rdfModel, outputSyntaxToUse);
+                    }
+                    return shaclModelFile;
+                } catch (IOException e) {
+                    throw new IllegalStateException("Unable to cache aggregated shape model file", e);
+                }
+            });
+            Files.copy(cachedPath, outputPath);
+        } else {
+            try (var out = new FileWriter(outputPath.toFile())) {
+                writeRdfModel(out, rdfModel, outputSyntaxToUse);
+            }
+        }
     }
 
     /**
