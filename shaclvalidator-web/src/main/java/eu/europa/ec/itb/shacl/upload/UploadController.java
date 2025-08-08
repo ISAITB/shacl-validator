@@ -61,6 +61,7 @@ import java.net.URL;
 import java.net.http.HttpClient;
 import java.util.*;
 
+import static eu.europa.ec.itb.shacl.DomainConfig.FILE_NAME_SHAPES;
 import static eu.europa.ec.itb.validation.commons.web.Constants.*;
 
 /**
@@ -85,7 +86,6 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
     static final String FILE_NAME_CSV_REPORT_DETAILED = "csvReportFileDetailed";
     static final String FILE_NAME_PDF_REPORT_AGGREGATED = "pdfReportFileAggregated";
     static final String FILE_NAME_CSV_REPORT_AGGREGATED = "csvReportFileAggregated";
-    static final String FILE_NAME_SHAPES = "shapesFile";
     static final String FILE_NAME_TAR = "tarFile";
     static final String FILE_NAME_TAR_AGGREGATE = "tarAggregateFile";
 
@@ -307,9 +307,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                 try (FileWriter out = new FileWriter(fileManager.createFile(parentFolder, extension, FILE_NAME_REPORT).toFile())) {
                     fileManager.writeRdfModel(out, models.getReportModel(), domainConfig.getDefaultReportSyntax());
                 }
-                try (FileWriter out = new FileWriter(fileManager.createFile(parentFolder, extension, FILE_NAME_SHAPES).toFile())) {
-                    fileManager.writeRdfModel(out, validator.getAggregatedShapes(), domainConfig.getDefaultReportSyntax());
-                }
+                fileManager.writeShaclShapes(fileManager.createFile(parentFolder, extension, FILE_NAME_SHAPES), validator.getAggregatedShapes(), validationType, domainConfig.getDefaultReportSyntax(), domainConfig);
                 // Report if needed an error on owl:imports having failed.
                 if (validator.hasErrorsDuringOwlImports()) {
                     // We always add the error messages as they will be included as (hidden) additional input.
