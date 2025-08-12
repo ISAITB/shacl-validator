@@ -52,6 +52,7 @@ description:
     screenshots:
       - https://www.itb.ec.europa.eu/files/screenshots/validator_shacl_01_form.png
       - https://www.itb.ec.europa.eu/files/screenshots/validator_shacl_02_report.png
+      - https://www.itb.ec.europa.eu/files/screenshots/validator_shacl_03_rest_api.png
     videos:
       - https://youtu.be/_e-XFqYZBR0
 legal:
