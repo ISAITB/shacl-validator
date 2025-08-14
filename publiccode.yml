@@ -4,7 +4,7 @@ applicationSuite: ""
 url: https://github.com/ISAITB/shacl-validator
 softwareVersion: 1.8.0
 releaseDate: 2025-04-08
-logo: https://www.itb.ec.europa.eu/files/itb_logo_simple.png
+logo: https://www.itb.ec.europa.eu/files/itb_logo_simple.png?v=1
 platforms:
   - web
   - linux
