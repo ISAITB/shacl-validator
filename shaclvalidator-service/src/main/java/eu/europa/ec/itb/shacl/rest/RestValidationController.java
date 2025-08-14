@@ -17,10 +17,7 @@ package eu.europa.ec.itb.shacl.rest;
 
 import com.gitb.core.ValueEmbeddingEnumeration;
 import com.gitb.tr.TAR;
-import eu.europa.ec.itb.shacl.ApplicationConfig;
-import eu.europa.ec.itb.shacl.DomainConfig;
-import eu.europa.ec.itb.shacl.InputHelper;
-import eu.europa.ec.itb.shacl.ModelPair;
+import eu.europa.ec.itb.shacl.*;
 import eu.europa.ec.itb.shacl.rest.model.Input;
 import eu.europa.ec.itb.shacl.rest.model.Output;
 import eu.europa.ec.itb.shacl.rest.model.RuleSet;
@@ -303,7 +300,8 @@ public class RestValidationController extends BaseRestController<DomainConfig, A
             }
             Boolean loadImports = inputHelper.validateLoadInputs(domainConfig, in.isLoadImports(), validationType);
             // Execute validation
-            SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile, validationType, contentSyntax, externalShapes, loadImports, domainConfig, new LocalisationHelper(domainConfig, Utils.getSupportedLocale(LocaleUtils.toLocale(in.getLocale()), domainConfig)));
+            ValidationSpecs specs = ValidationSpecs.builder(inputFile, validationType, contentSyntax, externalShapes, loadImports, domainConfig, new LocalisationHelper(domainConfig, Utils.getSupportedLocale(LocaleUtils.toLocale(in.getLocale()), domainConfig))).build();
+            SHACLValidator validator = ctx.getBean(SHACLValidator.class, specs);
             ModelPair models = validator.validateAll();
             if (in.getReportQuery() != null && !in.getReportQuery().isBlank()) {
                 // Run post-processing query on report and return based on content-type

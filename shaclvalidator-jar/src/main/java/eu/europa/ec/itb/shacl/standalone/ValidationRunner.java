@@ -50,7 +50,10 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
 
 import static eu.europa.ec.itb.shacl.util.ShaclValidatorUtils.isRdfContentSyntax;
 
@@ -241,7 +244,8 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
                         LOGGER_FEEDBACK.info("\nValidating [{}]...", input.getFileName());
                         File inputFile = input.getInputFile();
                         try {
-                            SHACLValidator validator = applicationContext.getBean(SHACLValidator.class, inputFile, type, input.getContentSyntax(), externalShapesList, loadImports, domainConfig, localiser);
+                            ValidationSpecs specs = ValidationSpecs.builder(inputFile, type, input.getContentSyntax(), externalShapesList, loadImports, domainConfig, localiser).build();
+                            SHACLValidator validator = applicationContext.getBean(SHACLValidator.class, specs);
                             ModelPair models = validator.validateAll();
                             // Output summary results.
                             ReportPair tarReport = ShaclValidatorUtils.getTAR(ReportSpecs.builder(models.getInputModel(), models.getReportModel(), localiser, domainConfig, validator.getValidationType()).build());

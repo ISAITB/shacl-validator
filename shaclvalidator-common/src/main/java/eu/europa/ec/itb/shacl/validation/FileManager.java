@@ -162,24 +162,38 @@ public class FileManager extends BaseFileManager<ApplicationConfig> {
         if (domainConfig.canCacheShapes(validationType)) {
             // Write the model to a file and cache it.
             String cacheKey = toShaclModelCacheKey(domainConfig, validationType, outputSyntax);
-            Path cachedPath = shaclModelCache.computeIfAbsent(cacheKey, (key) -> {
-                Path shaclModelCacheFolder = getTempFolder().toPath().resolve("shacl-model-cache");
-                try {
-                    Files.createDirectories(shaclModelCacheFolder);
-                    Path shaclModelFile = shaclModelCacheFolder.resolve(UUID.randomUUID().toString());
-                    try (var out = new OutputStreamWriter(Files.newOutputStream(shaclModelFile))) {
-                        writeRdfModel(out, rdfModel, outputSyntaxToUse);
-                    }
-                    return shaclModelFile;
-                } catch (IOException e) {
-                    throw new IllegalStateException("Unable to cache aggregated shape model file", e);
-                }
-            });
+            Path cachedPath = shaclModelCache.get(cacheKey);
+            if (cachedPath == null || !Files.exists(cachedPath)) {
+                // Initialise in case of first access or in case file was removed.
+                cachedPath = storeShapeGraph(rdfModel, outputSyntaxToUse);
+                shaclModelCache.put(cacheKey, cachedPath);
+            }
             Files.copy(cachedPath, outputPath);
         } else {
             try (var out = new FileWriter(outputPath.toFile())) {
                 writeRdfModel(out, rdfModel, outputSyntaxToUse);
             }
+        }
+    }
+
+    /**
+     * Write the provided RDF model to the SHACL shape cache.
+     *
+     * @param rdfModel The shape model.
+     * @param outputSyntaxToUse The shapes' content type.
+     * @return The stored path.
+     */
+    private Path storeShapeGraph(Model rdfModel, String outputSyntaxToUse) {
+        Path shaclModelCacheFolder = getTempFolder().toPath().resolve("shacl-model-cache");
+        try {
+            Files.createDirectories(shaclModelCacheFolder);
+            Path shaclModelFile = shaclModelCacheFolder.resolve(UUID.randomUUID().toString());
+            try (var out = new OutputStreamWriter(Files.newOutputStream(shaclModelFile))) {
+                writeRdfModel(out, rdfModel, outputSyntaxToUse);
+            }
+            return shaclModelFile;
+        } catch (IOException e) {
+            throw new IllegalStateException("Unable to cache aggregated shape model file", e);
         }
     }
 

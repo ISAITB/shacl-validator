@@ -25,15 +25,11 @@ import com.gitb.tr.BAR;
 import com.gitb.tr.TestAssertionReportType;
 import com.gitb.vs.ValidateRequest;
 import com.gitb.vs.ValidationResponse;
-import eu.europa.ec.itb.shacl.CustomJenaFileManager;
-import eu.europa.ec.itb.shacl.DomainConfig;
-import eu.europa.ec.itb.shacl.ExtendedValidatorException;
-import eu.europa.ec.itb.shacl.ModelPair;
+import eu.europa.ec.itb.shacl.*;
 import eu.europa.ec.itb.shacl.config.CustomLocatorHTTP;
 import eu.europa.ec.itb.shacl.util.ShaclValidatorUtils;
 import eu.europa.ec.itb.shacl.util.StatementTranslator;
 import eu.europa.ec.itb.validation.commons.FileInfo;
-import eu.europa.ec.itb.validation.commons.LocalisationHelper;
 import eu.europa.ec.itb.validation.commons.Utils;
 import eu.europa.ec.itb.validation.commons.config.DomainPluginConfigProvider;
 import eu.europa.ec.itb.validation.commons.config.ErrorResponseTypeEnum;
@@ -95,56 +91,37 @@ public class SHACLValidator {
     @Autowired
     private DomainPluginConfigProvider<DomainConfig> pluginConfigProvider = null;
 
-    private final File inputFileToValidate;
+    private final ValidationSpecs specs;
+
     private boolean inputReady = false;
-    private final DomainConfig domainConfig;
-    private final LocalisationHelper localiser;
-    private String validationType;
-    private final String contentSyntax;
     private Lang contentSyntaxLang;
-    private final List<FileInfo> externalShaclFiles;
     private Model aggregatedShapes;
     private Model importedShapes;
-    private final boolean loadImports;
     private Model dataModel;
     private final List<String> errorsWhileLoadingOwlImports = new ArrayList<>();
     private boolean errorsWhileLoadingOwlImportsToReport = false;
 
     /**
      * Constructor to start the SHACL validator.
-     * @param inputFileToValidate The input RDF (or other) content to validate.
-     * @param validationType The type of validation to perform.
-     * @param contentSyntax The mime type of the provided RDF content.
-     * @param externalShaclFiles Any shapes to consider that are externally provided
-     * @param loadImports True if OWL imports in the content should be loaded before validation.
-     * @param domainConfig The domain in question.
-     * @param localiser Helper class for localisations.
+     *
+     * @param specs The validation specifications.
      */
-    public SHACLValidator(File inputFileToValidate, String validationType, String contentSyntax, List<FileInfo> externalShaclFiles, boolean loadImports, DomainConfig domainConfig, LocalisationHelper localiser) {
-    	this.contentSyntax = contentSyntax;
-    	this.inputFileToValidate = inputFileToValidate;
-        this.validationType = validationType;
-        this.domainConfig = domainConfig;
-        this.externalShaclFiles = externalShaclFiles;
-        this.loadImports = loadImports;
-        this.localiser = localiser;
-        if (validationType == null) {
-            this.validationType = domainConfig.getType().get(0);
-        }
+    public SHACLValidator(ValidationSpecs specs) {
+        this.specs = specs;
     }
 
     /**
      * @return The domain's identifier.
      */
     public String getDomain(){
-        return this.domainConfig.getDomain();
+        return specs.getDomainConfig().getDomain();
     }
 
     /**
      * @return The requested validation type.
      */
     public String getValidationType(){
-        return this.validationType;
+        return this.specs.getValidationType();
     }
     
     /**
@@ -153,13 +130,21 @@ public class SHACLValidator {
      * @return The Jena model with the report.
      */
     public ModelPair validateAll() {
-    	LOG.info("Starting validation..");
+        if (specs.isLogProgress()) {
+            LOG.info("Starting validation..");
+        }
     	try {
-            Model validationReport = setOverallResult(validateAgainstPlugins(validateAgainstShacl()));
+            Model validationReport = validateAgainstShacl();
+            if (specs.isUsePlugins()) {
+                validateAgainstPlugins(validationReport);
+            }
+            setOverallResult(validationReport);
             processForLocale(validationReport);
             return new ModelPair(dataModel, validationReport);
         } finally {
-    	    LOG.info("Completed validation.");
+            if (specs.isLogProgress()) {
+                LOG.info("Completed validation.");
+            }
         }
     }
 
@@ -169,7 +154,7 @@ public class SHACLValidator {
      * @param report The report to process.
      */
     private void processForLocale(Model report) {
-        if (!domainConfig.isReturnMessagesForAllLocales()) {
+        if (!specs.getDomainConfig().isReturnMessagesForAllLocales()) {
             // Filter out result messages for locales other than the requested one.
             var resultProperty = report.getProperty(RESULT_URI);
             var resultMessageProperty = report.getProperty(RESULT_MESSAGE_URI);
@@ -181,7 +166,7 @@ public class SHACLValidator {
                 while (statementIterator.hasNext()) {
                     translator.processStatement(statementIterator.next());
                 }
-                report.remove(translator.getTranslation(localiser.getLocale()).getUnmatchedStatements());
+                report.remove(translator.getTranslation(specs.getLocaliser().getLocale()).getUnmatchedStatements());
             }
         }
     }
@@ -214,20 +199,19 @@ public class SHACLValidator {
         }
         ValidateRequest request = new ValidateRequest();
         request.getInput().add(Utils.createInputItem("contentToValidate", pluginInputFile.getAbsolutePath()));
-        request.getInput().add(Utils.createInputItem("domain", domainConfig.getDomainName()));
-        request.getInput().add(Utils.createInputItem("validationType", validationType));
+        request.getInput().add(Utils.createInputItem("domain", specs.getDomainConfig().getDomainName()));
+        request.getInput().add(Utils.createInputItem("validationType", getValidationType()));
         request.getInput().add(Utils.createInputItem("tempFolder", pluginTmpFolder.getAbsolutePath()));
-        request.getInput().add(Utils.createInputItem("locale", localiser.getLocale().toString()));
+        request.getInput().add(Utils.createInputItem("locale", specs.getLocaliser().getLocale().toString()));
         return request;
     }
 
     /**
      * Ensure that violations in the report always result in an overall report failure.
      *
-     * @param validationReport The original report.
-     * @return The updated report.
+     * @param validationReport The report.
      */
-    private Model setOverallResult(Model validationReport) {
+    private void setOverallResult(Model validationReport) {
         Resource reportResource = validationReport.listSubjectsWithProperty(RDF.type, VALIDATION_REPORT).nextResource();
         if (reportResource != null) {
             Statement conformsStatement = reportResource.getProperty(SHACLResources.CONFORMS);
@@ -235,7 +219,6 @@ public class SHACLValidator {
                 conformsStatement.changeLiteralObject(false);
             }
         }
-        return validationReport;
     }
 
     /**
@@ -266,12 +249,11 @@ public class SHACLValidator {
      * Validate the provided input against the configured plugins.
      *
      * @param validationReport The validation report to add produced plugin reports to.
-     * @return The extended validation report.
      */
-    private Model validateAgainstPlugins(Model validationReport) {
-        ValidationPlugin[] plugins =  pluginManager.getPlugins(pluginConfigProvider.getPluginClassifier(domainConfig, validationType));
+    private void validateAgainstPlugins(Model validationReport) {
+        ValidationPlugin[] plugins =  pluginManager.getPlugins(pluginConfigProvider.getPluginClassifier(specs.getDomainConfig(), getValidationType()));
         if (plugins != null && plugins.length > 0) {
-            File pluginTmpFolder = new File(inputFileToValidate.getParentFile(), UUID.randomUUID().toString());
+            File pluginTmpFolder = new File(specs.getInputFileToValidate().getParentFile(), UUID.randomUUID().toString());
             try {
                 pluginTmpFolder.mkdirs();
                 ValidateRequest pluginInput = preparePluginInput(pluginTmpFolder);
@@ -279,7 +261,9 @@ public class SHACLValidator {
                     String pluginName = plugin.getName();
                     ValidationResponse response = plugin.validate(pluginInput);
                     if (response != null && response.getReport() != null && response.getReport().getReports() != null) {
-                        LOG.info("Plugin [{}] produced [{}] report item(s).", pluginName, response.getReport().getReports().getInfoOrWarningOrError().size());
+                        if (specs.isLogProgress()) {
+                            LOG.info("Plugin [{}] produced [{}] report item(s).", pluginName, response.getReport().getReports().getInfoOrWarningOrError().size());
+                        }
                         Resource reportResource = validationReport.listSubjectsWithProperty(RDF.type, VALIDATION_REPORT).nextResource();
                         if (!response.getReport().getReports().getInfoOrWarningOrError().isEmpty()) {
                             // Ensure the overall result is set to a failure if needed.
@@ -332,7 +316,6 @@ public class SHACLValidator {
                 FileUtils.deleteQuietly(pluginTmpFolder);
             }
         }
-        return validationReport;
     }
 
     /**
@@ -358,12 +341,12 @@ public class SHACLValidator {
      */
     private Model validateAgainstShacl() {
         try {
-            fileManager.signalValidationStart(domainConfig.getDomainName());
-            List<FileInfo> shaclFiles = fileManager.getPreconfiguredValidationArtifacts(domainConfig, validationType);
-            shaclFiles.addAll(externalShaclFiles);
+            fileManager.signalValidationStart(specs.getDomainConfig().getDomainName());
+            List<FileInfo> shaclFiles = fileManager.getPreconfiguredValidationArtifacts(specs.getDomainConfig(), getValidationType());
+            shaclFiles.addAll(specs.getExternalShaclFiles());
             return validateShacl(shaclFiles);
         } finally {
-            fileManager.signalValidationEnd(domainConfig.getDomainName());
+            fileManager.signalValidationEnd(specs.getDomainConfig().getDomainName());
         }
     }
 
@@ -428,7 +411,9 @@ public class SHACLValidator {
     private Model getShapesModel(List<FileInfo> shaclFiles) {
         Model aggregateModel = JenaUtil.createMemoryModel();
         for (FileInfo shaclFile: shaclFiles) {
-            LOG.info("Validating against [{}]", shaclFile.getFile().getName());
+            if (specs.isLogProgress()) {
+                LOG.info("Validating against [{}]", shaclFile.getFile().getName());
+            }
             Lang rdfLanguage = processRdfLanguage(RDFLanguages.contentTypeToLang(handleEquivalentContentSyntaxes(shaclFile.getType())));
             if (rdfLanguage == null) {
                 throw new ValidatorException("validator.label.exception.unableToDetermineShaclContentType");
@@ -466,8 +451,8 @@ public class SHACLValidator {
         spec.setBaseModelMaker(modelMaker);
         spec.setImportModelMaker(modelMaker);
 
-        CustomLocatorHTTP.PARAMS.set(new CustomLocatorHTTP.LocatorParams(domainConfig.getUrisToSkipWhenImporting(), domainConfig.getHttpVersion(), domainConfig.getOwlImportMappings()));
-        CustomJenaFileManager.PARAMS.set(new CustomJenaFileManager.CacheParams(domainConfig.getOwlImportMappings().keySet(), new HashMap<>()));
+        CustomLocatorHTTP.PARAMS.set(new CustomLocatorHTTP.LocatorParams(specs.getDomainConfig().getUrisToSkipWhenImporting(), specs.getDomainConfig().getHttpVersion(), specs.getDomainConfig().getOwlImportMappings()));
+        CustomJenaFileManager.PARAMS.set(new CustomJenaFileManager.CacheParams(specs.getDomainConfig().getOwlImportMappings().keySet(), new HashMap<>()));
         CustomReadFailureHandler.IMPORTS_WITH_ERRORS.set(new LinkedHashSet<>());
         Set<Pair<String, String>> importsWithErrors;
         try {
@@ -484,10 +469,10 @@ public class SHACLValidator {
             // Make sure the relevant models are closed, otherwise they are cached and don't result in additional failures, nor retries.
             var informationMessages = new ArrayList<String>();
             for (var errorInfo: importsWithErrors) {
-                if (!domainConfig.getUrisToSkipWhenImporting().contains(errorInfo.getKey())) {
+                if (!specs.getDomainConfig().getUrisToSkipWhenImporting().contains(errorInfo.getKey())) {
                     LOG.warn("Failed to load import [{}]: {}", errorInfo.getKey(), errorInfo.getValue());
                     informationMessages.add(String.format("URI [%s] produced error [%s]", errorInfo.getKey(), errorInfo.getValue()));
-                    if (!domainConfig.getUrisToIgnoreForImportErrors().contains(errorInfo.getKey())) {
+                    if (!specs.getDomainConfig().getUrisToIgnoreForImportErrors().contains(errorInfo.getKey())) {
                         errorsWhileLoadingOwlImportsToReport = true;
                     }
                 }
@@ -502,7 +487,7 @@ public class SHACLValidator {
                 }
             }
             errorsWhileLoadingOwlImports.addAll(informationMessages);
-            if (errorsWhileLoadingOwlImportsToReport && domainConfig.getResponseForImportedShapeFailure(validationType) == ErrorResponseTypeEnum.FAIL) {
+            if (errorsWhileLoadingOwlImportsToReport && specs.getDomainConfig().getResponseForImportedShapeFailure(getValidationType()) == ErrorResponseTypeEnum.FAIL) {
                 throw new ExtendedValidatorException("validator.label.exception.failureToLoadRemoteArtefactsError", informationMessages);
             }
         }
@@ -565,17 +550,17 @@ public class SHACLValidator {
         if (contentSyntaxLang == null) {
             // Determine language.
             Lang lang = null;
-            if (this.contentSyntax != null) {
-                String contentSyntaxToConsider = handleEquivalentContentSyntaxes(this.contentSyntax);
+            if (this.specs.getContentSyntax() != null) {
+                String contentSyntaxToConsider = handleEquivalentContentSyntaxes(this.specs.getContentSyntax());
                 lang = RDFLanguages.contentTypeToLang(contentSyntaxToConsider);
-                if (lang != null) {
+                if (specs.isLogProgress() && lang != null) {
                     LOG.info("Using provided data content type [{}] as [{}]", contentSyntaxToConsider, lang.getName());
                 }
             }
             if (lang == null) {
-                lang = RDFLanguages.contentTypeToLang(RDFLanguages.guessContentType(inputFileToValidate.getName()));
-                if (lang != null) {
-                    LOG.info("Guessed lang [{}] from file [{}]", lang.getName(), inputFileToValidate.getName());
+                lang = RDFLanguages.contentTypeToLang(RDFLanguages.guessContentType(specs.getInputFileToValidate().getName()));
+                if (specs.isLogProgress() && lang != null) {
+                    LOG.info("Guessed lang [{}] from file [{}]", lang.getName(), specs.getInputFileToValidate().getName());
                 }
             }
             if (lang == null) {
@@ -633,8 +618,10 @@ public class SHACLValidator {
         Model dataModel;
         try (InputStream dataStream = new FileInputStream(dataFile)) {
             dataModel = readModel(dataStream, contextSyntaxToUse(), shapesModel == null ? null : shapesModel.getNsPrefixMap());
-            if (this.loadImports) {
-                LOG.info("Loading imports...");
+            if (this.specs.isLoadImports()) {
+                if (this.specs.isLogProgress()) {
+                    LOG.info("Loading imports...");
+                }
                 createImportedModels(dataModel);
                 if (this.importedShapes != null) {
                     dataModel.add(importedShapes);
@@ -654,7 +641,7 @@ public class SHACLValidator {
          * We can disable this merging for a domain if merging is undesirable. The only such case would be if we are
          * validating SHACL shapes themselves.
          */
-        if (domainConfig.isMergeModelsBeforeValidation()) {
+        if (specs.getDomainConfig().isMergeModelsBeforeValidation()) {
             dataModel.add(shapesModel);
         }
 		return dataModel;
@@ -668,11 +655,11 @@ public class SHACLValidator {
     private File getInputFileToUse() {
         if (!inputReady) {
             // obtain the SPARQL CONSTRUCT query for the validationType
-            var constructQuery = domainConfig.getInputPreprocessorPerType().get(validationType);
+            var constructQuery = specs.getDomainConfig().getInputPreprocessorPerType().get(getValidationType());
             if (constructQuery != null) {
                 // preprocessing: execute the CONSTRUCT query
                 Model inputModel;
-                try (InputStream dataStream = new FileInputStream(inputFileToValidate)) {
+                try (InputStream dataStream = new FileInputStream(specs.getInputFileToValidate())) {
                     inputModel = readModel(dataStream, contextSyntaxToUse(), null);
                 } catch (IOException e) {
                     throw new ValidatorException("validator.label.exception.errorWhileReadingProvidedContent", e, e.getMessage());
@@ -687,7 +674,7 @@ public class SHACLValidator {
                 if (preprocessedModel.isEmpty()) {
                     throw new ValidatorException("validator.label.exception.emptyPreprocessingResult", constructQuery);
                 }
-                try (FileWriter writer = new FileWriter(inputFileToValidate)) {
+                try (FileWriter writer = new FileWriter(specs.getInputFileToValidate())) {
                     preprocessedModel.write(writer, contentSyntaxLang.getName());
                 } catch (IOException e) {
                     throw new ValidatorException("validator.label.exception.preprocessingError", e, constructQuery);
@@ -695,7 +682,7 @@ public class SHACLValidator {
             }
             inputReady = true;
         }
-        return inputFileToValidate;
+        return specs.getInputFileToValidate();
     }
 
     /**

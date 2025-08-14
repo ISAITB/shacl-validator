@@ -18,10 +18,12 @@ package eu.europa.ec.itb.shacl.config;
 import eu.europa.ec.itb.shacl.ApplicationConfig;
 import eu.europa.ec.itb.shacl.DomainConfig;
 import eu.europa.ec.itb.shacl.DomainConfigCache;
+import eu.europa.ec.itb.shacl.ValidationSpecs;
 import eu.europa.ec.itb.shacl.validation.FileManager;
 import eu.europa.ec.itb.shacl.validation.SHACLValidator;
 import eu.europa.ec.itb.validation.commons.LocalisationHelper;
 import eu.europa.ec.itb.validation.commons.Utils;
+import eu.europa.ec.itb.validation.plugin.PluginManager;
 import jakarta.annotation.PostConstruct;
 import org.apache.commons.io.FileUtils;
 import org.apache.jena.rdf.model.Model;
@@ -57,17 +59,24 @@ public class ResourcePreloader {
     private DomainConfigCache domainConfigs = null;
     @Autowired
     private FileManager fileManager = null;
+    @Autowired
+    private PluginManager pluginManager = null;
 
     @PostConstruct
     public void initialise() {
-        // Preload OWL imports.
-        preloadImports();
+        // Initialise plugins.
+        if (pluginManager.hasPlugins()) {
+            LOG.info("Initialised plugins");
+        }
+        // Preload OWL imports and shape graphs.
+        preloadImportsAndShapeGraphs();
     }
 
     /**
-     * Preload any imports that are configured as such.
+     * Preload any imports and shape graphs that are configured as such.
      */
-    private void preloadImports() {
+    private void preloadImportsAndShapeGraphs() {
+        // All cases where we are preloading shape graphs will also have preloading of imports enabled (or forced).
         domainConfigs.getAllDomainConfigurations().stream().filter(DomainConfig::isPreloadingImportsForAnyType).forEach(domainConfig -> {
             LOG.info("Preloading owl:import references for domain [{}]", domainConfig.getDomainName());
             var localiser = new LocalisationHelper(domainConfig, Utils.getSupportedLocale(null, domainConfig));
@@ -89,9 +98,13 @@ public class ResourcePreloader {
                     domainConfig.setMergeModelsBeforeValidation(false);
                     try {
                         LOG.info("Preloading owl:import references for validation type [{}]", validationType);
-                        SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile.toFile(), validationType, contentType, Collections.emptyList(), false, domainConfig, localiser);
+                        ValidationSpecs specs = ValidationSpecs.builder(inputFile.toFile(), validationType, contentType, Collections.emptyList(), false, domainConfig, localiser)
+                                .withoutPlugins()
+                                .withoutProgressLogging()
+                                .build();
+                        SHACLValidator validator = ctx.getBean(SHACLValidator.class, specs);
                         validator.validateAll();
-                        if (domainConfig.canCacheShapes(validationType)) {
+                        if (domainConfig.preloadShapeGraphForType(validationType)) {
                             LOG.info("Caching aggregated SHACL shapes for validation type [{}]", validationType);
                             String extension = fileManager.getFileExtension(domainConfig.getDefaultReportSyntax());
                             fileManager.writeShaclShapes(fileManager.createFile(parentFolder.toFile(), extension, FILE_NAME_SHAPES), validator.getAggregatedShapes(), validationType, domainConfig.getDefaultReportSyntax(), domainConfig);

@@ -24,6 +24,8 @@ import jakarta.annotation.PostConstruct;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -38,6 +40,8 @@ import static eu.europa.ec.itb.validation.commons.config.ParseUtils.*;
  */
 @Component
 public class DomainConfigCache extends WebDomainConfigCache<DomainConfig> {
+
+    private static final Logger LOG = LoggerFactory.getLogger(DomainConfigCache.class);
 
     @Autowired
     private ApplicationConfig appConfig = null;
@@ -137,9 +141,45 @@ public class DomainConfigCache extends WebDomainConfigCache<DomainConfig> {
         });
         domainConfig.setOwlImportMappings(mappingMap);
         // Local mapping files for URIs used in owl:imports - end
-        // Preload imports - start
-        domainConfig.setPreloadImports(parseBooleanMap("validator.preloadOwlImports", config, domainConfig.getType(), config.getBoolean("validator.preloadOwlImports", false)));
-        // Preload imports - end
+        // Preload imports and SHACL shape graphs - start
+        Boolean defaultPreloadOwlImports = config.getBoolean("validator.preloadOwlImports", null);
+        Map<String, Boolean> preloadImportsMap = parseBooleanMap("validator.preloadOwlImports", config, domainConfig.getType(), Objects.requireNonNullElse(defaultPreloadOwlImports, false));
+        Boolean defaultShapePreloading = config.getBoolean("validator.preloadShapeGraph", null);
+        Map<String, Boolean> preloadShapeGraphMap = parseBooleanMap("validator.preloadShapeGraph", config, domainConfig.getType(), (type) -> {
+            if (domainConfig.canCacheShapes(type)) {
+                // If we are preloading imports and have not explicitly disabled preloading of shapes, set based on preloading of imports.
+                return Objects.requireNonNullElseGet(defaultShapePreloading, () -> preloadImportsMap.getOrDefault(type, false));
+            } else {
+                // It's not possible to preload shapes.
+                if (Boolean.TRUE.equals(defaultShapePreloading)) {
+                    LOG.info("Preloading of the shapes graph will be disabled for validation type [{}] because it uses user-provided or remote shapes", type);
+                }
+                return false;
+            }
+        });
+        // Post-process the validation types for which shape preloading is activated.
+        preloadShapeGraphMap.entrySet().stream().filter(Map.Entry::getValue).forEach(entry -> {
+            if (domainConfig.canCacheShapes(entry.getKey())) {
+                // Shape preloading is enabled for the validation type. Force that imports are also preloaded.
+                if (!preloadImportsMap.get(entry.getKey())) {
+                    if (Boolean.FALSE.equals(defaultPreloadOwlImports)) {
+                        // Preloading of imports was disabled as a default setting.
+                        LOG.info("Validation type [{}] is set to preload the shapes graph. The preloading of owl:imports will be forced.", entry.getKey());
+                    } else if (Boolean.FALSE.equals(config.getBoolean("validator.preloadOwlImports." + entry.getKey(), null))) {
+                        // Warn because preloading of imports was explicitly disabled for the specific validation type.
+                        LOG.warn("Validation type [{}] is set to preload the shapes graph. The preloading of owl:imports will be forced.", entry.getKey());
+                    }
+                    preloadImportsMap.put(entry.getKey(), true);
+                }
+            } else {
+                // If shapes cannot be preloaded due to external or user-provided shapes force this (warning as at this step this was a specific setting for the validation type)..
+                LOG.warn("Preloading of the shapes graph will be disabled for validation type [{}] because it uses user-provided or remote shapes", entry.getKey());
+                entry.setValue(false);
+            }
+        });
+        domainConfig.setPreloadImports(preloadImportsMap);
+        domainConfig.setPreloadShapeGraph(preloadShapeGraphMap);
+        // Preload imports and SHACL shape graphs - end
     }
 
 }
