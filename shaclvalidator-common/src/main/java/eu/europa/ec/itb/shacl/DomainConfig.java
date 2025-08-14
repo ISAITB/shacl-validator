@@ -50,6 +50,7 @@ public class DomainConfig extends WebDomainConfig {
     private Set<String> urisToSkipWhenImporting;
     private Map<String, Path> owlImportMappings;
     private Map<String, Boolean> preloadImports;
+    private Map<String, Boolean> preloadShapeGraph;
 
     /**
      * Check to see if the shapes report can be cached.
@@ -78,6 +79,15 @@ public class DomainConfig extends WebDomainConfig {
     }
 
     /**
+     * Check to see whether any validation types are set for SHACL shape graph preloading.
+     *
+     * @return The check result.
+     */
+    public boolean isPreloadingShapeGraphsForAnyType() {
+        return preloadShapeGraph != null && preloadShapeGraph.values().stream().anyMatch(preload -> preload);
+    }
+
+    /**
      * Check to see whether OWL imports should be preloaded for the provided (full) validation type.
      *
      * @param validationType The validation type.
@@ -90,8 +100,31 @@ public class DomainConfig extends WebDomainConfig {
         return false;
     }
 
+    /**
+     * Check to see whether the SHACL shape graph should be preloaded for the provided (full) validation type.
+     *
+     * @param validationType The validation type.
+     * @return Whether the graph should be preloaded.
+     */
+    public boolean preloadShapeGraphForType(String validationType) {
+        if (preloadShapeGraph != null) {
+            return preloadShapeGraph.getOrDefault(validationType, false);
+        }
+        return false;
+    }
+
+    /**
+     * @param preloadImports Set the configuration of validation types to whether OWL imports are preloaded.
+     */
     public void setPreloadImports(Map<String, Boolean> preloadImports) {
         this.preloadImports = preloadImports;
+    }
+
+    /**
+     * @param preloadShapeGraph Set the configuration of validation types to whether SHACL shape graphs are preloaded.
+     */
+    public void setPreloadShapeGraph(Map<String, Boolean> preloadShapeGraph) {
+        this.preloadShapeGraph = preloadShapeGraph;
     }
 
     /**

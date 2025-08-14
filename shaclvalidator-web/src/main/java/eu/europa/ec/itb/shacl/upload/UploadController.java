@@ -285,7 +285,8 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                     loadImportsValue = null;
                 }
                 loadImportsValue = inputHelper.validateLoadInputs(domainConfig, loadImportsValue, validationType);
-                SHACLValidator validator = ctx.getBean(SHACLValidator.class, inputFile, validationType, contentSyntaxType, userProvidedShapes, loadImportsValue, domainConfig, localisationHelper);
+                ValidationSpecs specs = ValidationSpecs.builder(inputFile, validationType, contentSyntaxType, userProvidedShapes, loadImportsValue, domainConfig, localisationHelper).build();
+                SHACLValidator validator = ctx.getBean(SHACLValidator.class, specs);
                 ModelPair models = validator.validateAll();
                 ReportPair tarReport = ShaclValidatorUtils.getTAR(ReportSpecs
                         .builder(models.getInputModel(), models.getReportModel(), localisationHelper, domainConfig, validator.getValidationType())
