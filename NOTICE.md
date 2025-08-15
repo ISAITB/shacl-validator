@@ -30,7 +30,7 @@ This product depends on software developed by third parties as listed in the fol
 | Apache License, Version 2.0 | Jackson datatype: jdk8 | com.fasterxml.jackson.datatype:jackson-datatype-jdk8 | 2.19.2 | https://github.com/FasterXML/jackson-modules-java8/jackson-datatype-jdk8 |
 | Apache License, Version 2.0 | Jackson datatype: JSR310 | com.fasterxml.jackson.datatype:jackson-datatype-jsr310 | 2.19.2 | https://github.com/FasterXML/jackson-modules-java8/jackson-datatype-jsr310 |
 | Apache License, Version 2.0 | Jackson-module-parameter-names | com.fasterxml.jackson.module:jackson-module-parameter-names | 2.19.2 | https://github.com/FasterXML/jackson-modules-java8/jackson-module-parameter-names |
-| Apache License, Version 2.0 | Woodstox | com.fasterxml.woodstox:woodstox-core | 7.1.0 | https://github.com/FasterXML/woodstox |
+| Apache License, Version 2.0 | Woodstox | com.fasterxml.woodstox:woodstox-core | 7.1.1 | https://github.com/FasterXML/woodstox |
 | MIT License | dexx | com.github.andrewoma.dexx:collection | 0.7 | https://github.com/andrewoma/dexx |
 | Apache License, Version 2.0 | Caffeine cache | com.github.ben-manes.caffeine:caffeine | 3.2.2 | https://github.com/ben-manes/caffeine |
 | Apache License, Version 2.0 | FindBugs-jsr305 | com.google.code.findbugs:jsr305 | 3.0.2 | http://findbugs.sourceforge.net/ |
@@ -77,19 +77,19 @@ This product depends on software developed by third parties as listed in the fol
 | Apache License, Version 2.0 | Apache Commons CSV | org.apache.commons:commons-csv | 1.12.0 | https://commons.apache.org/proper/commons-csv/ |
 | Apache License, Version 2.0 | Apache Commons Lang | org.apache.commons:commons-lang3 | 3.18.0 | https://commons.apache.org/proper/commons-lang/ |
 | Apache License, Version 2.0 | Apache Commons Text | org.apache.commons:commons-text | 1.12.0 | https://commons.apache.org/proper/commons-text |
-| Apache License, Version 2.0 | Apache CXF Core | org.apache.cxf:cxf-core | 4.1.2 | https://cxf.apache.org |
-| Apache License, Version 2.0 | Apache CXF Runtime SOAP Binding | org.apache.cxf:cxf-rt-bindings-soap | 4.1.2 | https://cxf.apache.org |
-| Apache License, Version 2.0 | Apache CXF Runtime XML Binding | org.apache.cxf:cxf-rt-bindings-xml | 4.1.2 | https://cxf.apache.org |
-| Apache License, Version 2.0 | Apache CXF Runtime JAXB DataBinding | org.apache.cxf:cxf-rt-databinding-jaxb | 4.1.2 | https://cxf.apache.org |
-| Apache License, Version 2.0 | Apache CXF Metrics Feature | org.apache.cxf:cxf-rt-features-metrics | 4.1.2 | https://cxf.apache.org/cxf-rt-features-metrics |
-| Apache License, Version 2.0 | Apache CXF Runtime JAX-WS Frontend | org.apache.cxf:cxf-rt-frontend-jaxws | 4.1.2 | https://cxf.apache.org |
-| Apache License, Version 2.0 | Apache CXF Runtime Simple Frontend | org.apache.cxf:cxf-rt-frontend-simple | 4.1.2 | https://cxf.apache.org |
-| Apache License, Version 2.0 | Apache CXF Runtime HTTP Transport | org.apache.cxf:cxf-rt-transports-http | 4.1.2 | https://cxf.apache.org |
-| Apache License, Version 2.0 | Apache CXF Runtime WS Addressing | org.apache.cxf:cxf-rt-ws-addr | 4.1.2 | https://cxf.apache.org |
-| Apache License, Version 2.0 | Apache CXF Runtime WS Policy | org.apache.cxf:cxf-rt-ws-policy | 4.1.2 | https://cxf.apache.org |
-| Apache License, Version 2.0 | Apache CXF Runtime Core for WSDL | org.apache.cxf:cxf-rt-wsdl | 4.1.2 | https://cxf.apache.org |
-| Apache License, Version 2.0 | Apache CXF Spring Boot Autoconfigure | org.apache.cxf:cxf-spring-boot-autoconfigure | 4.1.2 | https://cxf.apache.org |
-| Apache License, Version 2.0 | Apache CXF Spring Boot Starter JAX-WS | org.apache.cxf:cxf-spring-boot-starter-jaxws | 4.1.2 | https://cxf.apache.org |
+| Apache License, Version 2.0 | Apache CXF Core | org.apache.cxf:cxf-core | 4.1.3 | https://cxf.apache.org |
+| Apache License, Version 2.0 | Apache CXF Runtime SOAP Binding | org.apache.cxf:cxf-rt-bindings-soap | 4.1.3 | https://cxf.apache.org |
+| Apache License, Version 2.0 | Apache CXF Runtime XML Binding | org.apache.cxf:cxf-rt-bindings-xml | 4.1.3 | https://cxf.apache.org |
+| Apache License, Version 2.0 | Apache CXF Runtime JAXB DataBinding | org.apache.cxf:cxf-rt-databinding-jaxb | 4.1.3 | https://cxf.apache.org |
+| Apache License, Version 2.0 | Apache CXF Metrics Feature | org.apache.cxf:cxf-rt-features-metrics | 4.1.3 | https://cxf.apache.org/cxf-rt-features-metrics |
+| Apache License, Version 2.0 | Apache CXF Runtime JAX-WS Frontend | org.apache.cxf:cxf-rt-frontend-jaxws | 4.1.3 | https://cxf.apache.org |
+| Apache License, Version 2.0 | Apache CXF Runtime Simple Frontend | org.apache.cxf:cxf-rt-frontend-simple | 4.1.3 | https://cxf.apache.org |
+| Apache License, Version 2.0 | Apache CXF Runtime HTTP Transport | org.apache.cxf:cxf-rt-transports-http | 4.1.3 | https://cxf.apache.org |
+| Apache License, Version 2.0 | Apache CXF Runtime WS Addressing | org.apache.cxf:cxf-rt-ws-addr | 4.1.3 | https://cxf.apache.org |
+| Apache License, Version 2.0 | Apache CXF Runtime WS Policy | org.apache.cxf:cxf-rt-ws-policy | 4.1.3 | https://cxf.apache.org |
+| Apache License, Version 2.0 | Apache CXF Runtime Core for WSDL | org.apache.cxf:cxf-rt-wsdl | 4.1.3 | https://cxf.apache.org |
+| Apache License, Version 2.0 | Apache CXF Spring Boot Autoconfigure | org.apache.cxf:cxf-spring-boot-autoconfigure | 4.1.3 | https://cxf.apache.org |
+| Apache License, Version 2.0 | Apache CXF Spring Boot Starter JAX-WS | org.apache.cxf:cxf-spring-boot-starter-jaxws | 4.1.3 | https://cxf.apache.org |
 | Apache License, Version 2.0 | Apache HttpClient | org.apache.httpcomponents.client5:httpclient5 | 5.4.4 | https://hc.apache.org/httpcomponents-client-5.4.x/5.4.4/httpclient5/ |
 | Apache License, Version 2.0 | Apache HttpComponents Core HTTP/1.1 | org.apache.httpcomponents.core5:httpcore5 | 5.3.4 | https://hc.apache.org/httpcomponents-core-5.3.x/5.3.4/httpcore5/ |
 | Apache License, Version 2.0 | Apache HttpComponents Core HTTP/2 | org.apache.httpcomponents.core5:httpcore5-h2 | 5.3.4 | https://hc.apache.org/httpcomponents-core-5.3.x/5.3.4/httpcore5-h2/ |
