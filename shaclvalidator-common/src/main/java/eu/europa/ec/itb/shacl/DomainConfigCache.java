@@ -23,15 +23,15 @@ import eu.europa.ec.itb.validation.commons.config.WebDomainConfigCache;
 import jakarta.annotation.PostConstruct;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Objects;
 
 import static eu.europa.ec.itb.validation.commons.config.ParseUtils.*;
 
@@ -114,32 +114,7 @@ public class DomainConfigCache extends WebDomainConfigCache<DomainConfig> {
         // Check how to react to owl:import failures - end
         addMissingDefaultValues(domainConfig.getWebServiceDescription(), appConfig.getDefaultLabels());
         // Local mapping files for URIs used in owl:imports - start
-        List<Pair<String, Path>> mappingList = ParseUtils.parseValueList("validator.owlImportMapping", config, (entry) -> {
-            String uri = entry.get("uri");
-            String file = entry.get("file");
-            if (StringUtils.isNotBlank(uri) && StringUtils.isNotBlank(file)) {
-                uri = uri.trim();
-                if (!uri.toLowerCase().startsWith("http://") && !uri.toLowerCase().startsWith("https://")) {
-                    throw new IllegalStateException("OWL import mapping for URI [%s] does not start with 'http://' or 'https://'".formatted(uri));
-                }
-                file = file.trim();
-                Path resourcePath = Path.of(appConfig.getResourceRoot(), domainConfig.getDomain(), file);
-                if (!Files.exists(resourcePath)) {
-                    throw new IllegalStateException("OWL import mapping for URI [%s] points to a non-existent file [%s]".formatted(uri, file));
-                }
-                return Pair.of(uri, resourcePath);
-            } else {
-                throw new IllegalStateException("Invalid mappings for owl:import. Each element must include [uri] and [file] properties");
-            }
-        });
-        Map<String, Path> mappingMap = new HashMap<>();
-        mappingList.forEach(entry -> {
-            if (mappingMap.containsKey(entry.getKey())) {
-                throw new IllegalStateException("Invalid mappings for owl:import. URI [%s] defined multiple times".formatted(entry.getKey()));
-            }
-            mappingMap.put(entry.getKey(), entry.getValue());
-        });
-        domainConfig.setOwlImportMappings(mappingMap);
+        domainConfig.setOwlImportMappings(ParseUtils.parseFileMap("validator.owlImportMapping", config, "OWL mapping", appConfig, domainConfig));
         // Local mapping files for URIs used in owl:imports - end
         // Preload imports and SHACL shape graphs - start
         Boolean defaultPreloadOwlImports = config.getBoolean("validator.preloadOwlImports", null);
