@@ -66,8 +66,7 @@ import org.topbraid.shacl.validation.ValidationUtil;
 import java.io.*;
 import java.util.*;
 
-import static eu.europa.ec.itb.shacl.util.ShaclValidatorUtils.getStatementSafe;
-import static eu.europa.ec.itb.shacl.util.ShaclValidatorUtils.handleEquivalentContentSyntaxes;
+import static eu.europa.ec.itb.shacl.util.ShaclValidatorUtils.*;
 import static eu.europa.ec.itb.shacl.validation.SHACLResources.VALIDATION_REPORT;
 import static org.apache.jena.riot.lang.LangJSONLD11.JSONLD_OPTIONS;
 
@@ -414,7 +413,7 @@ public class SHACLValidator {
             if (specs.isLogProgress()) {
                 LOG.info("Validating against [{}]", shaclFile.getFile().getName());
             }
-            Lang rdfLanguage = processRdfLanguage(RDFLanguages.contentTypeToLang(handleEquivalentContentSyntaxes(shaclFile.getType())));
+            Lang rdfLanguage = processRdfLanguage(determineRdfLanguage(shaclFile));
             if (rdfLanguage == null) {
                 throw new ValidatorException("validator.label.exception.unableToDetermineShaclContentType");
             }

@@ -19,8 +19,10 @@ import com.apicatalog.jsonld.StringUtils;
 import eu.europa.ec.itb.shacl.validation.FileManager;
 import eu.europa.ec.itb.shacl.validation.ReportSpecs;
 import eu.europa.ec.itb.shacl.validation.SHACLReportHandler;
+import eu.europa.ec.itb.validation.commons.FileInfo;
 import eu.europa.ec.itb.validation.commons.LocalisationHelper;
 import eu.europa.ec.itb.validation.commons.ReportPair;
+import org.apache.jena.atlas.web.ContentType;
 import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryExecution;
 import org.apache.jena.query.QueryExecutionFactory;
@@ -28,6 +30,8 @@ import org.apache.jena.query.QueryFactory;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdf.model.Statement;
+import org.apache.jena.riot.Lang;
+import org.apache.jena.riot.RDFLanguages;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.MimeType;
@@ -113,6 +117,31 @@ public class ShaclValidatorUtils {
             return "%s/%s".formatted(resolvedType.getType(), resolvedType.getSubtype());
         }
         return contentSyntax;
+    }
+
+    /**
+     * Determine the RDF language for the provided file.
+     *
+     * @param fileInfo The file information.
+     * @return The language.
+     */
+    public static Lang determineRdfLanguage(FileInfo fileInfo) {
+        // First check content type.
+        String contentType = handleEquivalentContentSyntaxes(fileInfo.getType());
+        if (isRdfContentSyntax(contentType)) {
+            // This is an RDF content type.
+            return RDFLanguages.contentTypeToLang(contentType);
+        } else {
+            // Not an RDF content type.
+            ContentType guessedContentType = RDFLanguages.guessContentType(fileInfo.getFile().getName());
+            if (guessedContentType != null) {
+                // We guessed the content type from the file name.
+                return RDFLanguages.contentTypeToLang(guessedContentType);
+            } else {
+                // Use the original content type for a best-effort guess.
+                return RDFLanguages.contentTypeToLang(fileInfo.getType());
+            }
+        }
     }
 
     /**
