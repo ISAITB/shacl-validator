@@ -21,6 +21,7 @@ import eu.europa.ec.itb.shacl.SparqlQueryConfig;
 import eu.europa.ec.itb.shacl.util.ShaclValidatorUtils;
 import eu.europa.ec.itb.validation.commons.BaseFileManager;
 import eu.europa.ec.itb.validation.commons.FileInfo;
+import eu.europa.ec.itb.validation.commons.artifact.RemoteValidationArtifactInfo;
 import eu.europa.ec.itb.validation.commons.error.ValidatorException;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -47,6 +48,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static eu.europa.ec.itb.shacl.util.ShaclValidatorUtils.handleEquivalentContentSyntaxes;
+import static eu.europa.ec.itb.shacl.util.ShaclValidatorUtils.isRdfContentSyntax;
 
 /**
  * Manages file-system operations.
@@ -58,6 +60,7 @@ public class FileManager extends BaseFileManager<ApplicationConfig> {
 
     @Autowired
     private ApplicationConfig appConfig;
+
     private final ConcurrentHashMap<String, Path> shaclModelCache = new ConcurrentHashMap<>();
 
     /**
@@ -115,6 +118,23 @@ public class FileManager extends BaseFileManager<ApplicationConfig> {
             declaredContentType = ShaclValidatorUtils.contentSyntaxToUse(declaredContentType, file.getType());
         }
         return declaredContentType;
+    }
+
+    /**
+     * We post-process the downloaded file to make sure that if the configuration specified a content type, this
+     * is applied to the file if needed.
+     *
+     * @param declaredFileInfo The declared file information.
+     * @param downloadedFile The downloaded file.
+     * @return The file to record.
+     */
+    @Override
+    protected FileInfo postProcessDownloadedRemoteFile(RemoteValidationArtifactInfo declaredFileInfo, FileInfo downloadedFile) {
+        if (declaredFileInfo.getType() != null && (downloadedFile.getType() == null || !isRdfContentSyntax(downloadedFile.getType()))) {
+            return new FileInfo(downloadedFile.getFile(), declaredFileInfo.getType(), downloadedFile.getSource());
+        } else {
+            return downloadedFile;
+        }
     }
 
     /**
