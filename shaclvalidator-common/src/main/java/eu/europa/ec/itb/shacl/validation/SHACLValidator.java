@@ -15,12 +15,6 @@
 
 package eu.europa.ec.itb.shacl.validation;
 
-import com.apicatalog.jsonld.JsonLdOptions;
-import com.apicatalog.jsonld.http.DefaultHttpClient;
-import com.apicatalog.jsonld.http.media.MediaType;
-import com.apicatalog.jsonld.loader.FileLoader;
-import com.apicatalog.jsonld.loader.HttpLoader;
-import com.apicatalog.jsonld.loader.SchemeRouter;
 import com.gitb.tr.BAR;
 import com.gitb.tr.TestAssertionReportType;
 import com.gitb.vs.ValidateRequest;
@@ -49,11 +43,7 @@ import org.apache.jena.query.QueryExecutionFactory;
 import org.apache.jena.rdf.model.*;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFLanguages;
-import org.apache.jena.riot.RDFParserBuilder;
-import org.apache.jena.riot.system.PrefixMap;
-import org.apache.jena.riot.system.PrefixMapStd;
 import org.apache.jena.shared.JenaException;
-import org.apache.jena.sparql.util.Context;
 import org.apache.jena.vocabulary.RDF;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,7 +58,6 @@ import java.util.*;
 
 import static eu.europa.ec.itb.shacl.util.ShaclValidatorUtils.*;
 import static eu.europa.ec.itb.shacl.validation.SHACLResources.VALIDATION_REPORT;
-import static org.apache.jena.riot.lang.LangJSONLD11.JSONLD_OPTIONS;
 
 /**
  * Component used to validate RDF content against SHACL shapes.
@@ -190,7 +179,7 @@ public class SHACLValidator {
         } else {
             // Make a converted copy.
             try (FileInputStream in = new FileInputStream(getInputFileToUse()); FileWriter out = new FileWriter(pluginInputFile)) {
-                Model fileModel = readModel(in, contentSyntaxToUse, null);
+                Model fileModel = fileManager.readModel(in, contentSyntaxToUse, null);
                 fileManager.writeRdfModel(out, fileModel, Lang.RDFXML.getContentType().getContentTypeStr());
             } catch (IOException e) {
                 throw new IllegalStateException("Unable to convert input file for plugin", e);
@@ -377,8 +366,9 @@ public class SHACLValidator {
             this.dataModel = ModelFactory.createDefaultModel();
             this.aggregatedShapes = ModelFactory.createDefaultModel();
         } else {
+            // Construct the shapes graph.
+            this.aggregatedShapes = fileManager.getShapeModel(specs, () -> getShapesModel(shaclFiles));
             // Get data to validate from file
-            this.aggregatedShapes = getShapesModel(shaclFiles);
             this.dataModel = getDataModel(getInputFileToUse(), this.aggregatedShapes);
             // Perform the validation of data, using the shapes model. Do not validate any shapes inside the data model.
             Resource resource = ValidationUtil.validateModel(dataModel, this.aggregatedShapes, false);
@@ -418,10 +408,10 @@ public class SHACLValidator {
                 throw new ValidatorException("validator.label.exception.unableToDetermineShaclContentType");
             }
             try (InputStream dataStream = new FileInputStream(shaclFile.getFile())) {
-                aggregateModel.add(readModel(dataStream, rdfLanguage, null));
+                aggregateModel.add(fileManager.readModel(dataStream, rdfLanguage, null));
             } catch (IOException e) {
                 throw new ValidatorException("validator.label.exception.errorReadingShaclFile", e);
-           }
+            }
         }
         if (this.importedShapes!=null) {
         	this.importedShapes.close();
@@ -571,41 +561,6 @@ public class SHACLValidator {
     }
 
     /**
-     * Build the RDF model from the provided stream.
-     *
-     * @param dataStream The stream to read from.
-     * @param rdfLanguage The content type of the stream's data.
-     * @return The parsed model.
-     */
-    private Model readModel(InputStream dataStream, Lang rdfLanguage, Map<String, String> nsPrefixes) {
-        var builder = RDFParserBuilder
-                .create()
-                .lang(rdfLanguage)
-                .source(dataStream);
-        if (nsPrefixes != null) {
-            // Before parsing set the prefixes of the model to avoid mismatches.
-            PrefixMap prefixes = new PrefixMapStd();
-            prefixes.putAll(nsPrefixes);
-            builder = builder.prefixes(prefixes);
-        }
-        if (Lang.JSONLD11.equals(rdfLanguage) || Lang.JSONLD.equals(rdfLanguage)) {
-            var options = new JsonLdOptions();
-            var httpLoader = new HttpLoader(DefaultHttpClient.defaultInstance());
-            /*
-             * Set fallback type for remote contexts to avoid errors for non JSON/JSON-LD Content Types.
-             * This allows us to proceed if e.g. the Content Type originally returned is "text/plain".
-             */
-            httpLoader.setFallbackContentType(MediaType.JSON);
-            options.setDocumentLoader(new SchemeRouter()
-                    .set("http", httpLoader)
-                    .set("https", httpLoader)
-                    .set("file", new FileLoader()));
-            builder = builder.context(Context.create().set(JSONLD_OPTIONS, options));
-        }
-        return builder.build().toModel();
-    }
-
-    /**
      * Prepare the data graph model for the provided inputs.
      *
      * @param dataFile File with RDF data.
@@ -616,7 +571,7 @@ public class SHACLValidator {
         // Upload the data in the Model.
         Model dataModel;
         try (InputStream dataStream = new FileInputStream(dataFile)) {
-            dataModel = readModel(dataStream, contextSyntaxToUse(), shapesModel == null ? null : shapesModel.getNsPrefixMap());
+            dataModel = fileManager.readModel(dataStream, contextSyntaxToUse(), shapesModel == null ? null : shapesModel.getNsPrefixMap());
             if (this.specs.isLoadImports()) {
                 if (this.specs.isLogProgress()) {
                     LOG.info("Loading imports...");
@@ -659,7 +614,7 @@ public class SHACLValidator {
                 // preprocessing: execute the CONSTRUCT query
                 Model inputModel;
                 try (InputStream dataStream = new FileInputStream(specs.getInputFileToValidate())) {
-                    inputModel = readModel(dataStream, contextSyntaxToUse(), null);
+                    inputModel = fileManager.readModel(dataStream, contextSyntaxToUse(), null);
                 } catch (IOException e) {
                     throw new ValidatorException("validator.label.exception.errorWhileReadingProvidedContent", e, e.getMessage());
                 } catch (JenaException e) {

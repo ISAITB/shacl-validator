@@ -15,9 +15,16 @@
 
 package eu.europa.ec.itb.shacl.validation;
 
+import com.apicatalog.jsonld.JsonLdOptions;
+import com.apicatalog.jsonld.http.DefaultHttpClient;
+import com.apicatalog.jsonld.http.media.MediaType;
+import com.apicatalog.jsonld.loader.FileLoader;
+import com.apicatalog.jsonld.loader.HttpLoader;
+import com.apicatalog.jsonld.loader.SchemeRouter;
 import eu.europa.ec.itb.shacl.ApplicationConfig;
 import eu.europa.ec.itb.shacl.DomainConfig;
 import eu.europa.ec.itb.shacl.SparqlQueryConfig;
+import eu.europa.ec.itb.shacl.ValidationSpecs;
 import eu.europa.ec.itb.shacl.util.ShaclValidatorUtils;
 import eu.europa.ec.itb.validation.commons.BaseFileManager;
 import eu.europa.ec.itb.validation.commons.FileInfo;
@@ -33,7 +40,11 @@ import org.apache.jena.query.QueryFactory;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFLanguages;
+import org.apache.jena.riot.RDFParserBuilder;
+import org.apache.jena.riot.system.PrefixMap;
+import org.apache.jena.riot.system.PrefixMapStd;
 import org.apache.jena.sparql.exec.http.QueryExecutionHTTP;
+import org.apache.jena.sparql.util.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,11 +55,16 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Supplier;
 
 import static eu.europa.ec.itb.shacl.util.ShaclValidatorUtils.handleEquivalentContentSyntaxes;
 import static eu.europa.ec.itb.shacl.util.ShaclValidatorUtils.isRdfContentSyntax;
+import static org.apache.jena.riot.lang.LangJSONLD11.JSONLD_OPTIONS;
 
 /**
  * Manages file-system operations.
@@ -62,6 +78,8 @@ public class FileManager extends BaseFileManager<ApplicationConfig> {
     private ApplicationConfig appConfig;
 
     private final ConcurrentHashMap<String, Path> shaclModelCache = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Model> materialisedShaclModelCache = new ConcurrentHashMap<>();
+    private final ReentrantLock cacheLock = new ReentrantLock();
 
     /**
      * Create a cache key to use for SHACL model file lookup.
@@ -181,12 +199,22 @@ public class FileManager extends BaseFileManager<ApplicationConfig> {
         String outputSyntaxToUse = outputSyntax;
         if (domainConfig.canCacheShapes(validationType)) {
             // Write the model to a file and cache it.
-            String cacheKey = toShaclModelCacheKey(domainConfig, validationType, outputSyntax);
-            Path cachedPath = shaclModelCache.get(cacheKey);
-            if (cachedPath == null || !Files.exists(cachedPath)) {
-                // Initialise in case of first access or in case file was removed.
-                cachedPath = storeShapeGraph(rdfModel, outputSyntaxToUse);
-                shaclModelCache.put(cacheKey, cachedPath);
+            Path cachedPath;
+            cacheLock.lock();
+            try {
+                String cacheKey = toShaclModelCacheKey(domainConfig, validationType, outputSyntax);
+                cachedPath = shaclModelCache.get(cacheKey);
+                if (cachedPath == null || !Files.exists(cachedPath)) {
+                    // Initialise in case of first access or in case file was removed.
+                    cachedPath = storeShapeGraph(rdfModel, outputSyntaxToUse);
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("Cached shape model for [{}] at [{}]", cacheKey, cachedPath.toAbsolutePath());
+                    }
+                    shaclModelCache.put(cacheKey, cachedPath);
+                    materialisedShaclModelCache.put(cacheKey, rdfModel);
+                }
+            } finally {
+                cacheLock.unlock();
             }
             Files.copy(cachedPath, outputPath);
         } else {
@@ -194,6 +222,110 @@ public class FileManager extends BaseFileManager<ApplicationConfig> {
                 writeRdfModel(out, rdfModel, outputSyntaxToUse);
             }
         }
+    }
+
+    /**
+     * Build the RDF model from the provided stream.
+     *
+     * @param dataStream The stream to read from.
+     * @param rdfLanguage The content type of the stream's data.
+     * @return The parsed model.
+     */
+    public Model readModel(InputStream dataStream, Lang rdfLanguage, Map<String, String> nsPrefixes) {
+        var builder = RDFParserBuilder
+                .create()
+                .lang(rdfLanguage)
+                .source(dataStream);
+        if (nsPrefixes != null) {
+            // Before parsing set the prefixes of the model to avoid mismatches.
+            PrefixMap prefixes = new PrefixMapStd();
+            prefixes.putAll(nsPrefixes);
+            builder = builder.prefixes(prefixes);
+        }
+        if (Lang.JSONLD11.equals(rdfLanguage) || Lang.JSONLD.equals(rdfLanguage)) {
+            var options = new JsonLdOptions();
+            var httpLoader = new HttpLoader(DefaultHttpClient.defaultInstance());
+            /*
+             * Set fallback type for remote contexts to avoid errors for non JSON/JSON-LD Content Types.
+             * This allows us to proceed if e.g. the Content Type originally returned is "text/plain".
+             */
+            httpLoader.setFallbackContentType(MediaType.JSON);
+            options.setDocumentLoader(new SchemeRouter()
+                    .set("http", httpLoader)
+                    .set("https", httpLoader)
+                    .set("file", new FileLoader()));
+            builder = builder.context(Context.create().set(JSONLD_OPTIONS, options));
+        }
+        return builder.build().toModel();
+    }
+
+    /**
+     * Add the provided model to the cache if possible.
+     *
+     * @param specs The current validation settings.
+     * @param shapeModel The model to cache.
+     */
+    private void cacheShapeModelIfPossible(ValidationSpecs specs, Model shapeModel) {
+        if (specs.getDomainConfig().canCacheShapes(specs.getValidationType()) && !specs.isLoadImports()) {
+            String cacheKey = toShaclModelCacheKey(specs.getDomainConfig(), specs.getValidationType(), specs.getDomainConfig().getDefaultReportSyntax());
+            cacheLock.lock();
+            try {
+                materialisedShaclModelCache.putIfAbsent(cacheKey, shapeModel);
+            } finally {
+                cacheLock.unlock();
+            }
+        }
+    }
+
+    /**
+     * Get the shapes model from the cache or from the provided supplier function.
+     *
+     * @param specs The current validation settings.
+     * @param modelSupplierIfNotCached Supplier for the model if it was not found in the cache.
+     * @return The model to use.
+     */
+    public Model getShapeModel(ValidationSpecs specs, Supplier<Model> modelSupplierIfNotCached) {
+        Model cachedModel = null;
+        String cacheKey = toShaclModelCacheKey(specs.getDomainConfig(), specs.getValidationType(), specs.getDomainConfig().getDefaultReportSyntax());
+        if (specs.isLoadImports()) {
+            if (specs.isLogProgress() && logger.isDebugEnabled()) {
+                logger.debug("Cached shape model for [{}] not loaded as we are loading imports", cacheKey);
+            }
+        } else {
+            cacheLock.lock();
+            try {
+                Model materialisedModel = materialisedShaclModelCache.get(cacheKey);
+                if (materialisedModel == null) {
+                    Path modelPath = shaclModelCache.get(cacheKey);
+                    if (modelPath != null) {
+                        try (InputStream dataStream = Files.newInputStream(modelPath)) {
+                            materialisedModel = readModel(dataStream, RDFLanguages.contentTypeToLang(specs.getDomainConfig().getDefaultReportSyntax()), null);
+                        } catch (IOException e) {
+                            throw new ValidatorException("validator.label.exception.errorReadingShaclFile", e);
+                        }
+                        materialisedShaclModelCache.put(cacheKey, materialisedModel);
+                        cachedModel = materialisedModel;
+                    }
+                } else {
+                    cachedModel = materialisedModel;
+                }
+            } finally {
+                cacheLock.unlock();
+            }
+            if (specs.isLogProgress() && logger.isDebugEnabled()) {
+                if (cachedModel == null) {
+                    logger.debug("Cached shape model for [{}] not found", cacheKey);
+                } else {
+                    logger.debug("Cached shape model for [{}] found", cacheKey);
+                }
+            }
+        }
+        cachedModel = Objects.requireNonNullElseGet(cachedModel, () -> {
+           Model loadedModel = modelSupplierIfNotCached.get();
+           cacheShapeModelIfPossible(specs, loadedModel);
+           return loadedModel;
+        });
+        return cachedModel;
     }
 
     /**
