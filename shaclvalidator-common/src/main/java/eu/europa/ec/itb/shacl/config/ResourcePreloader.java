@@ -15,10 +15,7 @@
 
 package eu.europa.ec.itb.shacl.config;
 
-import eu.europa.ec.itb.shacl.ApplicationConfig;
-import eu.europa.ec.itb.shacl.DomainConfig;
-import eu.europa.ec.itb.shacl.DomainConfigCache;
-import eu.europa.ec.itb.shacl.ValidationSpecs;
+import eu.europa.ec.itb.shacl.*;
 import eu.europa.ec.itb.shacl.validation.FileManager;
 import eu.europa.ec.itb.shacl.validation.SHACLValidator;
 import eu.europa.ec.itb.validation.commons.LocalisationHelper;
@@ -81,15 +78,16 @@ public class ResourcePreloader {
             LOG.info("Preloading owl:import references for domain [{}]", domainConfig.getDomainName());
             var localiser = new LocalisationHelper(domainConfig, Utils.getSupportedLocale(null, domainConfig));
             // Simulate a validation for each validation type with an empty model.
-            Model emptyModel = ModelFactory.createDefaultModel();
             String contentType = RDFLanguages.TURTLE.getContentType().getContentTypeStr();
             // Iterate over validation types.
+            var modelManager = new ModelManager(fileManager);
             domainConfig.getType().stream().filter(domainConfig::preloadImportsForType).forEach(validationType -> {
                 Path parentFolder = Path.of(appConfig.getTmpFolder(), UUID.randomUUID().toString());
                 boolean mergeModelsBeforeValidationSetting = domainConfig.isMergeModelsBeforeValidation();
                 try {
                     Files.createDirectories(parentFolder);
                     Path inputFile = Files.createFile(parentFolder.resolve("emptyModel.ttl"));
+                    Model emptyModel = ModelFactory.createDefaultModel();
                     try (var out = Files.newOutputStream(inputFile)) {
                         emptyModel.write(out, RDFLanguages.TURTLE.getName());
                         out.flush();
@@ -98,7 +96,7 @@ public class ResourcePreloader {
                     domainConfig.setMergeModelsBeforeValidation(false);
                     try {
                         LOG.info("Preloading owl:import references for validation type [{}]", validationType);
-                        ValidationSpecs specs = ValidationSpecs.builder(inputFile.toFile(), validationType, contentType, Collections.emptyList(), false, domainConfig, localiser)
+                        ValidationSpecs specs = ValidationSpecs.builder(inputFile.toFile(), validationType, contentType, Collections.emptyList(), false, domainConfig, localiser, modelManager)
                                 .withoutPlugins()
                                 .withoutProgressLogging()
                                 .build();
@@ -115,6 +113,7 @@ public class ResourcePreloader {
                 } catch (Exception e) {
                     LOG.warn("Failed to preload OWL imports for domain [{}]", domainConfig.getDomainName(), e);
                 } finally {
+                    modelManager.close();
                     FileUtils.deleteQuietly(parentFolder.toFile());
                     // Restore merge model setting.
                     domainConfig.setMergeModelsBeforeValidation(mergeModelsBeforeValidationSetting);

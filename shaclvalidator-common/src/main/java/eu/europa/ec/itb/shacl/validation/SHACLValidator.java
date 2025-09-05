@@ -121,7 +121,7 @@ public class SHACLValidator {
         if (specs.isLogProgress()) {
             LOG.info("Starting validation..");
         }
-    	try {
+        try {
             Model validationReport = validateAgainstShacl();
             if (specs.isUsePlugins()) {
                 validateAgainstPlugins(validationReport);
@@ -374,6 +374,9 @@ public class SHACLValidator {
             Resource resource = ValidationUtil.validateModel(dataModel, this.aggregatedShapes, false);
             reportModel = resource.getModel();
         }
+        specs.track(this.dataModel);
+        specs.track(this.aggregatedShapes);
+        specs.track(reportModel);
         reportModel.setNsPrefix("sh", SHACLResources.NS_SHACL);
         return reportModel;
     }
@@ -419,6 +422,7 @@ public class SHACLValidator {
         }
         
         this.importedShapes = JenaUtil.createMemoryModel();
+        specs.track(this.importedShapes);
         createImportedModels(aggregateModel);
         if (this.importedShapes != null) {
         	aggregateModel.add(importedShapes);
