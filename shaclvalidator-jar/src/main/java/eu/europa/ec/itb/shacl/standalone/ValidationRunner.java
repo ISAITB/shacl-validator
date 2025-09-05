@@ -108,7 +108,6 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
         String reportQuery = null;
         String type = null;
         String locale = null;
-        
         if (!requireType) {
             type = domainConfig.getType().get(0);        	
         }
@@ -243,8 +242,9 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
                     for (ShaclValidationInput input: inputs) {
                         LOGGER_FEEDBACK.info("\nValidating [{}]...", input.getFileName());
                         File inputFile = input.getInputFile();
+                        var modelManager = new ModelManager(fileManager);
                         try {
-                            ValidationSpecs specs = ValidationSpecs.builder(inputFile, type, input.getContentSyntax(), externalShapesList, loadImports, domainConfig, localiser).build();
+                            ValidationSpecs specs = ValidationSpecs.builder(inputFile, type, input.getContentSyntax(), externalShapesList, loadImports, domainConfig, localiser, modelManager).build();
                             SHACLValidator validator = applicationContext.getBean(SHACLValidator.class, specs);
                             ModelPair models = validator.validateAll();
                             // Output summary results.
@@ -279,12 +279,12 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
                             LOGGER_FEEDBACK.info("\nAn error occurred while executing the validation: {}", e.getMessageForDisplay(localiser));
                             LOGGER.error("An error occurred while executing the validation: {}", e.getMessageForLog(), e);
                             break;
-
                         } catch (Exception e) {
                             LOGGER_FEEDBACK.info("\nAn error occurred while executing the validation.");
                             LOGGER.error("An error occurred while executing the validation: {}", e.getMessage(), e);
                             break;
-
+                        } finally {
+                            modelManager.close();
                         }
                         i++;
                         LOGGER_FEEDBACK.info(" Done.\n");

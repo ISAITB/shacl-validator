@@ -53,6 +53,21 @@ public class ApplicationConfig extends eu.europa.ec.itb.validation.commons.confi
     private String defaultRdfReportSyntaxDescription;
     private String defaultRdfReportQueryDescription;
     private String defaultLocaleDescription;
+    private Integer maximumConcurrentValidations;
+
+    /**
+     * @return The maximum number of concurrent validations to perform.
+     */
+    public Integer getMaximumConcurrentValidations() {
+        return maximumConcurrentValidations;
+    }
+
+    /***
+     * @param maximumConcurrentValidations The maximum number of concurrent validations to perform.
+     */
+    public void setMaximumConcurrentValidations(Integer maximumConcurrentValidations) {
+        this.maximumConcurrentValidations = maximumConcurrentValidations;
+    }
 
     /**
      * @return The default web service input description for adding the SHACL validation report to the TAR report context.

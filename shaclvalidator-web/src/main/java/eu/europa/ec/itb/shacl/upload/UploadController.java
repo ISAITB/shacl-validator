@@ -21,6 +21,7 @@ import eu.europa.ec.itb.shacl.util.ShaclValidatorUtils;
 import eu.europa.ec.itb.shacl.validation.FileManager;
 import eu.europa.ec.itb.shacl.validation.ReportSpecs;
 import eu.europa.ec.itb.shacl.validation.SHACLValidator;
+import eu.europa.ec.itb.shacl.validation.ThroughputThrottler;
 import eu.europa.ec.itb.validation.commons.FileInfo;
 import eu.europa.ec.itb.validation.commons.LocalisationHelper;
 import eu.europa.ec.itb.validation.commons.ReportPair;
@@ -99,6 +100,8 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
     private InputHelper inputHelper;
     @Autowired
     private CustomLocaleResolver localeResolver;
+    @Autowired
+    ThroughputThrottler throttler;
 
     /**
      * Prevent parameter values that contain commas to be interpreted as separate values.
@@ -166,19 +169,19 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
      * @param file The input file (if provided via file upload).
      * @param uri The input URI (if provided via remote URI).
      * @param string The input content (if provided via editor).
-     * @param contentType The type of the provided content.
-     * @param validationType The validation type.
-     * @param contentSyntaxType The syntax for the content.
+     * @param contentTypeParam The type of the provided content.
+     * @param validationTypeParam The validation type.
+     * @param contentSyntaxTypeParam The syntax for the content.
      * @param externalContentType The content type for user-provided shapes (those provided as URIs).
      * @param externalFiles The user-provided shapes (those provided as files).
      * @param externalUri The user-provided shapes (those provided as URIs).
      * @param externalFilesSyntaxType The content type for user-provided shapes (those provided as files).
-     * @param loadImportsValue The load OWL imports from input flag.
+     * @param loadImportsValueParam The load OWL imports from input flag.
      * @param contentQuery The SPARQL query to load the input with.
      * @param contentQueryEndpoint The SPARQL endpoint URL to query for the content.
      * @param contentQueryAuthenticate Whether authentication is needed for the SPARQL endpoint.
-     * @param contentQueryUsername The username to use for authentication with the SPARQL endpoint.
-     * @param contentQueryPassword The password to use for authentication with the SPARQL endpoint.
+     * @param contentQueryUsernameParam The username to use for authentication with the SPARQL endpoint.
+     * @param contentQueryPasswordParam The password to use for authentication with the SPARQL endpoint.
      * @param request The received request.
      * @param response The produced response.
      * @return The model and view information.
@@ -189,168 +192,178 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                                  @RequestParam(value = "file", required = false) MultipartFile file,
                                  @RequestParam(value = "uri", defaultValue = "") String uri,
                                  @RequestParam(value = "text", defaultValue = "") String string,
-                                 @RequestParam(value = "contentType", defaultValue = "") String contentType,
-                                 @RequestParam(value = "validationType", defaultValue = "") String validationType,
-                                 @RequestParam(value = "contentSyntaxType", defaultValue = "") String contentSyntaxType,
+                                 @RequestParam(value = "contentType", defaultValue = "") String contentTypeParam,
+                                 @RequestParam(value = "validationType", defaultValue = "") String validationTypeParam,
+                                 @RequestParam(value = "contentSyntaxType", defaultValue = "") String contentSyntaxTypeParam,
                                  @RequestParam(value = "contentType-external_default", required = false, defaultValue = "") String[] externalContentType,
                                  @RequestParam(value = "inputFile-external_default", required= false) MultipartFile[] externalFiles,
                                  @RequestParam(value = "uri-external_default", required = false, defaultValue = "") String[] externalUri,
                                  @RequestParam(value = "text-external_default", required = false, defaultValue = "") String[] externalString,
                                  @RequestParam(value = "contentSyntaxType-external_default", required = false, defaultValue = "") String[] externalFilesSyntaxType,
-                                 @RequestParam(value = "loadImportsCheck", required = false, defaultValue = "false") Boolean loadImportsValue,
+                                 @RequestParam(value = "loadImportsCheck", required = false, defaultValue = "false") Boolean loadImportsValueParam,
                                  @RequestParam(value = "contentQuery", defaultValue = "") String contentQuery,
                                  @RequestParam(value = "contentQueryEndpoint", defaultValue = "") String contentQueryEndpoint,
                                  @RequestParam(value = "contentQueryAuthenticate", defaultValue = "false") Boolean contentQueryAuthenticate,
-                                 @RequestParam(value = "contentQueryUsername", defaultValue = "") String contentQueryUsername,
-                                 @RequestParam(value = "contentQueryPassword", defaultValue = "") String contentQueryPassword,
+                                 @RequestParam(value = "contentQueryUsername", defaultValue = "") String contentQueryUsernameParam,
+                                 @RequestParam(value = "contentQueryPassword", defaultValue = "") String contentQueryPasswordParam,
                                  HttpServletRequest request,
                                  HttpServletResponse response) {
-        var domainConfig = getDomainConfig(request);
-        contentType = checkInputType(contentType, file, uri, string, contentQuery);
-        // Temporary folder for the request.
-        File parentFolder = fileManager.createTemporaryFolderPath();
-        var localisationHelper = new LocalisationHelper(domainConfig, localeResolver.resolveLocale(request, response, domainConfig, appConfig));
+        return throttler.proceed(() -> {
+            String contentType = contentTypeParam;
+            String validationType = validationTypeParam;
+            String contentSyntaxType = contentSyntaxTypeParam;
+            String contentQueryUsername = contentQueryUsernameParam;
+            String contentQueryPassword = contentQueryPasswordParam;
+            Boolean loadImportsValue = loadImportsValueParam;
+            var domainConfig = getDomainConfig(request);
+            contentType = checkInputType(contentType, file, uri, string, contentQuery);
+            // Temporary folder for the request.
+            File parentFolder = fileManager.createTemporaryFolderPath();
+            var localisationHelper = new LocalisationHelper(domainConfig, localeResolver.resolveLocale(request, response, domainConfig, appConfig));
 
-        var result = new UploadResult();
-        result.setContentSyntax(getContentSyntax(domainConfig));
-        File inputFile = null;
-        List<FileInfo> userProvidedShapes = null;
-        boolean forceCleanup = false;
-        try {
-            // Check validation type.
-            if (!isOwnSubmission(request)) {
-                validationType = inputHelper.determineValidationType(validationType, domain, domainConfig);
-            }
-            validationType = inputHelper.validateValidationType(domainConfig, validationType);
-            if (domainConfig.hasMultipleValidationTypes() && (validationType == null || !domainConfig.getType().contains(validationType))) {
-                // A validation type is required.
-                result.setMessage(localisationHelper.localise("validator.label.exception.providedValidationTypeInvalid"));
-            } else {
-                // Check provided content type.
-                if (CONTENT_TYPE_QUERY.equals(contentType)) {
-                    // Load input using SPARQL query.
-                    contentSyntaxType = domainConfig.getQueryContentType();
-                    if (!domainConfig.isQueryAuthenticationMandatory() && Boolean.FALSE.equals(contentQueryAuthenticate)) {
-                        // Empty the optional credentials
-                        contentQueryUsername = null;
-                        contentQueryPassword = null;
-                    }
-                    SparqlQueryConfig queryConfig = new SparqlQueryConfig(contentQueryEndpoint, contentQuery, contentQueryUsername, contentQueryPassword, contentSyntaxType);
-                    queryConfig = inputHelper.validateSparqlConfiguration(domainConfig, queryConfig);
-                    inputFile = fileManager.getContentFromSparqlEndpoint(queryConfig, parentFolder, FILE_NAME_INPUT).toFile();
+            var result = new UploadResult();
+            result.setContentSyntax(getContentSyntax(domainConfig));
+            File inputFile = null;
+            List<FileInfo> userProvidedShapes = null;
+            boolean forceCleanup = false;
+            var modelManager = new ModelManager(fileManager);
+            try {
+                // Check validation type.
+                if (!isOwnSubmission(request)) {
+                    validationType = inputHelper.determineValidationType(validationType, domain, domainConfig);
+                }
+                validationType = inputHelper.validateValidationType(domainConfig, validationType);
+                if (domainConfig.hasMultipleValidationTypes() && (validationType == null || !domainConfig.getType().contains(validationType))) {
+                    // A validation type is required.
+                    result.setMessage(localisationHelper.localise("validator.label.exception.providedValidationTypeInvalid"));
                 } else {
-                    var noContentSyntaxProvided = contentSyntaxType.isEmpty() || contentSyntaxType.equals(EMPTY);
-                    switch (contentType) {
-                        case CONTENT_TYPE_STRING:
-                            if (noContentSyntaxProvided) {
-                                logger.error("Provided content syntax type is not valid");
-                                result.setMessage(localisationHelper.localise("validator.label.exception.providedContentSyntaxInvalid"));
-                            } else {
-                                inputFile = this.fileManager.getFileFromString(parentFolder, string, contentSyntaxType, FILE_NAME_INPUT);
-                            }
-                            break;
-                        case CONTENT_TYPE_FILE:
-                            Objects.requireNonNull(file, "The input file must be provided");
-                            if (noContentSyntaxProvided) {
-                                contentSyntaxType = getExtensionContentTypeForFileName(file.getOriginalFilename());
-                            }
-                            try (var stream = file.getInputStream()) {
-                                inputFile = fileManager.getFileFromInputStream(parentFolder, stream, contentSyntaxType, FILE_NAME_INPUT);
-                            }
-                            break;
-                        case CONTENT_TYPE_URI:
-                            if (noContentSyntaxProvided) {
-                                contentSyntaxType = getExtensionContentTypeForURL(uri);
-                            }
-                            FileInfo uriResult = this.fileManager.getFileFromURL(parentFolder, uri, fileManager.getFileExtension(contentSyntaxType), FILE_NAME_INPUT, null, null, null, getAcceptedContentTypes(contentSyntaxType), domainConfig.getHttpVersion());
-                            inputFile = uriResult.getFile();
-                            if (noContentSyntaxProvided) {
-                                // Only override the content syntax if one has not been explicitly provided as part of the input.
-                                contentSyntaxType = ShaclValidatorUtils.contentSyntaxToUse(contentSyntaxType, uriResult.getType());
-                            }
-                            break;
-                        default:
-                            throw new IllegalArgumentException("Unknown content type [" + contentType + "]");
-                    }
-                }
-            }
-            if (inputFile != null) {
-                // Proceed with the validation.
-                if (hasExternalShapes(domainConfig, validationType)) {
-                    userProvidedShapes = getExternalShapes(externalContentType, externalFiles, externalUri, externalString, externalFilesSyntaxType, parentFolder, domainConfig.getHttpVersion());
-                } else {
-                    userProvidedShapes = Collections.emptyList();
-                }
-                if (domainConfig.getUserInputForLoadImportsType().get(validationType) == ExternalArtifactSupport.NONE) {
-                    loadImportsValue = null;
-                }
-                loadImportsValue = inputHelper.validateLoadInputs(domainConfig, loadImportsValue, validationType);
-                ValidationSpecs specs = ValidationSpecs.builder(inputFile, validationType, contentSyntaxType, userProvidedShapes, loadImportsValue, domainConfig, localisationHelper).build();
-                SHACLValidator validator = ctx.getBean(SHACLValidator.class, specs);
-                ModelPair models = validator.validateAll();
-                ReportPair tarReport = ShaclValidatorUtils.getTAR(ReportSpecs
-                        .builder(models.getInputModel(), models.getReportModel(), localisationHelper, domainConfig, validator.getValidationType())
-                        .produceAggregateReport()
-                        .build()
-                );
-                fileManager.saveReport(tarReport.getDetailedReport(), fileManager.createFile(parentFolder, ".xml", FILE_NAME_TAR).toFile(), domainConfig);
-                fileManager.saveReport(tarReport.getAggregateReport(), fileManager.createFile(parentFolder, ".xml", FILE_NAME_TAR_AGGREGATE).toFile(), domainConfig);
-                String fileName;
-                if (CONTENT_TYPE_FILE.equals(contentType)) {
-                    fileName = file.getOriginalFilename();
-                } else if (CONTENT_TYPE_URI.equals(contentType)) {
-                    fileName = uri;
-                } else {
-                    // Query or editor.
-                    fileName = "-";
-                }
-                String extension = fileManager.getFileExtension(domainConfig.getDefaultReportSyntax());
-                try (FileWriter out = new FileWriter(fileManager.createFile(parentFolder, extension, FILE_NAME_REPORT).toFile())) {
-                    fileManager.writeRdfModel(out, models.getReportModel(), domainConfig.getDefaultReportSyntax());
-                }
-                fileManager.writeShaclShapes(fileManager.createFile(parentFolder, extension, FILE_NAME_SHAPES), validator.getAggregatedShapes(), validationType, domainConfig.getDefaultReportSyntax(), domainConfig);
-                // Report if needed an error on owl:imports having failed.
-                if (validator.hasErrorsDuringOwlImports()) {
-                    // We always add the error messages as they will be included as (hidden) additional input.
-                    result.setAdditionalErrorMessages(validator.getErrorsWhileLoadingOwlImports());
-                    if (validator.hasErrorsWhileLoadingOwlImportsToReport() && result.getMessage() == null && domainConfig.getResponseForImportedShapeFailure(validationType) == ErrorResponseTypeEnum.WARN) {
-                        result.setMessage(localisationHelper.localise("validator.label.exception.failureToLoadRemoteArtefacts"));
-                        result.setMessageIsError(false);
+                    // Check provided content type.
+                    if (CONTENT_TYPE_QUERY.equals(contentType)) {
+                        // Load input using SPARQL query.
+                        contentSyntaxType = domainConfig.getQueryContentType();
+                        if (!domainConfig.isQueryAuthenticationMandatory() && Boolean.FALSE.equals(contentQueryAuthenticate)) {
+                            // Empty the optional credentials
+                            contentQueryUsername = null;
+                            contentQueryPassword = null;
+                        }
+                        SparqlQueryConfig queryConfig = new SparqlQueryConfig(contentQueryEndpoint, contentQuery, contentQueryUsername, contentQueryPassword, contentSyntaxType);
+                        queryConfig = inputHelper.validateSparqlConfiguration(domainConfig, queryConfig);
+                        inputFile = fileManager.getContentFromSparqlEndpoint(queryConfig, parentFolder, FILE_NAME_INPUT).toFile();
+                    } else {
+                        var noContentSyntaxProvided = contentSyntaxType.isEmpty() || contentSyntaxType.equals(EMPTY);
+                        switch (contentType) {
+                            case CONTENT_TYPE_STRING:
+                                if (noContentSyntaxProvided) {
+                                    logger.error("Provided content syntax type is not valid");
+                                    result.setMessage(localisationHelper.localise("validator.label.exception.providedContentSyntaxInvalid"));
+                                } else {
+                                    inputFile = this.fileManager.getFileFromString(parentFolder, string, contentSyntaxType, FILE_NAME_INPUT);
+                                }
+                                break;
+                            case CONTENT_TYPE_FILE:
+                                Objects.requireNonNull(file, "The input file must be provided");
+                                if (noContentSyntaxProvided) {
+                                    contentSyntaxType = getExtensionContentTypeForFileName(file.getOriginalFilename());
+                                }
+                                try (var stream = file.getInputStream()) {
+                                    inputFile = fileManager.getFileFromInputStream(parentFolder, stream, contentSyntaxType, FILE_NAME_INPUT);
+                                }
+                                break;
+                            case CONTENT_TYPE_URI:
+                                if (noContentSyntaxProvided) {
+                                    contentSyntaxType = getExtensionContentTypeForURL(uri);
+                                }
+                                FileInfo uriResult = this.fileManager.getFileFromURL(parentFolder, uri, fileManager.getFileExtension(contentSyntaxType), FILE_NAME_INPUT, null, null, null, getAcceptedContentTypes(contentSyntaxType), domainConfig.getHttpVersion());
+                                inputFile = uriResult.getFile();
+                                if (noContentSyntaxProvided) {
+                                    // Only override the content syntax if one has not been explicitly provided as part of the input.
+                                    contentSyntaxType = ShaclValidatorUtils.contentSyntaxToUse(contentSyntaxType, uriResult.getType());
+                                }
+                                break;
+                            default:
+                                throw new IllegalArgumentException("Unknown content type [" + contentType + "]");
+                        }
                     }
                 }
-                // All ok - collect data for the UI.
-                result.populateCommon(localisationHelper, validationType, domainConfig, parentFolder.getName(),
-                        fileName, tarReport.getDetailedReport(), tarReport.getAggregateReport(),
-                        prepareTranslations(localisationHelper, tarReport.getDetailedReport(), domainConfig));
+                if (inputFile != null) {
+                    // Proceed with the validation.
+                    if (hasExternalShapes(domainConfig, validationType)) {
+                        userProvidedShapes = getExternalShapes(externalContentType, externalFiles, externalUri, externalString, externalFilesSyntaxType, parentFolder, domainConfig.getHttpVersion());
+                    } else {
+                        userProvidedShapes = Collections.emptyList();
+                    }
+                    if (domainConfig.getUserInputForLoadImportsType().get(validationType) == ExternalArtifactSupport.NONE) {
+                        loadImportsValue = null;
+                    }
+                    loadImportsValue = inputHelper.validateLoadInputs(domainConfig, loadImportsValue, validationType);
+                    ValidationSpecs specs = ValidationSpecs.builder(inputFile, validationType, contentSyntaxType, userProvidedShapes, loadImportsValue, domainConfig, localisationHelper, modelManager).build();
+                    SHACLValidator validator = ctx.getBean(SHACLValidator.class, specs);
+                    ModelPair models = validator.validateAll();
+                    ReportPair tarReport = ShaclValidatorUtils.getTAR(ReportSpecs
+                            .builder(models.getInputModel(), models.getReportModel(), localisationHelper, domainConfig, validator.getValidationType())
+                            .produceAggregateReport()
+                            .build()
+                    );
+                    fileManager.saveReport(tarReport.getDetailedReport(), fileManager.createFile(parentFolder, ".xml", FILE_NAME_TAR).toFile(), domainConfig);
+                    fileManager.saveReport(tarReport.getAggregateReport(), fileManager.createFile(parentFolder, ".xml", FILE_NAME_TAR_AGGREGATE).toFile(), domainConfig);
+                    String fileName;
+                    if (CONTENT_TYPE_FILE.equals(contentType)) {
+                        fileName = file.getOriginalFilename();
+                    } else if (CONTENT_TYPE_URI.equals(contentType)) {
+                        fileName = uri;
+                    } else {
+                        // Query or editor.
+                        fileName = "-";
+                    }
+                    String extension = fileManager.getFileExtension(domainConfig.getDefaultReportSyntax());
+                    try (FileWriter out = new FileWriter(fileManager.createFile(parentFolder, extension, FILE_NAME_REPORT).toFile())) {
+                        fileManager.writeRdfModel(out, models.getReportModel(), domainConfig.getDefaultReportSyntax());
+                    }
+                    fileManager.writeShaclShapes(fileManager.createFile(parentFolder, extension, FILE_NAME_SHAPES), validator.getAggregatedShapes(), validationType, domainConfig.getDefaultReportSyntax(), domainConfig);
+                    // Report if needed an error on owl:imports having failed.
+                    if (validator.hasErrorsDuringOwlImports()) {
+                        // We always add the error messages as they will be included as (hidden) additional input.
+                        result.setAdditionalErrorMessages(validator.getErrorsWhileLoadingOwlImports());
+                        if (validator.hasErrorsWhileLoadingOwlImportsToReport() && result.getMessage() == null && domainConfig.getResponseForImportedShapeFailure(validationType) == ErrorResponseTypeEnum.WARN) {
+                            result.setMessage(localisationHelper.localise("validator.label.exception.failureToLoadRemoteArtefacts"));
+                            result.setMessageIsError(false);
+                        }
+                    }
+                    // All ok - collect data for the UI.
+                    result.populateCommon(localisationHelper, validationType, domainConfig, parentFolder.getName(),
+                            fileName, tarReport.getDetailedReport(), tarReport.getAggregateReport(),
+                            prepareTranslations(localisationHelper, tarReport.getDetailedReport(), domainConfig));
+                }
+            } catch (ExtendedValidatorException e) {
+                logger.error(e.getMessageForLog(), e);
+                result.setMessage(e.getMessageForDisplay(localisationHelper));
+                result.setAdditionalErrorMessages(e.getAdditionalInformation());
+                forceCleanup = true;
+            } catch (ValidatorException e) {
+                logger.error(e.getMessageForLog(), e);
+                result.setMessage(e.getMessageForDisplay(localisationHelper));
+                forceCleanup = true;
+            } catch (Exception e) {
+                logger.error("An error occurred during the validation [{}]", e.getMessage(), e);
+                if (e.getMessage() != null) {
+                    result.setMessage(localisationHelper.localise("validator.label.exception.unexpectedErrorDuringValidationWithParams", e.getMessage()));
+                } else {
+                    result.setMessage(localisationHelper.localise("validator.label.exception.unexpectedErrorDuringValidation"));
+                }
+                forceCleanup = true;
+            } finally {
+                /*
+                 * In the web UI case the cleanup cannot fully remove the temp folder as we need to keep the reports.
+                 */
+                if (forceCleanup) {
+                    FileUtils.deleteQuietly(parentFolder);
+                } else {
+                    fileManager.removeContentToValidate(null, userProvidedShapes);
+                }
+                modelManager.close();
             }
-        } catch (ExtendedValidatorException e) {
-            logger.error(e.getMessageForLog(), e);
-            result.setMessage(e.getMessageForDisplay(localisationHelper));
-            result.setAdditionalErrorMessages(e.getAdditionalInformation());
-            forceCleanup = true;
-        } catch (ValidatorException e) {
-            logger.error(e.getMessageForLog(), e);
-            result.setMessage(e.getMessageForDisplay(localisationHelper));
-            forceCleanup = true;
-        } catch (Exception e) {
-            logger.error("An error occurred during the validation [{}]", e.getMessage(), e);
-            if (e.getMessage() != null) {
-                result.setMessage(localisationHelper.localise("validator.label.exception.unexpectedErrorDuringValidationWithParams", e.getMessage()));
-            } else {
-                result.setMessage(localisationHelper.localise("validator.label.exception.unexpectedErrorDuringValidation"));
-            }
-            forceCleanup = true;
-        } finally {
-        	/*
-        	In the web UI case the cleanup cannot fully remove the temp folder as we need to keep the reports.
-        	 */
-            if (forceCleanup) {
-                FileUtils.deleteQuietly(parentFolder);
-            } else {
-                fileManager.removeContentToValidate(null, userProvidedShapes);
-            }
-        }
-        return result;
+            return result;
+        });
     }
 
     /**

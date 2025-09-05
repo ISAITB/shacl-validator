@@ -25,6 +25,7 @@ import eu.europa.ec.itb.shacl.util.ShaclValidatorUtils;
 import eu.europa.ec.itb.shacl.validation.FileManager;
 import eu.europa.ec.itb.shacl.validation.ReportSpecs;
 import eu.europa.ec.itb.shacl.validation.SHACLValidator;
+import eu.europa.ec.itb.shacl.validation.ThroughputThrottler;
 import eu.europa.ec.itb.validation.commons.FileContent;
 import eu.europa.ec.itb.validation.commons.FileInfo;
 import eu.europa.ec.itb.validation.commons.LocalisationHelper;
@@ -77,6 +78,8 @@ public class RestValidationController extends BaseRestController<DomainConfig, A
     ApplicationContext ctx;
     @Autowired
     FileManager fileManager;
+    @Autowired
+    ThroughputThrottler throttler;
 
     @Value("${validator.acceptedHeaderAcceptTypes}")
     Set<String> acceptedHeaderAcceptTypes;
@@ -170,30 +173,37 @@ public class RestValidationController extends BaseRestController<DomainConfig, A
             @RequestBody Input in,
             HttpServletRequest request
     ) {
-        DomainConfig domainConfig = validateDomain(domain);
-        // Consider the case that we have a cross-domain alias and resolve the validation type accordingly.
-        in.setValidationType(inputHelper.determineValidationType(in.getValidationType(), domain, domainConfig));
-        var reportSyntax = getValidationReportSyntax(in.getReportSyntax(), getAcceptHeader(request, domainConfig.getDefaultReportSyntax()));
-        /*
-         * Important: We call executeValidationProcess here and not in the return statement because the StreamingResponseBody
-         * uses a separate thread. Doing so would break the ThreadLocal used in the statistics reporting.
-         */
-        var result = executeValidationProcess(in, domainConfig);
-        return ResponseEntity.ok()
-                .contentType(reportSyntax)
-                .body(outputStream -> {
-                    if (MediaType.APPLICATION_XML.equals(reportSyntax) || MediaType.TEXT_XML.equals(reportSyntax)) {
-                        // GITB TRL report (XML format).
-                        var wrapReportDataInCDATA = Objects.requireNonNullElse(in.getWrapReportDataInCDATA(), false);
-                        fileManager.saveReport(createTAR(in, result, domainConfig, result.getValidationType()), outputStream, domainConfig, wrapReportDataInCDATA);
-                    } else if (MediaType.APPLICATION_JSON.equals(reportSyntax)) {
-                        // GITB TRL report (JSON format).
-                        writeReportAsJson(outputStream, createTAR(in, result, domainConfig, result.getValidationType()), domainConfig);
-                    } else {
-                        // SHACL validation report.
-                        fileManager.writeRdfModel(outputStream, result.getReport(), reportSyntax.toString());
-                    }
-                });
+        return throttler.proceed(() -> {
+            DomainConfig domainConfig = validateDomain(domain);
+            // Consider the case that we have a cross-domain alias and resolve the validation type accordingly.
+            in.setValidationType(inputHelper.determineValidationType(in.getValidationType(), domain, domainConfig));
+            var reportSyntax = getValidationReportSyntax(in.getReportSyntax(), getAcceptHeader(request, domainConfig.getDefaultReportSyntax()));
+            /*
+             * Important: We call executeValidationProcess here and not in the return statement because the StreamingResponseBody
+             * uses a separate thread. Doing so would break the ThreadLocal used in the statistics reporting.
+             */
+            var modelManager = new ModelManager(fileManager);
+            var result = executeValidationProcess(in, domainConfig, modelManager);
+            return ResponseEntity.ok()
+                    .contentType(reportSyntax)
+                    .body(outputStream -> {
+                        try {
+                            if (MediaType.APPLICATION_XML.equals(reportSyntax) || MediaType.TEXT_XML.equals(reportSyntax)) {
+                                // GITB TRL report (XML format).
+                                var wrapReportDataInCDATA = Objects.requireNonNullElse(in.getWrapReportDataInCDATA(), false);
+                                fileManager.saveReport(createTAR(in, result, domainConfig, result.getValidationType()), outputStream, domainConfig, wrapReportDataInCDATA);
+                            } else if (MediaType.APPLICATION_JSON.equals(reportSyntax)) {
+                                // GITB TRL report (JSON format).
+                                writeReportAsJson(outputStream, createTAR(in, result, domainConfig, result.getValidationType()), domainConfig);
+                            } else {
+                                // SHACL validation report.
+                                fileManager.writeRdfModel(outputStream, result.getReport(), reportSyntax.toString());
+                            }
+                        } finally {
+                            modelManager.close();
+                        }
+                    });
+        });
     }
 
     /**
@@ -276,9 +286,10 @@ public class RestValidationController extends BaseRestController<DomainConfig, A
      *
      * @param in The input for the validation of one RDF document.
      * @param domainConfig The domain where the SHACL validator is executed.
+     * @param modelManager The model manager to track created models.
      * @return The report's models (input and report).
      */
-    private ValidationResources executeValidationProcess(Input in, DomainConfig domainConfig) {
+    private ValidationResources executeValidationProcess(Input in, DomainConfig domainConfig, ModelManager modelManager) {
         // Start validation of the input file
         File parentFolder = fileManager.createTemporaryFolderPath();
         File inputFile;
@@ -300,7 +311,7 @@ public class RestValidationController extends BaseRestController<DomainConfig, A
             }
             Boolean loadImports = inputHelper.validateLoadInputs(domainConfig, in.isLoadImports(), validationType);
             // Execute validation
-            ValidationSpecs specs = ValidationSpecs.builder(inputFile, validationType, contentSyntax, externalShapes, loadImports, domainConfig, new LocalisationHelper(domainConfig, Utils.getSupportedLocale(LocaleUtils.toLocale(in.getLocale()), domainConfig))).build();
+            ValidationSpecs specs = ValidationSpecs.builder(inputFile, validationType, contentSyntax, externalShapes, loadImports, domainConfig, new LocalisationHelper(domainConfig, Utils.getSupportedLocale(LocaleUtils.toLocale(in.getLocale()), domainConfig)), modelManager).build();
             SHACLValidator validator = ctx.getBean(SHACLValidator.class, specs);
             ModelPair models = validator.validateAll();
             if (in.getReportQuery() != null && !in.getReportQuery().isBlank()) {
@@ -428,35 +439,40 @@ public class RestValidationController extends BaseRestController<DomainConfig, A
         DomainConfig domainConfig = validateDomain(domain);
         String acceptHeader = getAcceptHeader(request, domainConfig.getDefaultReportSyntax());
         Output[] outputs = new Output[inputs.length];
-        int i = 0;
-        for (Input input: inputs) {
-            Output output = new Output();
-            // Consider the case that we have a cross-domain alias and resolve the validation type accordingly.
-            input.setValidationType(inputHelper.determineValidationType(input.getValidationType(), domain, domainConfig));
-            var reportSyntax = getValidationReportSyntax(input.getReportSyntax(), acceptHeader);
-            if (MediaType.APPLICATION_JSON.equals(reportSyntax)) {
-                // We don't support a JSON GITB TRL when validating multiple inputs.
-                reportSyntax = MediaType.APPLICATION_XML;
-            }
-            // Start validation process of the Input
-            var result = executeValidationProcess(input, domainConfig);
-            if (MediaType.APPLICATION_XML.equals(reportSyntax) || MediaType.TEXT_XML.equals(reportSyntax)) {
-                // GITB TRL report (XML format).
-                try (var bos = new ByteArrayOutputStream()) {
-                    var wrapReportDataInCDATA = Objects.requireNonNullElse(input.getWrapReportDataInCDATA(), false);
-                    fileManager.saveReport(createTAR(input, result, domainConfig, result.getValidationType()), bos, domainConfig, wrapReportDataInCDATA);
-                    output.setReport(Base64.getEncoder().encodeToString(bos.toByteArray()));
-                } catch (IOException e) {
-                    throw new ValidatorException(e);
+        var modelManager = new ModelManager(fileManager);
+        try {
+            int i = 0;
+            for (Input input: inputs) {
+                Output output = new Output();
+                // Consider the case that we have a cross-domain alias and resolve the validation type accordingly.
+                input.setValidationType(inputHelper.determineValidationType(input.getValidationType(), domain, domainConfig));
+                var reportSyntax = getValidationReportSyntax(input.getReportSyntax(), acceptHeader);
+                if (MediaType.APPLICATION_JSON.equals(reportSyntax)) {
+                    // We don't support a JSON GITB TRL when validating multiple inputs.
+                    reportSyntax = MediaType.APPLICATION_XML;
                 }
-            } else {
-                output.setReport(Base64.getEncoder().encodeToString(fileManager.writeRdfModelToString(result.getReport(), reportSyntax.toString()).getBytes()));
+                // Start validation process of the Input
+                var result = executeValidationProcess(input, domainConfig, modelManager);
+                if (MediaType.APPLICATION_XML.equals(reportSyntax) || MediaType.TEXT_XML.equals(reportSyntax)) {
+                    // GITB TRL report (XML format).
+                    try (var bos = new ByteArrayOutputStream()) {
+                        var wrapReportDataInCDATA = Objects.requireNonNullElse(input.getWrapReportDataInCDATA(), false);
+                        fileManager.saveReport(createTAR(input, result, domainConfig, result.getValidationType()), bos, domainConfig, wrapReportDataInCDATA);
+                        output.setReport(Base64.getEncoder().encodeToString(bos.toByteArray()));
+                    } catch (IOException e) {
+                        throw new ValidatorException(e);
+                    }
+                } else {
+                    output.setReport(Base64.getEncoder().encodeToString(fileManager.writeRdfModelToString(result.getReport(), reportSyntax.toString()).getBytes()));
+                }
+                output.setReportSyntax(reportSyntax.toString());
+                outputs[i] = output;
+                i++;
             }
-            output.setReportSyntax(reportSyntax.toString());
-            outputs[i] = output;
-            i++;
+            return outputs;
+        } finally {
+            modelManager.close();
         }
-        return outputs;
     }
 
     /**

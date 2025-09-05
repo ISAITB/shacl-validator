@@ -17,6 +17,7 @@ package eu.europa.ec.itb.shacl;
 
 import eu.europa.ec.itb.validation.commons.FileInfo;
 import eu.europa.ec.itb.validation.commons.LocalisationHelper;
+import org.apache.jena.rdf.model.Model;
 
 import java.io.File;
 import java.util.List;
@@ -36,6 +37,7 @@ public class ValidationSpecs {
     private LocalisationHelper localiser;
     private boolean logProgress;
     private boolean usePlugins;
+    private ModelManager modelManager;
 
     /**
      * Private constructor to prevent direct initialisation.
@@ -106,6 +108,15 @@ public class ValidationSpecs {
     }
 
     /**
+     * Track the provided model.
+     *
+     * @param model The model to track.
+     */
+    public void track(Model model) {
+        if (modelManager != null) modelManager.track(model);
+    }
+
+    /**
      * Build the validation specifications.
      *
      * @param inputFileToValidate The input RDF (or other) content to validate.
@@ -115,13 +126,14 @@ public class ValidationSpecs {
      * @param loadImports True if OWL imports in the content should be loaded before validation.
      * @param domainConfig The domain in question.
      * @param localiser Helper class for localisations.
+     * @param modelManager The model manager instance to use.
      * @return The specification builder.
      */
-    public static Builder builder(File inputFileToValidate, String validationType, String contentSyntax, List<FileInfo> externalShaclFiles, boolean loadImports, DomainConfig domainConfig, LocalisationHelper localiser) {
+    public static Builder builder(File inputFileToValidate, String validationType, String contentSyntax, List<FileInfo> externalShaclFiles, boolean loadImports, DomainConfig domainConfig, LocalisationHelper localiser, ModelManager modelManager) {
         if (validationType == null) {
             validationType = domainConfig.getType().get(0);
         }
-        return new Builder(inputFileToValidate, validationType, contentSyntax, externalShaclFiles, loadImports, domainConfig, localiser);
+        return new Builder(inputFileToValidate, validationType, contentSyntax, externalShaclFiles, loadImports, domainConfig, localiser, modelManager);
     }
 
     /**
@@ -135,14 +147,15 @@ public class ValidationSpecs {
          * Constructor.
          *
          * @param inputFileToValidate The input RDF (or other) content to validate.
-         * @param validationType The type of validation to perform.
-         * @param contentSyntax The mime type of the provided RDF content.
-         * @param externalShaclFiles Any shapes to consider that are externally provided
-         * @param loadImports True if OWL imports in the content should be loaded before validation.
-         * @param domainConfig The domain in question.
-         * @param localiser Helper class for localisations.
+         * @param validationType      The type of validation to perform.
+         * @param contentSyntax       The mime type of the provided RDF content.
+         * @param externalShaclFiles  Any shapes to consider that are externally provided
+         * @param loadImports         True if OWL imports in the content should be loaded before validation.
+         * @param domainConfig        The domain in question.
+         * @param localiser           Helper class for localisations.
+         * @param modelManager        The model manager instance to use.
          */
-        Builder(File inputFileToValidate, String validationType, String contentSyntax, List<FileInfo> externalShaclFiles, boolean loadImports, DomainConfig domainConfig, LocalisationHelper localiser) {
+        Builder(File inputFileToValidate, String validationType, String contentSyntax, List<FileInfo> externalShaclFiles, boolean loadImports, DomainConfig domainConfig, LocalisationHelper localiser, ModelManager modelManager) {
             instance = new ValidationSpecs();
             this.instance.contentSyntax = contentSyntax;
             this.instance.inputFileToValidate = inputFileToValidate;
@@ -153,6 +166,7 @@ public class ValidationSpecs {
             this.instance.validationType = validationType;
             this.instance.logProgress = true;
             this.instance.usePlugins = true;
+            this.instance.modelManager = modelManager;
         }
 
         /**

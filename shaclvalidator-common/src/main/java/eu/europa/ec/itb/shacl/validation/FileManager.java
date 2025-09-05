@@ -54,10 +54,7 @@ import java.io.*;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
@@ -79,6 +76,7 @@ public class FileManager extends BaseFileManager<ApplicationConfig> {
 
     private final ConcurrentHashMap<String, Path> shaclModelCache = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Model> materialisedShaclModelCache = new ConcurrentHashMap<>();
+    private final Set<Model> cachedModels = Collections.synchronizedSet(Collections.newSetFromMap(new IdentityHashMap<>()));
     private final ReentrantLock cacheLock = new ReentrantLock();
 
     /**
@@ -212,6 +210,7 @@ public class FileManager extends BaseFileManager<ApplicationConfig> {
                     }
                     shaclModelCache.put(cacheKey, cachedPath);
                     materialisedShaclModelCache.put(cacheKey, rdfModel);
+                    cachedModels.add(rdfModel);
                 }
             } finally {
                 cacheLock.unlock();
@@ -260,6 +259,16 @@ public class FileManager extends BaseFileManager<ApplicationConfig> {
     }
 
     /**
+     * Check to see if the provided model is cached.
+     *
+     * @param modelToCheck The model to check.
+     * @return The check result.
+     */
+    public boolean isCachedModel(Model modelToCheck) {
+        return modelToCheck != null && cachedModels.contains(modelToCheck);
+    }
+
+    /**
      * Add the provided model to the cache if possible.
      *
      * @param specs The current validation settings.
@@ -271,6 +280,7 @@ public class FileManager extends BaseFileManager<ApplicationConfig> {
             cacheLock.lock();
             try {
                 materialisedShaclModelCache.putIfAbsent(cacheKey, shapeModel);
+                cachedModels.add(shapeModel);
             } finally {
                 cacheLock.unlock();
             }

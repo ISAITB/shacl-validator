@@ -20,10 +20,7 @@ import com.gitb.vs.*;
 import com.gitb.vs.Void;
 import eu.europa.ec.itb.shacl.*;
 import eu.europa.ec.itb.shacl.util.ShaclValidatorUtils;
-import eu.europa.ec.itb.shacl.validation.FileManager;
-import eu.europa.ec.itb.shacl.validation.ReportSpecs;
-import eu.europa.ec.itb.shacl.validation.SHACLValidator;
-import eu.europa.ec.itb.shacl.validation.ValidationConstants;
+import eu.europa.ec.itb.shacl.validation.*;
 import eu.europa.ec.itb.validation.commons.FileInfo;
 import eu.europa.ec.itb.validation.commons.LocalisationHelper;
 import eu.europa.ec.itb.validation.commons.ReportPair;
@@ -65,6 +62,8 @@ public class ValidationServiceImpl implements ValidationService, WebServiceConte
     ApplicationContext ctx;
     @Autowired
 	FileManager fileManager;
+    @Autowired
+    ThroughputThrottler throttler;
     @Resource
     WebServiceContext wsContext;
 
@@ -142,52 +141,56 @@ public class ValidationServiceImpl implements ValidationService, WebServiceConte
      */
     @Override
     public ValidationResponse validate(@WebParam(name = "ValidateRequest", targetNamespace = "http://www.gitb.com/vs/v1/", partName = "parameters") ValidateRequest validateRequest) {
-    	MDC.put("domain", domainConfig.getDomain());
-		File parentFolder = fileManager.createTemporaryFolderPath();
-		File contentToValidate;
-        var localiser = new LocalisationHelper(domainConfig, Utils.getSupportedLocale(LocaleUtils.toLocale(getInputAsString(validateRequest, ValidationConstants.INPUT_LOCALE, null)), domainConfig));
-		try {
-			// Validation of the input data
-			String contentSyntax = validateContentSyntax(validateRequest);
-			ValueEmbeddingEnumeration contentEmbeddingMethod = inputHelper.validateContentEmbeddingMethod(validateRequest, ValidationConstants.INPUT_EMBEDDING_METHOD);
-            var queryConfig = parseQueryConfiguration(validateRequest);
-			if (queryConfig == null) {
-                var contentInfo = inputHelper.validateContentToValidate(validateRequest, ValidationConstants.INPUT_CONTENT, contentEmbeddingMethod, contentSyntax, parentFolder, domainConfig.getHttpVersion());
-				contentToValidate = contentInfo.getFile();
-                contentSyntax = contentInfo.getType();
-			} else {
-                queryConfig.setPreferredContentType(contentSyntax);
-				queryConfig = inputHelper.validateSparqlConfiguration(domainConfig, queryConfig);
-                contentToValidate = fileManager.getContentFromSparqlEndpoint(queryConfig, parentFolder).toFile();
-                contentSyntax = queryConfig.getPreferredContentType();
-			}
-            String validationType = inputHelper.validateValidationType(requestedDomainConfig.getDomainName(), domainConfig, validateRequest, ValidationConstants.INPUT_VALIDATION_TYPE);
-			List<FileInfo> externalShapes = inputHelper.validateExternalArtifacts(domainConfig, validateRequest, ValidationConstants.INPUT_EXTERNAL_RULES, ValidationConstants.INPUT_RULE_SET, ValidationConstants.INPUT_EMBEDDING_METHOD, validationType, null, parentFolder);
-			Boolean loadImports = inputHelper.validateLoadInputs(domainConfig, getInputLoadImports(validateRequest), validationType);
-			boolean addInputToReport = getInputAsBoolean(validateRequest, ValidationConstants.INPUT_ADD_INPUT_TO_REPORT, false);
-            boolean addShapesToReport = getInputAsBoolean(validateRequest, ValidationConstants.INPUT_ADD_RULES_TO_REPORT, false);
-            boolean addRdfReportToReport = getInputAsBoolean(validateRequest, ValidationConstants.INPUT_ADD_RDF_REPORT_TO_REPORT, false);
-            ValidationSpecs specs = ValidationSpecs.builder(contentToValidate, validationType, contentSyntax, externalShapes, loadImports, domainConfig, localiser).build();
-			SHACLValidator validator = ctx.getBean(SHACLValidator.class, specs);
-			ModelPair models = validator.validateAll();
-            var reportSpecs = ReportSpecs.builder(models.getInputModel(), models.getReportModel(), localiser, domainConfig, validator.getValidationType());
-            if (addRdfReportToReport) reportSpecs = reportSpecs.withReportContentToInclude(getRdfReportToInclude(models.getReportModel(), validateRequest));
-            if (addInputToReport) reportSpecs = reportSpecs.withInputContentToInclude(contentToValidate.toPath());
-            if (addShapesToReport) reportSpecs = reportSpecs.withShapesToInclude(validator.getAggregatedShapes());
-			ReportPair report = ShaclValidatorUtils.getTAR(reportSpecs.build());
-			ValidationResponse result = new ValidationResponse();
-			result.setReport(report.getDetailedReport());
-			return result;
-		} catch (ValidatorException e) {
-    		logger.error(e.getMessageForLog(), e);
-    		throw new ValidatorException(e.getMessageForDisplay(localiser), true);
-		} catch (Exception e) {
-			logger.error("Unexpected error", e);
-            var message = localiser.localise(ValidatorException.MESSAGE_DEFAULT);
-			throw new ValidatorException(message, e, true, (Object[]) null);
-		} finally {
-			FileUtils.deleteQuietly(parentFolder);
-		}
+        return throttler.proceed(() -> {
+            MDC.put("domain", domainConfig.getDomain());
+            File parentFolder = fileManager.createTemporaryFolderPath();
+            File contentToValidate;
+            var localiser = new LocalisationHelper(domainConfig, Utils.getSupportedLocale(LocaleUtils.toLocale(getInputAsString(validateRequest, ValidationConstants.INPUT_LOCALE, null)), domainConfig));
+            var modelManager = new ModelManager(fileManager);
+            try {
+                // Validation of the input data
+                String contentSyntax = validateContentSyntax(validateRequest);
+                ValueEmbeddingEnumeration contentEmbeddingMethod = inputHelper.validateContentEmbeddingMethod(validateRequest, ValidationConstants.INPUT_EMBEDDING_METHOD);
+                var queryConfig = parseQueryConfiguration(validateRequest);
+                if (queryConfig == null) {
+                    var contentInfo = inputHelper.validateContentToValidate(validateRequest, ValidationConstants.INPUT_CONTENT, contentEmbeddingMethod, contentSyntax, parentFolder, domainConfig.getHttpVersion());
+                    contentToValidate = contentInfo.getFile();
+                    contentSyntax = contentInfo.getType();
+                } else {
+                    queryConfig.setPreferredContentType(contentSyntax);
+                    queryConfig = inputHelper.validateSparqlConfiguration(domainConfig, queryConfig);
+                    contentToValidate = fileManager.getContentFromSparqlEndpoint(queryConfig, parentFolder).toFile();
+                    contentSyntax = queryConfig.getPreferredContentType();
+                }
+                String validationType = inputHelper.validateValidationType(requestedDomainConfig.getDomainName(), domainConfig, validateRequest, ValidationConstants.INPUT_VALIDATION_TYPE);
+                List<FileInfo> externalShapes = inputHelper.validateExternalArtifacts(domainConfig, validateRequest, ValidationConstants.INPUT_EXTERNAL_RULES, ValidationConstants.INPUT_RULE_SET, ValidationConstants.INPUT_EMBEDDING_METHOD, validationType, null, parentFolder);
+                Boolean loadImports = inputHelper.validateLoadInputs(domainConfig, getInputLoadImports(validateRequest), validationType);
+                boolean addInputToReport = getInputAsBoolean(validateRequest, ValidationConstants.INPUT_ADD_INPUT_TO_REPORT, false);
+                boolean addShapesToReport = getInputAsBoolean(validateRequest, ValidationConstants.INPUT_ADD_RULES_TO_REPORT, false);
+                boolean addRdfReportToReport = getInputAsBoolean(validateRequest, ValidationConstants.INPUT_ADD_RDF_REPORT_TO_REPORT, false);
+                ValidationSpecs specs = ValidationSpecs.builder(contentToValidate, validationType, contentSyntax, externalShapes, loadImports, domainConfig, localiser, modelManager).build();
+                SHACLValidator validator = ctx.getBean(SHACLValidator.class, specs);
+                ModelPair models = validator.validateAll();
+                var reportSpecs = ReportSpecs.builder(models.getInputModel(), models.getReportModel(), localiser, domainConfig, validator.getValidationType());
+                if (addRdfReportToReport) reportSpecs = reportSpecs.withReportContentToInclude(getRdfReportToInclude(models.getReportModel(), validateRequest));
+                if (addInputToReport) reportSpecs = reportSpecs.withInputContentToInclude(contentToValidate.toPath());
+                if (addShapesToReport) reportSpecs = reportSpecs.withShapesToInclude(validator.getAggregatedShapes());
+                ReportPair report = ShaclValidatorUtils.getTAR(reportSpecs.build());
+                ValidationResponse result = new ValidationResponse();
+                result.setReport(report.getDetailedReport());
+                return result;
+            } catch (ValidatorException e) {
+                logger.error(e.getMessageForLog(), e);
+                throw new ValidatorException(e.getMessageForDisplay(localiser), true);
+            } catch (Exception e) {
+                logger.error("Unexpected error", e);
+                var message = localiser.localise(ValidatorException.MESSAGE_DEFAULT);
+                throw new ValidatorException(message, e, true, (Object[]) null);
+            } finally {
+                modelManager.close();
+                FileUtils.deleteQuietly(parentFolder);
+            }
+        });
     }
 
     /**
