@@ -52,12 +52,12 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 import org.topbraid.jenax.util.JenaUtil;
 import org.topbraid.shacl.validation.ValidationUtil;
+import org.topbraid.shacl.vocabulary.SH;
 
 import java.io.*;
 import java.util.*;
 
 import static eu.europa.ec.itb.shacl.util.ShaclValidatorUtils.*;
-import static eu.europa.ec.itb.shacl.validation.SHACLResources.VALIDATION_REPORT;
 
 /**
  * Component used to validate RDF content against SHACL shapes.
@@ -66,10 +66,6 @@ import static eu.europa.ec.itb.shacl.validation.SHACLResources.VALIDATION_REPORT
 @Scope("prototype")
 public class SHACLValidator {
 
-    /** The URI for result predicates. */
-    public static final String RESULT_URI = "http://www.w3.org/ns/shacl#result";
-    /** The URI for result message predicates. */
-    public static final String RESULT_MESSAGE_URI = "http://www.w3.org/ns/shacl#resultMessage";
     private static final Logger LOG = LoggerFactory.getLogger(SHACLValidator.class);
 
     @Autowired
@@ -144,8 +140,8 @@ public class SHACLValidator {
     private void processForLocale(Model report) {
         if (!specs.getDomainConfig().isReturnMessagesForAllLocales()) {
             // Filter out result messages for locales other than the requested one.
-            var resultProperty = report.getProperty(RESULT_URI);
-            var resultMessageProperty = report.getProperty(RESULT_MESSAGE_URI);
+            var resultProperty = report.getProperty(SH.result.getURI());
+            var resultMessageProperty = report.getProperty(SH.resultMessage.getURI());
             var resultIterator = report.listObjectsOfProperty(resultProperty);
             while (resultIterator.hasNext()) {
                 var node = resultIterator.next();
@@ -200,9 +196,9 @@ public class SHACLValidator {
      * @param validationReport The report.
      */
     private void setOverallResult(Model validationReport) {
-        Resource reportResource = validationReport.listSubjectsWithProperty(RDF.type, VALIDATION_REPORT).nextResource();
+        Resource reportResource = validationReport.listSubjectsWithProperty(RDF.type, SH.ValidationReport).nextResource();
         if (reportResource != null) {
-            Statement conformsStatement = reportResource.getProperty(SHACLResources.CONFORMS);
+            Statement conformsStatement = reportResource.getProperty(SH.conforms);
             if (conformsStatement.getBoolean() && hasViolations(validationReport)) {
                 conformsStatement.changeLiteralObject(false);
             }
@@ -216,7 +212,7 @@ public class SHACLValidator {
      * @return The check result.
      */
     private boolean hasViolations(Model validationReport) {
-        NodeIterator resultIterator = validationReport.listObjectsOfProperty(validationReport.getProperty(RESULT_URI));
+        NodeIterator resultIterator = validationReport.listObjectsOfProperty(validationReport.getProperty(SH.result.getURI()));
         while (resultIterator.hasNext()) {
             RDFNode node = resultIterator.next();
             StmtIterator statementIterator = validationReport.listStatements(node.asResource(), null, (RDFNode) null);
@@ -252,10 +248,10 @@ public class SHACLValidator {
                         if (specs.isLogProgress()) {
                             LOG.info("Plugin [{}] produced [{}] report item(s).", pluginName, response.getReport().getReports().getInfoOrWarningOrError().size());
                         }
-                        Resource reportResource = validationReport.listSubjectsWithProperty(RDF.type, VALIDATION_REPORT).nextResource();
+                        Resource reportResource = validationReport.listSubjectsWithProperty(RDF.type, SH.ValidationReport).nextResource();
                         if (!response.getReport().getReports().getInfoOrWarningOrError().isEmpty()) {
                             // Ensure the overall result is set to a failure if needed.
-                            Statement conformsStatement = reportResource.getProperty(SHACLResources.CONFORMS);
+                            Statement conformsStatement = reportResource.getProperty(SH.conforms);
                             if (conformsStatement.getBoolean()) {
                                 conformsStatement.changeLiteralObject(false);
                             }
@@ -269,26 +265,26 @@ public class SHACLValidator {
                                         LOG.warn("Plugin [{}] report item without assertion ID. Skipping.", pluginName);
                                     } else {
                                         Resource itemResource = validationReport.createResource();
-                                        statements.add(validationReport.createStatement(reportResource, SHACLResources.RESULT, itemResource));
+                                        statements.add(validationReport.createStatement(reportResource, SH.result, itemResource));
                                         // Map TDL report item to validation result:
-                                        statements.add(validationReport.createStatement(itemResource, RDF.type, validationReport.createResource(SHACLResources.SHACL_VALIDATION_RESULT)));
+                                        statements.add(validationReport.createStatement(itemResource, RDF.type, validationReport.createResource(SH.ValidationResult)));
                                         // Description -> result message
                                         if (StringUtils.isNotBlank(barItem.getDescription())) {
-                                            statements.add(validationReport.createLiteralStatement(itemResource, SHACLResources.RESULT_MESSAGE, ((BAR)item.getValue()).getDescription()));
+                                            statements.add(validationReport.createLiteralStatement(itemResource, SH.resultMessage, ((BAR)item.getValue()).getDescription()));
                                         }
                                         // Location -> focus node (e.g. "http://my.sample.po/po#item3")
-                                        statements.add(validationReport.createStatement(itemResource, SHACLResources.FOCUS_NODE, validationReport.createResource(((BAR) item.getValue()).getLocation())));
+                                        statements.add(validationReport.createStatement(itemResource, SH.focusNode, validationReport.createResource(((BAR) item.getValue()).getLocation())));
                                         // Item name -> severity
-                                        statements.add(validationReport.createStatement(itemResource, SHACLResources.RESULT_SEVERITY, validationReport.createResource(getShaclSeverity(item.getName().getLocalPart()))));
+                                        statements.add(validationReport.createStatement(itemResource, SH.resultSeverity, validationReport.createResource(getShaclSeverity(item.getName().getLocalPart()))));
                                         // Assertion ID -> source constraint component (e.g. "http://www.w3.org/ns/shacl#MinExclusiveConstraintComponent")
-                                        statements.add(validationReport.createStatement(itemResource, SHACLResources.SOURCE_CONSTRAINT_COMPONENT, validationReport.createResource(((BAR) item.getValue()).getAssertionID())));
+                                        statements.add(validationReport.createStatement(itemResource, SH.sourceConstraintComponent, validationReport.createResource(((BAR) item.getValue()).getAssertionID())));
                                         // Value -> value
                                         if (StringUtils.isNotBlank(barItem.getValue())) {
-                                            statements.add(validationReport.createLiteralStatement(itemResource, SHACLResources.VALUE, ((BAR) item.getValue()).getValue()));
+                                            statements.add(validationReport.createLiteralStatement(itemResource, SH.value, ((BAR) item.getValue()).getValue()));
                                         }
                                         // Test -> result path (e.g. "http://itb.ec.europa.eu/sample/po#quantity")
                                         if (StringUtils.isNotBlank(barItem.getTest())) {
-                                            statements.add(validationReport.createStatement(itemResource, SHACLResources.RESULT_PATH, validationReport.createResource(((BAR) item.getValue()).getTest())));
+                                            statements.add(validationReport.createStatement(itemResource, SH.resultPath, validationReport.createResource(((BAR) item.getValue()).getTest())));
                                         }
                                     }
                                 } else {
@@ -314,11 +310,11 @@ public class SHACLValidator {
      */
     private String getShaclSeverity(String tdlItemType) {
         if ("error".equals(tdlItemType)) {
-            return SHACLResources.SHACL_VIOLATION;
+            return SH.Violation.getURI();
         } else if ("warning".equals(tdlItemType)) {
-            return SHACLResources.SHACL_WARNING;
+            return SH.Warning.getURI();
         } else {
-            return SHACLResources.SHACL_INFO;
+            return SH.Info.getURI();
         }
     }
 
@@ -347,8 +343,8 @@ public class SHACLValidator {
         Model reportModel = ModelFactory.createDefaultModel();
         List<Statement> statements = new ArrayList<>();
         Resource reportResource = reportModel.createResource();
-        statements.add(reportModel.createStatement(reportResource, RDF.type, VALIDATION_REPORT));
-        statements.add(reportModel.createLiteralStatement(reportResource, SHACLResources.CONFORMS, true));
+        statements.add(reportModel.createStatement(reportResource, RDF.type, SH.ValidationReport));
+        statements.add(reportModel.createLiteralStatement(reportResource, SH.conforms, true));
         reportModel.add(statements);
         return reportModel;
     }
@@ -377,7 +373,7 @@ public class SHACLValidator {
         specs.track(this.dataModel);
         specs.track(this.aggregatedShapes);
         specs.track(reportModel);
-        reportModel.setNsPrefix("sh", SHACLResources.NS_SHACL);
+        reportModel.setNsPrefix("sh", SH.getURI());
         return reportModel;
     }
 
@@ -576,14 +572,14 @@ public class SHACLValidator {
         Model dataModel;
         try (InputStream dataStream = new FileInputStream(dataFile)) {
             dataModel = fileManager.readModel(dataStream, contextSyntaxToUse(), shapesModel == null ? null : shapesModel.getNsPrefixMap());
-            if (this.specs.isLoadImports()) {
-                if (this.specs.isLogProgress()) {
+            if (specs.isLoadImports()) {
+                if (specs.isLogProgress()) {
                     LOG.info("Loading imports...");
                 }
                 createImportedModels(dataModel);
-                if (this.importedShapes != null) {
+                if (importedShapes != null) {
                     dataModel.add(importedShapes);
-                    this.importedShapes.removeAll();
+                    importedShapes.removeAll();
                 }
             }
         } catch (ValidatorException e) {
@@ -599,7 +595,7 @@ public class SHACLValidator {
          * We can disable this merging for a domain if merging is undesirable. The only such case would be if we are
          * validating SHACL shapes themselves.
          */
-        if (specs.getDomainConfig().isMergeModelsBeforeValidation()) {
+        if (specs.isMergeModelsBeforeValidation()) {
             dataModel.add(shapesModel);
         }
 		return dataModel;

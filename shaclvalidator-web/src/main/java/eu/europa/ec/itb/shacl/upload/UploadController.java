@@ -77,6 +77,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
     private static final String CONTENT_TYPE_QUERY = "queryType" ;
     private static final String PARAM_CONTENT_SYNTAX = "contentSyntax";
     private static final String PARAM_LOAD_IMPORTS_INFO = "loadImportsInfo";
+    private static final String PARAM_MERGE_MODELS_INFO = "mergeModelsInfo";
     private static final String EMPTY = "empty";
     static final String DOWNLOAD_TYPE_REPORT = "reportType";
     static final String DOWNLOAD_TYPE_SHAPES = "shapesType";
@@ -130,6 +131,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
         attributes.put(PARAM_CONTENT_SYNTAX, getContentSyntax(domainConfig));
         attributes.put(PARAM_EXTERNAL_ARTIFACT_INFO, domainConfig.getExternalArtifactInfoMap());
         attributes.put(PARAM_LOAD_IMPORTS_INFO, domainConfig.getUserInputForLoadImportsType());
+        attributes.put(PARAM_MERGE_MODELS_INFO, domainConfig.getUserInputForMergeModelsType());
         attributes.put(PARAM_MINIMAL_UI, isMinimalUI(request));
         attributes.put(PARAM_DOMAIN_CONFIG, domainConfig);
         attributes.put(PARAM_APP_CONFIG, appConfig);
@@ -176,7 +178,8 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
      * @param externalFiles The user-provided shapes (those provided as files).
      * @param externalUri The user-provided shapes (those provided as URIs).
      * @param externalFilesSyntaxType The content type for user-provided shapes (those provided as files).
-     * @param loadImportsValueParam The load OWL imports from input flag.
+     * @param loadImportsValueParam The load OWL imports input flag.
+     * @param mergeModelsValueParam The merge models input flag.
      * @param contentQuery The SPARQL query to load the input with.
      * @param contentQueryEndpoint The SPARQL endpoint URL to query for the content.
      * @param contentQueryAuthenticate Whether authentication is needed for the SPARQL endpoint.
@@ -201,6 +204,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                                  @RequestParam(value = "text-external_default", required = false, defaultValue = "") String[] externalString,
                                  @RequestParam(value = "contentSyntaxType-external_default", required = false, defaultValue = "") String[] externalFilesSyntaxType,
                                  @RequestParam(value = "loadImportsCheck", required = false, defaultValue = "false") Boolean loadImportsValueParam,
+                                 @RequestParam(value = "mergeModelsCheck", required = false, defaultValue = "false") Boolean mergeModelsValueParam,
                                  @RequestParam(value = "contentQuery", defaultValue = "") String contentQuery,
                                  @RequestParam(value = "contentQueryEndpoint", defaultValue = "") String contentQueryEndpoint,
                                  @RequestParam(value = "contentQueryAuthenticate", defaultValue = "false") Boolean contentQueryAuthenticate,
@@ -215,6 +219,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
             String contentQueryUsername = contentQueryUsernameParam;
             String contentQueryPassword = contentQueryPasswordParam;
             Boolean loadImportsValue = loadImportsValueParam;
+            Boolean mergeModelsValue = mergeModelsValueParam;
             var domainConfig = getDomainConfig(request);
             contentType = checkInputType(contentType, file, uri, string, contentQuery);
             // Temporary folder for the request.
@@ -295,8 +300,12 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                     if (domainConfig.getUserInputForLoadImportsType().get(validationType) == ExternalArtifactSupport.NONE) {
                         loadImportsValue = null;
                     }
+                    if (domainConfig.getUserInputForMergeModelsType().get(validationType) == ExternalArtifactSupport.NONE) {
+                        mergeModelsValue = null;
+                    }
                     loadImportsValue = inputHelper.validateLoadInputs(domainConfig, loadImportsValue, validationType);
-                    ValidationSpecs specs = ValidationSpecs.builder(inputFile, validationType, contentSyntaxType, userProvidedShapes, loadImportsValue, domainConfig, localisationHelper, modelManager).build();
+                    mergeModelsValue = inputHelper.validateMergeModelsBeforeValidation(domainConfig, mergeModelsValue, validationType);
+                    ValidationSpecs specs = ValidationSpecs.builder(inputFile, validationType, contentSyntaxType, userProvidedShapes, loadImportsValue, mergeModelsValue, domainConfig, localisationHelper, modelManager).build();
                     SHACLValidator validator = ctx.getBean(SHACLValidator.class, specs);
                     ModelPair models = validator.validateAll();
                     ReportPair tarReport = ShaclValidatorUtils.getTAR(ReportSpecs
@@ -369,7 +378,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
     /**
      * Handle the upload form's submission when the user interface is minimal.
      *
-     * @see UploadController#handleUpload(String, MultipartFile, String, String, String, String, String, String[], MultipartFile[], String[], String[], String[], Boolean, String, String, Boolean, String, String, HttpServletRequest, HttpServletResponse)
+     * @see UploadController#handleUpload(String, MultipartFile, String, String, String, String, String, String[], MultipartFile[], String[], String[], String[], Boolean, Boolean, String, String, Boolean, String, String, HttpServletRequest, HttpServletResponse)
      */
     @PostMapping(value = "/{domain}/uploadm", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
@@ -386,6 +395,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                                         @RequestParam(value = "text-external_default", required = false, defaultValue = "") String[] externalString,
                                         @RequestParam(value = "contentSyntaxType-external_default", required = false, defaultValue = "") String[] externalFilesSyntaxType,
                                         @RequestParam(value = "loadImportsCheck", required = false, defaultValue = "false") Boolean loadImportsValue,
+                                        @RequestParam(value = "mergeModelsCheck", required = false, defaultValue = "false") Boolean mergeModelsValue,
                                         @RequestParam(value = "contentQuery", defaultValue = "") String contentQuery,
                                         @RequestParam(value = "contentQueryEndpoint", defaultValue = "") String contentQueryEndpoint,
                                         @RequestParam(value = "contentQueryAuthenticate", defaultValue = "false") Boolean contentQueryAuthenticate,
@@ -393,13 +403,13 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                                         @RequestParam(value = "contentQueryPassword", defaultValue = "") String contentQueryPassword,
                                         HttpServletRequest request,
                                         HttpServletResponse response) {
-        return handleUpload(domain, file, uri, string, contentType, validationType, contentSyntaxType, externalContentType, externalFiles, externalUri, externalString, externalFilesSyntaxType, loadImportsValue, contentQuery, contentQueryEndpoint, contentQueryAuthenticate, contentQueryUsername, contentQueryPassword, request, response);
+        return handleUpload(domain, file, uri, string, contentType, validationType, contentSyntaxType, externalContentType, externalFiles, externalUri, externalString, externalFilesSyntaxType, loadImportsValue, mergeModelsValue, contentQuery, contentQueryEndpoint, contentQueryAuthenticate, contentQueryUsername, contentQueryPassword, request, response);
     }
 
     /**
      * Handle the upload form's submission when the user interface is embedded in another web page.
      *
-     * @see UploadController#handleUpload(String, MultipartFile, String, String, String, String, String, String[], MultipartFile[], String[], String[], String[], Boolean, String, String, Boolean, String, String, HttpServletRequest, HttpServletResponse)
+     * @see UploadController#handleUpload(String, MultipartFile, String, String, String, String, String, String[], MultipartFile[], String[], String[], String[], Boolean, Boolean, String, String, Boolean, String, String, HttpServletRequest, HttpServletResponse)
      */
     @PostMapping(value = "/{domain}/upload", produces = MediaType.TEXT_HTML_VALUE)
     public ModelAndView handleUploadEmbedded(@PathVariable("domain") String domain,
@@ -415,6 +425,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                                              @RequestParam(value = "text-external_default", required = false, defaultValue = "") String[] externalString,
                                              @RequestParam(value = "contentSyntaxType-external_default", required = false, defaultValue = "") String[] externalFilesSyntaxType,
                                              @RequestParam(value = "loadImportsCheck", required = false, defaultValue = "false") Boolean loadImportsValue,
+                                             @RequestParam(value = "mergeModelsCheck", required = false, defaultValue = "false") Boolean mergeModelsValue,
                                              @RequestParam(value = "contentQuery", defaultValue = "") String contentQuery,
                                              @RequestParam(value = "contentQueryEndpoint", defaultValue = "") String contentQueryEndpoint,
                                              @RequestParam(value = "contentQueryAuthenticate", defaultValue = "false") Boolean contentQueryAuthenticate,
@@ -423,7 +434,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                                              HttpServletRequest request,
                                              HttpServletResponse response) {
         var uploadForm = upload(domain, request, response);
-        var uploadResult = handleUpload(domain, file, uri, string, contentType, validationType, contentSyntaxType, externalContentType, externalFiles, externalUri, externalString, externalFilesSyntaxType, loadImportsValue, contentQuery, contentQueryEndpoint, contentQueryAuthenticate, contentQueryUsername, contentQueryPassword, request, response);
+        var uploadResult = handleUpload(domain, file, uri, string, contentType, validationType, contentSyntaxType, externalContentType, externalFiles, externalUri, externalString, externalFilesSyntaxType, loadImportsValue, mergeModelsValue, contentQuery, contentQueryEndpoint, contentQueryAuthenticate, contentQueryUsername, contentQueryPassword, request, response);
         uploadForm.getModel().put(Constants.PARAM_REPORT_DATA, writeResultToString(uploadResult));
         return uploadForm;
     }
@@ -431,7 +442,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
     /**
      * Handle the upload form's submission when the user interface is minimal and embedded in another web page.
      *
-     * @see UploadController#handleUpload(String, MultipartFile, String, String, String, String, String, String[], MultipartFile[], String[], String[], String[], Boolean, String, String, Boolean, String, String, HttpServletRequest, HttpServletResponse)
+     * @see UploadController#handleUpload(String, MultipartFile, String, String, String, String, String, String[], MultipartFile[], String[], String[], String[], Boolean, Boolean, String, String, Boolean, String, String, HttpServletRequest, HttpServletResponse)
      */
     @PostMapping(value = "/{domain}/uploadm", produces = MediaType.TEXT_HTML_VALUE)
     public ModelAndView handleUploadMinimalEmbedded(@PathVariable("domain") String domain,
@@ -447,6 +458,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                                              @RequestParam(value = "text-external_default", required = false, defaultValue = "") String[] externalString,
                                              @RequestParam(value = "contentSyntaxType-external_default", required = false, defaultValue = "") String[] externalFilesSyntaxType,
                                              @RequestParam(value = "loadImportsCheck", required = false, defaultValue = "false") Boolean loadImportsValue,
+                                             @RequestParam(value = "mergeModelsCheck", required = false, defaultValue = "false") Boolean mergeModelsValue,
                                              @RequestParam(value = "contentQuery", defaultValue = "") String contentQuery,
                                              @RequestParam(value = "contentQueryEndpoint", defaultValue = "") String contentQueryEndpoint,
                                              @RequestParam(value = "contentQueryAuthenticate", defaultValue = "false") Boolean contentQueryAuthenticate,
@@ -454,7 +466,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                                              @RequestParam(value = "contentQueryPassword", defaultValue = "") String contentQueryPassword,
                                              HttpServletRequest request,
                                              HttpServletResponse response) {
-        return handleUploadEmbedded(domain, file, uri, string, contentType, validationType, contentSyntaxType, externalContentType, externalFiles, externalUri, externalString, externalFilesSyntaxType, loadImportsValue, contentQuery, contentQueryEndpoint, contentQueryAuthenticate, contentQueryUsername, contentQueryPassword, request, response);
+        return handleUploadEmbedded(domain, file, uri, string, contentType, validationType, contentSyntaxType, externalContentType, externalFiles, externalUri, externalString, externalFilesSyntaxType, loadImportsValue, mergeModelsValue, contentQuery, contentQueryEndpoint, contentQueryAuthenticate, contentQueryUsername, contentQueryPassword, request, response);
     }
 
     /**

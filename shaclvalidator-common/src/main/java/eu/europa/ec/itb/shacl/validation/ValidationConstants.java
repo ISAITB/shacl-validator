@@ -41,6 +41,8 @@ public class ValidationConstants {
     public static final String INPUT_RULE_SYNTAX = "ruleSyntax";
     /** Whether OWL imports in the provided content should be loaded before validation. */
     public static final String INPUT_LOAD_IMPORTS = "loadImports";
+    /** Whether the input graph should be merged with the shape graph before validation. */
+    public static final String INPUT_MERGE_MODELS_BEFORE_VALIDATION = "mergeModelsBeforeValidation";
     /** Whether the validated content should be added to the TAR report. */
     public static final String INPUT_ADD_INPUT_TO_REPORT = "addInputToReport";
     /** Whether the shapes used for the validation should be added to the TAR report. */

@@ -27,6 +27,7 @@ import eu.europa.ec.itb.validation.commons.Utils;
 import jakarta.xml.bind.JAXBElement;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jena.rdf.model.*;
+import org.topbraid.shacl.vocabulary.SH;
 
 import java.io.StringWriter;
 import java.math.BigInteger;
@@ -34,8 +35,6 @@ import java.util.ArrayList;
 import java.util.function.Function;
 
 import static eu.europa.ec.itb.shacl.util.ShaclValidatorUtils.getStatementSafe;
-import static eu.europa.ec.itb.shacl.validation.SHACLValidator.RESULT_MESSAGE_URI;
-import static eu.europa.ec.itb.shacl.validation.SHACLValidator.RESULT_URI;
 
 /**
  * Class to handle a SHACL validation report and produce a TAR report.
@@ -103,7 +102,7 @@ public class SHACLReportHandler {
             aggregateReportItems = new AggregateReportItems(objectFactory, reportSpecs.getLocalisationHelper());
         }
 		if (reportSpecs.getReportModel() != null) {
-            NodeIterator niValidationResult = reportSpecs.getReportModel().listObjectsOfProperty(reportSpecs.getReportModel().getProperty(RESULT_URI));
+            NodeIterator niValidationResult = reportSpecs.getReportModel().listObjectsOfProperty(reportSpecs.getReportModel().getProperty(SH.result.getURI()));
             var reports = new ArrayList<JAXBElement<TestAssertionReportType>>();
 
             while (niValidationResult.hasNext()) {
@@ -120,22 +119,22 @@ public class SHACLReportHandler {
                 var statementTranslator = new StatementTranslator();
                 while(it.hasNext()) {
                     Statement statement = it.next();
-                    if(statement.getPredicate().hasURI(RESULT_MESSAGE_URI)) {
+                    if(statement.getPredicate().hasURI(SH.resultMessage.getURI())) {
                         statementTranslator.processStatement(statement);
                     }
-                    if(statement.getPredicate().hasURI("http://www.w3.org/ns/shacl#focusNode")) {
+                    if(statement.getPredicate().hasURI(SH.focusNode.getURI())) {
                         focusNode = getStatementSafe(statement);
                     }
-                    if(statement.getPredicate().hasURI("http://www.w3.org/ns/shacl#resultPath")) {
+                    if(statement.getPredicate().hasURI(SH.resultPath.getURI())) {
                         resultPath = getStatementSafe(statement);
                     }
-                    if(statement.getPredicate().hasURI("http://www.w3.org/ns/shacl#sourceShape")) {
+                    if(statement.getPredicate().hasURI(SH.sourceShape.getURI())) {
                         shape = getStatementSafe(statement);
                     }
-                    if(statement.getPredicate().hasURI("http://www.w3.org/ns/shacl#resultSeverity")) {
+                    if(statement.getPredicate().hasURI(SH.resultSeverity.getURI())) {
                         severity = getStatementSafe(statement);
                     }
-                    if(statement.getPredicate().hasURI("http://www.w3.org/ns/shacl#value")) {
+                    if(statement.getPredicate().hasURI(SH.value.getURI())) {
                         value = getStatementSafe(statement);
                     }
                 }

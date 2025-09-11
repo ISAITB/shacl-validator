@@ -36,3 +36,6 @@
 #queryToValidate .CodeMirror {
     height: 250px;
 }
+.checkbox-inline.hidden+.checkbox-inline, .radio-inline.hidden+.radio-inline {
+    margin-left: 0px;
+}

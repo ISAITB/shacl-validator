@@ -56,17 +56,42 @@ public class InputHelper extends BaseInputHelper<ApplicationConfig, FileManager,
      * @throws ValidatorException If the provided input value is invalid.
      */
     public Boolean validateLoadInputs(DomainConfig domainConfig, Boolean userProvidedFlag, String validationType) {
-        ExternalArtifactSupport inputLoadImportsType = domainConfig.getUserInputForLoadImportsType().get(validationType);
-        boolean loadImportsType = domainConfig.getDefaultLoadImportsType().get(validationType);
+        ExternalArtifactSupport flagExpectation = domainConfig.getUserInputForLoadImportsType().get(validationType);
+        boolean defaultSetting = domainConfig.getDefaultLoadImportsType().get(validationType);
 
-        if (inputLoadImportsType == ExternalArtifactSupport.REQUIRED && userProvidedFlag==null) {
+        if (flagExpectation == ExternalArtifactSupport.REQUIRED && userProvidedFlag == null) {
             throw new ValidatorException("validator.label.exception.validationTypeExpectsLoadImports", validationType, ValidationConstants.INPUT_LOAD_IMPORTS);
         }
-        if (inputLoadImportsType == ExternalArtifactSupport.NONE && userProvidedFlag!=null) {
+        if (flagExpectation == ExternalArtifactSupport.NONE && userProvidedFlag != null) {
             throw new ValidatorException("validator.label.exception.validationTypeDoesNotExpectLoadImports", validationType, ValidationConstants.INPUT_LOAD_IMPORTS);
         }
-        if ((inputLoadImportsType == ExternalArtifactSupport.OPTIONAL || inputLoadImportsType == ExternalArtifactSupport.NONE) && userProvidedFlag==null) {
-            userProvidedFlag = loadImportsType;
+        if ((flagExpectation == ExternalArtifactSupport.OPTIONAL || flagExpectation == ExternalArtifactSupport.NONE) && userProvidedFlag==null) {
+            userProvidedFlag = defaultSetting;
+        }
+        return userProvidedFlag;
+    }
+
+    /**
+     * Validate and return the flag determining whether the shape model should be merged with the input before validation..
+     *
+     * @param domainConfig The domain configuration.
+     * @param userProvidedFlag The user-provided value.
+     * @param validationType The requested validation type.
+     * @return The flag to consider.
+     * @throws ValidatorException If the provided input value is invalid.
+     */
+    public Boolean validateMergeModelsBeforeValidation(DomainConfig domainConfig, Boolean userProvidedFlag, String validationType) {
+        ExternalArtifactSupport flagExpectation = domainConfig.getUserInputForMergeModelsType().get(validationType);
+        boolean defaultSetting = domainConfig.getDefaultMergeModelsType().get(validationType);
+
+        if (flagExpectation == ExternalArtifactSupport.REQUIRED && userProvidedFlag == null) {
+            throw new ValidatorException("validator.label.exception.validationTypeExpectsMergeModelsBeforeValidation", validationType, ValidationConstants.INPUT_MERGE_MODELS_BEFORE_VALIDATION);
+        }
+        if (flagExpectation == ExternalArtifactSupport.NONE && userProvidedFlag != null) {
+            throw new ValidatorException("validator.label.exception.validationTypeDoesNotExpectMergeModelsBeforeValidation", validationType, ValidationConstants.INPUT_MERGE_MODELS_BEFORE_VALIDATION);
+        }
+        if ((flagExpectation == ExternalArtifactSupport.OPTIONAL || flagExpectation == ExternalArtifactSupport.NONE) && userProvidedFlag == null) {
+            userProvidedFlag = defaultSetting;
         }
         return userProvidedFlag;
     }
