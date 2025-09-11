@@ -109,6 +109,9 @@ public class ValidationServiceImpl implements ValidationService, WebServiceConte
         if (domainConfig.supportsUserProvidedLoadImports()) {
             response.getModule().getInputs().getParam().add(Utils.createParameter(ValidationConstants.INPUT_LOAD_IMPORTS, "boolean", UsageEnumeration.O, ConfigurationType.SIMPLE, domainConfig.getWebServiceDescription().get(ValidationConstants.INPUT_LOAD_IMPORTS)));
         }
+        if (domainConfig.supportsUserProvidedMergeModelsBeforeValidation()) {
+            response.getModule().getInputs().getParam().add(Utils.createParameter(ValidationConstants.INPUT_MERGE_MODELS_BEFORE_VALIDATION, "boolean", UsageEnumeration.O, ConfigurationType.SIMPLE, domainConfig.getWebServiceDescription().get(ValidationConstants.INPUT_MERGE_MODELS_BEFORE_VALIDATION)));
+        }
         response.getModule().getInputs().getParam().add(Utils.createParameter(ValidationConstants.INPUT_ADD_INPUT_TO_REPORT, "boolean", UsageEnumeration.O, ConfigurationType.SIMPLE, domainConfig.getWebServiceDescription().get(ValidationConstants.INPUT_ADD_INPUT_TO_REPORT)));
         response.getModule().getInputs().getParam().add(Utils.createParameter(ValidationConstants.INPUT_ADD_RULES_TO_REPORT, "boolean", UsageEnumeration.O, ConfigurationType.SIMPLE, domainConfig.getWebServiceDescription().get(ValidationConstants.INPUT_ADD_RULES_TO_REPORT)));
         response.getModule().getInputs().getParam().add(Utils.createParameter(ValidationConstants.INPUT_ADD_RDF_REPORT_TO_REPORT, "boolean", UsageEnumeration.O, ConfigurationType.SIMPLE, domainConfig.getWebServiceDescription().get(ValidationConstants.INPUT_ADD_RDF_REPORT_TO_REPORT)));
@@ -165,10 +168,11 @@ public class ValidationServiceImpl implements ValidationService, WebServiceConte
                 String validationType = inputHelper.validateValidationType(requestedDomainConfig.getDomainName(), domainConfig, validateRequest, ValidationConstants.INPUT_VALIDATION_TYPE);
                 List<FileInfo> externalShapes = inputHelper.validateExternalArtifacts(domainConfig, validateRequest, ValidationConstants.INPUT_EXTERNAL_RULES, ValidationConstants.INPUT_RULE_SET, ValidationConstants.INPUT_EMBEDDING_METHOD, validationType, null, parentFolder);
                 Boolean loadImports = inputHelper.validateLoadInputs(domainConfig, getInputLoadImports(validateRequest), validationType);
+                Boolean mergeModelsBeforeValidation = inputHelper.validateMergeModelsBeforeValidation(domainConfig, getInputMergeModelsBeforeValidation(validateRequest), validationType);
                 boolean addInputToReport = getInputAsBoolean(validateRequest, ValidationConstants.INPUT_ADD_INPUT_TO_REPORT, false);
                 boolean addShapesToReport = getInputAsBoolean(validateRequest, ValidationConstants.INPUT_ADD_RULES_TO_REPORT, false);
                 boolean addRdfReportToReport = getInputAsBoolean(validateRequest, ValidationConstants.INPUT_ADD_RDF_REPORT_TO_REPORT, false);
-                ValidationSpecs specs = ValidationSpecs.builder(contentToValidate, validationType, contentSyntax, externalShapes, loadImports, domainConfig, localiser, modelManager).build();
+                ValidationSpecs specs = ValidationSpecs.builder(contentToValidate, validationType, contentSyntax, externalShapes, loadImports, mergeModelsBeforeValidation, domainConfig, localiser, modelManager).build();
                 SHACLValidator validator = ctx.getBean(SHACLValidator.class, specs);
                 ModelPair models = validator.validateAll();
                 var reportSpecs = ReportSpecs.builder(models.getInputModel(), models.getReportModel(), localiser, domainConfig, validator.getValidationType());
@@ -235,6 +239,22 @@ public class ValidationServiceImpl implements ValidationService, WebServiceConte
         	return Boolean.valueOf(content.getValue());
         } else {
         	return null;
+        }
+    }
+
+    /**
+     * Get the input on whether to merge shape and input models before validation.
+     *
+     * @param validateRequest The input parameters.
+     * @return The flag value (null if not provided).
+     */
+    private Boolean getInputMergeModelsBeforeValidation(ValidateRequest validateRequest){
+        List<AnyContent> listMergeModels = Utils.getInputFor(validateRequest, ValidationConstants.INPUT_MERGE_MODELS_BEFORE_VALIDATION);
+        if (!listMergeModels.isEmpty()) {
+            AnyContent content = listMergeModels.get(0);
+            return Boolean.valueOf(content.getValue());
+        } else {
+            return null;
         }
     }
 

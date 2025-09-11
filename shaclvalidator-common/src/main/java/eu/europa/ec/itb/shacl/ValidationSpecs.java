@@ -33,6 +33,7 @@ public class ValidationSpecs {
     private String contentSyntax;
     private List<FileInfo> externalShaclFiles;
     private boolean loadImports;
+    private boolean mergeModelsBeforeValidation;
     private DomainConfig domainConfig;
     private LocalisationHelper localiser;
     private boolean logProgress;
@@ -80,6 +81,13 @@ public class ValidationSpecs {
     }
 
     /**
+     * @return True if the shape and input modems should be merged before validation.
+     */
+    public boolean isMergeModelsBeforeValidation() {
+        return mergeModelsBeforeValidation;
+    }
+
+    /**
      * @return The domain in question.
      */
     public DomainConfig getDomainConfig() {
@@ -124,16 +132,17 @@ public class ValidationSpecs {
      * @param contentSyntax The mime type of the provided RDF content.
      * @param externalShaclFiles Any shapes to consider that are externally provided
      * @param loadImports True if OWL imports in the content should be loaded before validation.
+     * @param mergeModelsBeforeValidation True if the shape and input modems should be merged before validation.
      * @param domainConfig The domain in question.
      * @param localiser Helper class for localisations.
      * @param modelManager The model manager instance to use.
      * @return The specification builder.
      */
-    public static Builder builder(File inputFileToValidate, String validationType, String contentSyntax, List<FileInfo> externalShaclFiles, boolean loadImports, DomainConfig domainConfig, LocalisationHelper localiser, ModelManager modelManager) {
+    public static Builder builder(File inputFileToValidate, String validationType, String contentSyntax, List<FileInfo> externalShaclFiles, boolean loadImports, boolean mergeModelsBeforeValidation, DomainConfig domainConfig, LocalisationHelper localiser, ModelManager modelManager) {
         if (validationType == null) {
             validationType = domainConfig.getType().get(0);
         }
-        return new Builder(inputFileToValidate, validationType, contentSyntax, externalShaclFiles, loadImports, domainConfig, localiser, modelManager);
+        return new Builder(inputFileToValidate, validationType, contentSyntax, externalShaclFiles, loadImports, mergeModelsBeforeValidation, domainConfig, localiser, modelManager);
     }
 
     /**
@@ -151,17 +160,19 @@ public class ValidationSpecs {
          * @param contentSyntax       The mime type of the provided RDF content.
          * @param externalShaclFiles  Any shapes to consider that are externally provided
          * @param loadImports         True if OWL imports in the content should be loaded before validation.
+         * @param mergeModelsBeforeValidation True if the shape and input modems should be merged before validation.
          * @param domainConfig        The domain in question.
          * @param localiser           Helper class for localisations.
          * @param modelManager        The model manager instance to use.
          */
-        Builder(File inputFileToValidate, String validationType, String contentSyntax, List<FileInfo> externalShaclFiles, boolean loadImports, DomainConfig domainConfig, LocalisationHelper localiser, ModelManager modelManager) {
+        Builder(File inputFileToValidate, String validationType, String contentSyntax, List<FileInfo> externalShaclFiles, boolean loadImports, boolean mergeModelsBeforeValidation, DomainConfig domainConfig, LocalisationHelper localiser, ModelManager modelManager) {
             instance = new ValidationSpecs();
             this.instance.contentSyntax = contentSyntax;
             this.instance.inputFileToValidate = inputFileToValidate;
             this.instance.domainConfig = domainConfig;
             this.instance.externalShaclFiles = externalShaclFiles;
             this.instance.loadImports = loadImports;
+            this.instance.mergeModelsBeforeValidation = mergeModelsBeforeValidation;
             this.instance.localiser = localiser;
             this.instance.validationType = validationType;
             this.instance.logProgress = true;

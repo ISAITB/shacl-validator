@@ -72,6 +72,7 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
     private static final String FLAG_CONTENT_TO_VALIDATE = "-contentToValidate";
     private static final String FLAG_EXTERNAL_SHAPES = "-externalShapes";
     private static final String FLAG_LOAD_IMPORTS = "-loadImports";
+    private static final String FLAG_MERGE_MODELS_BEFORE_VALIDATION = "-mergeModelsBeforeValidation";
     private static final String FLAG_CONTENT_QUERY = "-contentQuery";
     private static final String FLAG_CONTENT_QUERY_ENDPOINT = "-contentQueryEndpoint";
     private static final String FLAG_CONTENT_QUERY_USERNAME = "-contentQueryUsername";
@@ -102,6 +103,7 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
         boolean cliReports = false;
         boolean requireType = domainConfig.hasMultipleValidationTypes() && domainConfig.getDefaultType() == null;
         Boolean loadImports = null;
+        Boolean mergeModelsBeforeValidation = null;
         SparqlQueryConfig queryConfig = null;
 
         String reportSyntax = null;
@@ -167,6 +169,10 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
                             if (args.length > i+1) {
                                 loadImports = Boolean.valueOf(args[++i]);
                             }
+                        } else if (FLAG_MERGE_MODELS_BEFORE_VALIDATION.equalsIgnoreCase(args[i])) {
+                            if (args.length > i+1) {
+                                mergeModelsBeforeValidation = Boolean.valueOf(args[++i]);
+                            }
                         } else if(FLAG_CONTENT_QUERY.equalsIgnoreCase(args[i])) {
                             if (args.length > i+1) {
                                 if (queryConfig == null) {
@@ -212,6 +218,7 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
                         throw new ValidatorException("validator.label.exception.externalShapeLoadingNotSupported", type, domainConfig.getDomainName());
                     }
                     loadImports = inputHelper.validateLoadInputs(domainConfig, loadImports, type);
+                    mergeModelsBeforeValidation = inputHelper.validateMergeModelsBeforeValidation(domainConfig, mergeModelsBeforeValidation, type);
                     if (queryConfig != null) {
                         if (!inputs.isEmpty()) {
                             throw new ValidatorException("validator.label.exception.contentExpectedAsInpurOrQuery");
@@ -244,7 +251,7 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
                         File inputFile = input.getInputFile();
                         var modelManager = new ModelManager(fileManager);
                         try {
-                            ValidationSpecs specs = ValidationSpecs.builder(inputFile, type, input.getContentSyntax(), externalShapesList, loadImports, domainConfig, localiser, modelManager).build();
+                            ValidationSpecs specs = ValidationSpecs.builder(inputFile, type, input.getContentSyntax(), externalShapesList, loadImports, mergeModelsBeforeValidation, domainConfig, localiser, modelManager).build();
                             SHACLValidator validator = applicationContext.getBean(SHACLValidator.class, specs);
                             ModelPair models = validator.validateAll();
                             // Output summary results.
@@ -330,6 +337,10 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
         if (domainConfig.supportsUserProvidedLoadImports()) {
             usageStr.append(String.format(" [%s LOAD_IMPORTS]", FLAG_LOAD_IMPORTS));
             detailsStr.append("\n").append(PAD).append(PAD).append("- LOAD_IMPORTS is a boolean indicating whether owl:Imports in the input should be loaded (true) or not (false).");
+        }
+        if (domainConfig.supportsUserProvidedMergeModelsBeforeValidation()) {
+            usageStr.append(String.format(" [%s MERGE_MODELS]", FLAG_MERGE_MODELS_BEFORE_VALIDATION));
+            detailsStr.append("\n").append(PAD).append(PAD).append("- MERGE_MODELS is a boolean indicating whether the shape and input models should be merged (true) or not (false) before validation.");
         }
         if (domainConfig.supportsExternalArtifacts()) {
             usageStr.append(String.format(" [%s SHAPE_FILE_1/SHAPE_URI_1 CONTENT_SYNTAX_1] ... [%s SHAPE_FILE_N/SHAPE_URI_N CONTENT_SYNTAX_N]", FLAG_EXTERNAL_SHAPES, FLAG_EXTERNAL_SHAPES));

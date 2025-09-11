@@ -41,6 +41,7 @@ public class ApplicationConfig extends eu.europa.ec.itb.validation.commons.confi
     private String defaultValidationTypeDescription;
     private String defaultExternalRulesDescription;
     private String defaultLoadImportsDescription;
+    private String defaultMergeModelsBeforeValidationDescription;
     private String defaultAddInputToReportDescription;
     private String defaultAddRulesToReportDescription;
 
@@ -320,6 +321,13 @@ public class ApplicationConfig extends eu.europa.ec.itb.validation.commons.confi
     }
 
     /**
+     * @param defaultMergeModelsBeforeValidationDescription  The default web service input description for the flag on merging models before validation.
+     */
+    public void setDefaultMergeModelsBeforeValidationDescription(String defaultMergeModelsBeforeValidationDescription) {
+        this.defaultMergeModelsBeforeValidationDescription = defaultMergeModelsBeforeValidationDescription;
+    }
+
+    /**
      * @param defaultContentQueryDescription  The default web service input description for the content SPARQL query.
      */
     public void setDefaultContentQueryDescription(String defaultContentQueryDescription) {
@@ -393,6 +401,7 @@ public class ApplicationConfig extends eu.europa.ec.itb.validation.commons.confi
         defaultLabels.put(ValidationConstants.INPUT_EXTERNAL_RULES, defaultExternalRulesDescription);
         defaultLabels.put(ValidationConstants.INPUT_VALIDATION_TYPE, defaultValidationTypeDescription);
         defaultLabels.put(ValidationConstants.INPUT_LOAD_IMPORTS, defaultLoadImportsDescription);
+        defaultLabels.put(ValidationConstants.INPUT_MERGE_MODELS_BEFORE_VALIDATION, defaultMergeModelsBeforeValidationDescription);
         defaultLabels.put(ValidationConstants.INPUT_ADD_INPUT_TO_REPORT, defaultAddInputToReportDescription);
         defaultLabels.put(ValidationConstants.INPUT_ADD_RULES_TO_REPORT, defaultAddRulesToReportDescription);
         defaultLabels.put(ValidationConstants.INPUT_CONTENT_QUERY, defaultContentQueryDescription);

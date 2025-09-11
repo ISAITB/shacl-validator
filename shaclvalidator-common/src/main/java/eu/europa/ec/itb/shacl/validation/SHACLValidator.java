@@ -572,14 +572,14 @@ public class SHACLValidator {
         Model dataModel;
         try (InputStream dataStream = new FileInputStream(dataFile)) {
             dataModel = fileManager.readModel(dataStream, contextSyntaxToUse(), shapesModel == null ? null : shapesModel.getNsPrefixMap());
-            if (this.specs.isLoadImports()) {
-                if (this.specs.isLogProgress()) {
+            if (specs.isLoadImports()) {
+                if (specs.isLogProgress()) {
                     LOG.info("Loading imports...");
                 }
                 createImportedModels(dataModel);
-                if (this.importedShapes != null) {
+                if (importedShapes != null) {
                     dataModel.add(importedShapes);
-                    this.importedShapes.removeAll();
+                    importedShapes.removeAll();
                 }
             }
         } catch (ValidatorException e) {
@@ -595,7 +595,7 @@ public class SHACLValidator {
          * We can disable this merging for a domain if merging is undesirable. The only such case would be if we are
          * validating SHACL shapes themselves.
          */
-        if (specs.getDomainConfig().isMergeModelsBeforeValidation()) {
+        if (specs.isMergeModelsBeforeValidation()) {
             dataModel.add(shapesModel);
         }
 		return dataModel;

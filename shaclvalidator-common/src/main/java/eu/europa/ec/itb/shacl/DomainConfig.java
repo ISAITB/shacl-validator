@@ -34,9 +34,10 @@ public class DomainConfig extends WebDomainConfig {
     public static final String FILE_NAME_SHAPES = "shapesFile";
 
     private String defaultReportSyntax;
-    private boolean mergeModelsBeforeValidation;
     private Map<String, Boolean> defaultLoadImportsType;
+    private Map<String, Boolean> defaultMergeModelsType;
     private Map<String, ExternalArtifactSupport> userInputForLoadImportsType;
+    private Map<String, ExternalArtifactSupport> userInputForMergeModelsType;
     private List<String> webContentSyntax;
     private boolean supportsQueries;
     private String queryEndpoint;
@@ -246,6 +247,18 @@ public class DomainConfig extends WebDomainConfig {
     }
 
     /**
+     * @return True if users are allowed to specify whether shape and input models are merged before validation.
+     */
+    public boolean supportsUserProvidedMergeModelsBeforeValidation() {
+        for (ExternalArtifactSupport supportType: getUserInputForMergeModelsType().values()) {
+            if (supportType != ExternalArtifactSupport.NONE) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Get the shape configuration for a given validation type.
      *
      * @param validationType The validation type.
@@ -312,21 +325,37 @@ public class DomainConfig extends WebDomainConfig {
 	}
 
     /**
-     * @return True if the input graph should be merged with the shape graph before validation.
+         * @return The mapping of validation type to whether the input graph should be merged with the shape graph before validation.
      */
-    public boolean isMergeModelsBeforeValidation() {
-		return mergeModelsBeforeValidation;
-	}
+    public Map<String, Boolean> getDefaultMergeModelsType() {
+        return defaultMergeModelsType;
+    }
 
     /**
-     * @param mergeModelsBeforeValidation True if the input graph should be merged with the shape graph before validation.
+     * @param mergeModelsType The mapping of validation type to whether the input graph should be merged with the shape graph before validation.
      */
-	public void setMergeModelsBeforeValidation(boolean mergeModelsBeforeValidation) {
-		this.mergeModelsBeforeValidation = mergeModelsBeforeValidation;
-	}
+    public void setDefaultMergeModelsType(Map<String, Boolean> mergeModelsType) {
+        this.defaultMergeModelsType = mergeModelsType;
+    }
 
     /**
-     * @return The mapping from validation type to the support level for users providing the flag on whether or not OWL
+     * @return The mapping from validation type to the support level for users providing the flag on whether the SHACL
+     * shape graph should be merged with the input before validation.
+     */
+    public Map<String, ExternalArtifactSupport> getUserInputForMergeModelsType() {
+        return userInputForMergeModelsType;
+    }
+
+    /**
+     * @param userInputForMergeModelsType The mapping from validation type to the support level for users providing the
+     *                                    flag on whether the SHACL shape graph should be merged with the input before validation.
+     */
+    public void setUserInputForMergeModelsType(Map<String, ExternalArtifactSupport> userInputForMergeModelsType) {
+        this.userInputForMergeModelsType = userInputForMergeModelsType;
+    }
+
+    /**
+     * @return The mapping from validation type to the support level for users providing the flag on whether OWL
      * imports should be loaded from the input.
      */
 	public Map<String, ExternalArtifactSupport> getUserInputForLoadImportsType() {
@@ -335,7 +364,7 @@ public class DomainConfig extends WebDomainConfig {
 
     /**
      * @param userInputForLoadImportsType The mapping from validation type to the support level for users providing the
-     *                                    flag on whether or not OWL imports should be loaded from the input.
+     *                                    flag on whether OWL imports should be loaded from the input.
      */
 	public void setUserInputForLoadImportsType(Map<String, ExternalArtifactSupport> userInputForLoadImportsType) {
 		this.userInputForLoadImportsType = userInputForLoadImportsType;

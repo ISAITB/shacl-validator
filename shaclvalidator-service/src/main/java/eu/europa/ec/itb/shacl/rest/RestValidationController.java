@@ -310,8 +310,9 @@ public class RestValidationController extends BaseRestController<DomainConfig, A
                 contentSyntax = queryConfig.getPreferredContentType();
             }
             Boolean loadImports = inputHelper.validateLoadInputs(domainConfig, in.isLoadImports(), validationType);
+            Boolean mergeModelsBeforeValidation = inputHelper.validateMergeModelsBeforeValidation(domainConfig, in.isMergeModelsBeforeValidation(), validationType);
             // Execute validation
-            ValidationSpecs specs = ValidationSpecs.builder(inputFile, validationType, contentSyntax, externalShapes, loadImports, domainConfig, new LocalisationHelper(domainConfig, Utils.getSupportedLocale(LocaleUtils.toLocale(in.getLocale()), domainConfig)), modelManager).build();
+            ValidationSpecs specs = ValidationSpecs.builder(inputFile, validationType, contentSyntax, externalShapes, loadImports, mergeModelsBeforeValidation, domainConfig, new LocalisationHelper(domainConfig, Utils.getSupportedLocale(LocaleUtils.toLocale(in.getLocale()), domainConfig)), modelManager).build();
             SHACLValidator validator = ctx.getBean(SHACLValidator.class, specs);
             ModelPair models = validator.validateAll();
             if (in.getReportQuery() != null && !in.getReportQuery().isBlank()) {

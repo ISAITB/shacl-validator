@@ -45,6 +45,8 @@ public class Input {
     private List<RuleSet> externalRules;
     @Schema(description = "If owl:Imports should be loaded from the RDF content. This can be skipped if defined in the configuration. If not provided, the decision is determined from the configuration for the domain in question.")
     private Boolean loadImports;
+    @Schema(description = "If shape and input models should be merged before validation. This can be skipped if defined in the configuration. If not provided, the decision is determined from the configuration for the domain in question.")
+    private Boolean mergeModelsBeforeValidation;
     @Schema(description = "The SPARQL endpoint URI.")
     private String contentQueryEndpoint;
     @Schema(description = "The SPARQL query to execute.")
@@ -110,6 +112,11 @@ public class Input {
     public Boolean isLoadImports(){ return this.loadImports; }
 
     /**
+     * @return True if shape and input models should be merged before validation.
+     */
+    public Boolean isMergeModelsBeforeValidation(){ return this.mergeModelsBeforeValidation; }
+
+    /**
      * @param contentToValidate The string representing the content to validate (string as-is, URL or base64 content).
      */
     public void setContentToValidate(String contentToValidate) {
@@ -156,6 +163,13 @@ public class Input {
      */
     public void setLoadImports(Boolean loadImports) {
         this.loadImports = loadImports;
+    }
+
+    /**
+     * @param mergeModelsBeforeValidation True if the shape and input models should be merged before validation.
+     */
+    public void setMergeModelsBeforeValidation(Boolean mergeModelsBeforeValidation) {
+        this.mergeModelsBeforeValidation = mergeModelsBeforeValidation;
     }
 
     /**

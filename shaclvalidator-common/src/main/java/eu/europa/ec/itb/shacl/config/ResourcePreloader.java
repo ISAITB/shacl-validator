@@ -83,7 +83,6 @@ public class ResourcePreloader {
             var modelManager = new ModelManager(fileManager);
             domainConfig.getType().stream().filter(domainConfig::preloadImportsForType).forEach(validationType -> {
                 Path parentFolder = Path.of(appConfig.getTmpFolder(), UUID.randomUUID().toString());
-                boolean mergeModelsBeforeValidationSetting = domainConfig.isMergeModelsBeforeValidation();
                 try {
                     Files.createDirectories(parentFolder);
                     Path inputFile = Files.createFile(parentFolder.resolve("emptyModel.ttl"));
@@ -92,11 +91,9 @@ public class ResourcePreloader {
                         emptyModel.write(out, RDFLanguages.TURTLE.getName());
                         out.flush();
                     }
-                    // Temporarily ensure that loaded shapes are not included in the dummy input model.
-                    domainConfig.setMergeModelsBeforeValidation(false);
                     try {
                         LOG.info("Preloading owl:import references for validation type [{}]", validationType);
-                        ValidationSpecs specs = ValidationSpecs.builder(inputFile.toFile(), validationType, contentType, Collections.emptyList(), false, domainConfig, localiser, modelManager)
+                        ValidationSpecs specs = ValidationSpecs.builder(inputFile.toFile(), validationType, contentType, Collections.emptyList(), false, false, domainConfig, localiser, modelManager)
                                 .withoutPlugins()
                                 .withoutProgressLogging()
                                 .build();
@@ -115,8 +112,6 @@ public class ResourcePreloader {
                 } finally {
                     modelManager.close();
                     FileUtils.deleteQuietly(parentFolder.toFile());
-                    // Restore merge model setting.
-                    domainConfig.setMergeModelsBeforeValidation(mergeModelsBeforeValidationSetting);
                 }
             });
         });

@@ -84,7 +84,6 @@ public class DomainConfigCache extends WebDomainConfigCache<DomainConfig> {
         addValidationArtifactInfo("validator.shaclFile", "validator.externalShapes", null, domainConfig, config);
         domainConfig.setDefaultReportSyntax(config.getString("validator.defaultReportSyntax", appConfig.getDefaultReportSyntax()));
         domainConfig.setWebContentSyntax(Arrays.stream(StringUtils.split(config.getString("validator.contentSyntax", ""), ',')).map(String::trim).toList());
-        domainConfig.setMergeModelsBeforeValidation(config.getBoolean("validator.mergeModelsBeforeValidation", true));
         // SPARQL query configuration - start
         domainConfig.setQueryEndpoint(config.getString("validator.queryEndpoint"));
         domainConfig.setQueryUsername(config.getString("validator.queryUsername"));
@@ -104,7 +103,9 @@ public class DomainConfigCache extends WebDomainConfigCache<DomainConfig> {
         domainConfig.setSupportsQueries(config.getBoolean("validator.supportsQueries", hasQueryConfiguration));
         // SPARQL query configuration - end
         domainConfig.setDefaultLoadImportsType(parseBooleanMap("validator.loadImports", config, domainConfig.getType(), config.getBoolean("validator.loadImports", false)));
+        domainConfig.setDefaultMergeModelsType(parseBooleanMap("validator.mergeModelsBeforeValidation", config, domainConfig.getType(), config.getBoolean("validator.mergeModelsBeforeValidation", true)));
         domainConfig.setUserInputForLoadImportsType(parseEnumMap("validator.input.loadImports", ExternalArtifactSupport.byName(config.getString("validator.input.loadImports", ExternalArtifactSupport.NONE.getName())), config, domainConfig.getType(), ExternalArtifactSupport::byName));
+        domainConfig.setUserInputForMergeModelsType(parseEnumMap("validator.input.mergeModelsBeforeValidation", ExternalArtifactSupport.byName(config.getString("validator.input.mergeModelsBeforeValidation", ExternalArtifactSupport.NONE.getName())), config, domainConfig.getType(), ExternalArtifactSupport::byName));
         domainConfig.setReturnMessagesForAllLocales(config.getBoolean("validator.returnMessagesForAllLocales", Boolean.FALSE));
         // Check how to react to owl:import failures - start
         var defaultResponseType = ErrorResponseTypeEnum.fromValue(config.getString("validator.owlImportErrors", "log"));

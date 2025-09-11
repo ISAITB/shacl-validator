@@ -36,6 +36,16 @@
 			defaultLoadImports[[# th:text="${entry.key}" /]] = {}
 			defaultLoadImports[[# th:text="${entry.key}" /]] = [# th:text="${entry.value}" /];
 		[/]
+		var mergeModelsChoice = {};
+		[# th:each="entry : ${mergeModelsInfo}"]
+			mergeModelsChoice[[# th:text="${entry.key}" /]] = {}
+			mergeModelsChoice[[# th:text="${entry.key}" /]] = [# th:text="${entry.value}" /];
+		[/]
+		var defaultMergeModels = {};
+		[# th:each="entry : ${config.defaultMergeModelsType}"]
+			defaultMergeModels[[# th:text="${entry.key}" /]] = {}
+			defaultMergeModels[[# th:text="${entry.key}" /]] = [# th:text="${entry.value}" /];
+		[/]
 		configure({
 			externalArtifactFileLabel: [[${localiser.localise('validator.label.optionContentFile')}]],
 			externalArtifactURILabel: [[${localiser.localise('validator.label.optionContentURI')}]],
@@ -75,14 +85,16 @@
                         </div>
                         <div th:replace="~{fragments/input :: externalArtifactCheck(${localiser.localise('validator.label.includeExternalShapes')}, ${localiser.localise('validator.label.externalRulesTooltip')})}"/>
                         <div th:replace="~{fragments/input :: externalArtifactControl('default', ${localiser.localise('validator.label.externalShapesLabel')})}"/>
-                        <div id="loadImportsDiv" class="form-group hidden">
+                        <div id="optionsDiv" class="form-group hidden">
                             <div class="col-sm-offset-2 col-sm-10">
-                                <div class="checkbox">
-                                    <label>
-                                        <input type="checkbox" id="loadImportsCheck" name="loadImportsCheck" /><span th:text="${localiser.localise('validator.label.loadImportsLabel')}">Load imports</span>
-                                    </label>
+                                <label id="loadImportsDiv" class="checkbox-inline hidden">
+                                    <input type="checkbox" id="loadImportsCheck" name="loadImportsCheck" /><span th:text="${localiser.localise('validator.label.loadImportsLabel')}">Load imports</span>
                                     <span data-toggle="tooltip" data-container="body" data-placement="right" th:attr="title=${localiser.localise('validator.label.loadImportsTooltip')}"><i class="far fa-question-circle"></i></span>
-                                </div>
+                                </label>
+                                <label id="mergeModelsDiv" class="checkbox-inline hidden">
+                                    <input type="checkbox" id="mergeModelsCheck" name="mergeModelsCheck" /><span th:text="${localiser.localise('validator.label.mergeModelsLabel')}">Merge models</span>
+                                    <span data-toggle="tooltip" data-container="body" data-placement="right" th:attr="title=${localiser.localise('validator.label.mergeModelsTooltip')}"><i class="far fa-question-circle"></i></span>
+                                </label>
                             </div>
                         </div>
                         <div th:replace="~{fragments/input :: submit(${config}, ${minimalUI})}"/>

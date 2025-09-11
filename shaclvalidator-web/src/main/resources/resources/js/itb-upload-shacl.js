@@ -24,7 +24,7 @@ addListener('EXTERNAL_ARTIFACT_CONTENT_TYPE_CHANGED', externalArtifactContentTyp
 addContentTypeValidator('queryType', validateQueryInputs);
 
 function onFormReady() {
-    loadImportInputs();
+    refreshOptions();
     if (supportQuery) {
     	var selectContentTypeElement = document.getElementById("contentType");
     	if (selectContentTypeElement) {
@@ -32,6 +32,12 @@ function onFormReady() {
         	createQueryFields();
     	}
     }
+}
+
+function refreshOptions() {
+    loadImportInputs();
+    mergeModelsInputs();
+    optionsInputs();
 }
 
 function onSubmitStatusValidated() {
@@ -133,23 +139,23 @@ function validateQueryInputs() {
         } else {
             credentialsOk = true;
         }
-		var queryValue = getCodeMirrorNative('#query-editor').getDoc().getValue();
-		if (queryValue && endpointOk && credentialsOk) {
-		    valid = true;
-		}
+        var queryValue = getCodeMirrorNative('#query-editor').getDoc().getValue();
+        if (queryValue && endpointOk && credentialsOk) {
+            valid = true;
+        }
     }
     return valid;
 }
 
 function onValidationTypeChanged() {
-    loadImportInputs();
+    refreshOptions();
 }
 
 function loadImportInputs() {
     $("#loadImportsCheck").prop('checked', false);	
     var validationType = getCompleteValidationType();
     if (validationType) {
-    	if(loadImportsChoice[validationType] == 'REQUIRED' || loadImportsChoice[validationType] == 'OPTIONAL'){
+    	if (loadImportsChoice[validationType] == 'REQUIRED' || loadImportsChoice[validationType] == 'OPTIONAL') {
     	    var checkByDefault = defaultLoadImports[validationType] == true;
     		$('#loadImportsDiv').removeClass('hidden');
     	    $("#loadImportsCheck").prop('checked', checkByDefault);
@@ -158,6 +164,32 @@ function loadImportInputs() {
     		$('#loadImportsDiv').addClass('hidden');
     	}
     }
+}
+
+function mergeModelsInputs() {
+    $("#mergeModelsCheck").prop('checked', false);
+    var validationType = getCompleteValidationType();
+    if (validationType) {
+    	if (mergeModelsChoice[validationType] == 'REQUIRED' || mergeModelsChoice[validationType] == 'OPTIONAL') {
+    	    var checkByDefault = defaultMergeModels[validationType] == true;
+    		$('#mergeModelsDiv').removeClass('hidden');
+    	    $("#mergeModelsCheck").prop('checked', checkByDefault);
+    	}
+    	if(mergeModelsChoice[validationType] == 'NONE'){
+    		$('#mergeModelsDiv').addClass('hidden');
+    	}
+    }
+}
+
+function optionsInputs() {
+  var validationType = getCompleteValidationType();
+  if (validationType) {
+    if (loadImportsChoice[validationType] == 'REQUIRED' || loadImportsChoice[validationType] == 'OPTIONAL' || mergeModelsChoice[validationType] == 'REQUIRED' || mergeModelsChoice[validationType] == 'OPTIONAL') {
+      $('#optionsDiv').removeClass('hidden');
+    } else {
+      $('#optionsDiv').addClass('hidden');
+    }
+  }
 }
 
 function inputContentTypeChanged() {
