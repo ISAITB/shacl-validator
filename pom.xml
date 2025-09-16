@@ -11,7 +11,7 @@
     <licenses>
         <license>
             <name>European Union Public Licence (EUPL) Version 1.2</name>
-            <url>https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12</url>
+            <url>https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12</url>
         </license>
     </licenses>
     <developers>
@@ -19,13 +19,13 @@
             <name>European Commission, DIGIT, Interoperable Europe Unit</name>
             <email>DIGIT-ITB@ec.europa.eu</email>
             <organization>European Commission</organization>
-            <organizationUrl>https://ec.europa.eu/isa2/</organizationUrl>
+            <organizationUrl>https://interoperable-europe.ec.europa.eu/</organizationUrl>
         </developer>
     </developers>
     <parent>
         <groupId>eu.europa.ec.itb.commons</groupId>
         <artifactId>validator-parent</artifactId>
-        <version>1.9.0</version>
+        <version>1.10.0-SNAPSHOT</version>
         <relativePath/>
     </parent>
     <modules>
@@ -38,7 +38,7 @@
     </modules>
     <properties>
         <validatorBuild.resourceJar>validator-resources</validatorBuild.resourceJar>
-        <version.itbCommons>1.9.0</version.itbCommons>
+        <version.itbCommons>1.10.0-SNAPSHOT</version.itbCommons>
     </properties>
     <packaging>pom</packaging>
 
