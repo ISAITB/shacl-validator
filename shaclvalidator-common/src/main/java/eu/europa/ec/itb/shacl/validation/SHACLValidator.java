@@ -21,7 +21,6 @@ import com.gitb.vs.ValidateRequest;
 import com.gitb.vs.ValidationResponse;
 import eu.europa.ec.itb.shacl.*;
 import eu.europa.ec.itb.shacl.config.CustomLocatorHTTP;
-import eu.europa.ec.itb.shacl.util.ShaclValidatorUtils;
 import eu.europa.ec.itb.shacl.util.StatementTranslator;
 import eu.europa.ec.itb.validation.commons.FileInfo;
 import eu.europa.ec.itb.validation.commons.Utils;
@@ -57,7 +56,8 @@ import org.topbraid.shacl.vocabulary.SH;
 import java.io.*;
 import java.util.*;
 
-import static eu.europa.ec.itb.shacl.util.ShaclValidatorUtils.*;
+import static eu.europa.ec.itb.shacl.util.ShaclValidatorUtils.determineRdfLanguage;
+import static eu.europa.ec.itb.shacl.util.ShaclValidatorUtils.handleEquivalentContentSyntaxes;
 
 /**
  * Component used to validate RDF content against SHACL shapes.
@@ -122,7 +122,7 @@ public class SHACLValidator {
             if (specs.isUsePlugins()) {
                 validateAgainstPlugins(validationReport);
             }
-            setOverallResult(validationReport);
+            correctValidationReport(validationReport, this.aggregatedShapes);
             processForLocale(validationReport);
             return new ModelPair(dataModel, validationReport);
         } finally {
@@ -191,42 +191,61 @@ public class SHACLValidator {
     }
 
     /**
-     * Ensure that violations in the report always result in an overall report failure.
+     * Make corrections to the report if needed due to known incorrect behaviours of the TopBraid engine.
+     * <p/>
+     * <ul>
+     *     <li>Ensure that violations in the report always result in an overall report failure.</li>
+     *     <li>Ensure that sh:SPARQLConstraint shapes with warning severity result in warnings (not violations).</li>
+     * </ul>
      *
      * @param validationReport The report.
+     * @param shapes The shapes used for the validation.
      */
-    private void setOverallResult(Model validationReport) {
-        Resource reportResource = validationReport.listSubjectsWithProperty(RDF.type, SH.ValidationReport).nextResource();
-        if (reportResource != null) {
-            Statement conformsStatement = reportResource.getProperty(SH.conforms);
-            if (conformsStatement.getBoolean() && hasViolations(validationReport)) {
-                conformsStatement.changeLiteralObject(false);
-            }
-        }
-    }
-
-    /**
-     * Check to see whether the provided report includes at least one violation.
-     *
-     * @param validationReport The report to check.
-     * @return The check result.
-     */
-    private boolean hasViolations(Model validationReport) {
-        NodeIterator resultIterator = validationReport.listObjectsOfProperty(validationReport.getProperty(SH.result.getURI()));
+    private void correctValidationReport(Model validationReport, Model shapes) {
+        boolean hasViolations = false;
+        ResIterator resultIterator = validationReport.listResourcesWithProperty(SH.resultSeverity);
         while (resultIterator.hasNext()) {
-            RDFNode node = resultIterator.next();
-            StmtIterator statementIterator = validationReport.listStatements(node.asResource(), null, (RDFNode) null);
-            while (statementIterator.hasNext()) {
-                Statement statement = statementIterator.next();
-                if (statement.getPredicate().hasURI("http://www.w3.org/ns/shacl#resultSeverity")) {
-                    String severity = getStatementSafe(statement);
-                    if (ShaclValidatorUtils.isErrorSeverity(severity)) {
-                        return true;
+            Resource result = resultIterator.nextResource();
+            if (result.hasProperty(SH.resultSeverity, SH.Violation)) {
+                boolean resultIsViolation = true;
+                // Check to see if this is linked to a SPARQLConstraint.
+                Statement sourceConstraint = result.getProperty(SH.sourceConstraint);
+                if (sourceConstraint != null && sourceConstraint.getObject() != null  && sourceConstraint.getObject().isResource()) {
+                    Resource sourceConstraintResource = sourceConstraint.getResource();
+                    if (sourceConstraintResource != null && shapes.contains(sourceConstraintResource, RDF.type, SH.SPARQLConstraint)) {
+                        // Related constraint is a SPARQLConstraint.
+                        Statement declaredSeverity = shapes.getProperty(sourceConstraintResource, SH.severity);
+                        if (declaredSeverity != null && declaredSeverity.getObject() != null) {
+                            RDFNode severityNode = declaredSeverity.getObject();
+                            resultIsViolation = severityNode.equals(SH.Violation);
+                            /*
+                             * Force declared severity on the result. This is needed because TopBraid incorrectly
+                             * ignores the severity of SPARQLConstraints, setting related results always as violations.
+                             */
+                            result.removeAll(SH.resultSeverity);
+                            result.addProperty(SH.resultSeverity, severityNode);
+                        }
                     }
+                }
+                if (!hasViolations && resultIsViolation) {
+                    hasViolations = true;
                 }
             }
         }
-        return false;
+        /*
+         * Adapt overall result. This is needed to address two separate issues:
+         * - A report with incorrect sh:conforms due to a wrongly considered SPARQLConstraint severity (see above).
+         * - A report that resulted in errors, reported as violations, but that have been ignored when setting sh:conforms.
+         * To address all these cases, we force the sh:conforms value depending on whether violations (after corrections)
+         * are present in the report.
+         */
+        Resource reportResource = validationReport.listSubjectsWithProperty(RDF.type, SH.ValidationReport).nextResource();
+        if (reportResource != null) {
+            Statement conformsStatement = reportResource.getProperty(SH.conforms);
+            if (conformsStatement != null) {
+                conformsStatement.changeLiteralObject(!hasViolations);
+            }
+        }
     }
 
     /**

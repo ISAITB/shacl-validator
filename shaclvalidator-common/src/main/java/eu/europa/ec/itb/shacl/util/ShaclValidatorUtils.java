@@ -229,16 +229,6 @@ public class ShaclValidatorUtils {
     }
 
     /**
-     * Check whether the provided severity level indicates an error message.
-     *
-     * @param severity The severity level
-     * @return The check result.
-     */
-    public static boolean isErrorSeverity(String severity) {
-        return !isInfoSeverity(severity) && !isWarningSeverity(severity);
-    }
-
-    /**
      * Convert the provided RDF statement to a string.
      *
      * @param statement The statement.
