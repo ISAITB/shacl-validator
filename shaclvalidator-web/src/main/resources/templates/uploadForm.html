@@ -76,7 +76,7 @@
                         <div th:replace="~{fragments/input :: mainForm(${config})}"/>
                         <div id="contentSyntaxTypeDiv" class="form-group">
                             <label for="contentSyntaxType" class="col-sm-2 control-label"><span th:text="${localiser.localise('validator.label.contentSyntaxLabel')}">Content syntax of the input</span><span data-toggle="tooltip" data-container="body" data-placement="right" th:attr="title=${localiser.localise('validator.label.contentSyntaxTooltip')}"> <i class="far fa-question-circle"></i></span></label>
-                            <div class="col-sm-4">
+                            <div class="col-sm-5">
                                 <select class="form-control" id="contentSyntaxType" name="contentSyntaxType">
                                     <option value="empty" selected="true" th:text="${localiser.localise('validator.label.contentSyntaxDefault')}"></option>
                                     <option th:each="type : ${contentSyntax}" th:text="${type.key}" th:attr="value=${type.label}">Type</option>
