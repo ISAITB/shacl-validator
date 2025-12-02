@@ -26,6 +26,7 @@ import java.util.List;
 public class UploadResult extends eu.europa.ec.itb.validation.commons.web.dto.UploadResult<Translations> {
 
     private List<KeyWithLabel> contentSyntax;
+    private boolean hideDownloadShapes;
 
     /**
      * @param contentSyntax The supported RDF content syntax values.
@@ -41,4 +42,18 @@ public class UploadResult extends eu.europa.ec.itb.validation.commons.web.dto.Up
         return contentSyntax;
     }
 
+    /**
+     * @return Whether the download shapes button should be hidden.
+     */
+    public boolean isHideDownloadShapes() {
+        return hideDownloadShapes;
+    }
+
+    /**
+     * @param hideDownloadShapes Whether the download shapes button should be hidden.
+     */
+    public void setHideDownloadShapes(boolean hideDownloadShapes) {
+        this.hideDownloadShapes = hideDownloadShapes;
+    }
+    
 }
