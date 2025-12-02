@@ -52,6 +52,7 @@ public class DomainConfig extends WebDomainConfig {
     private Map<String, Path> owlImportMappings;
     private Map<String, Boolean> preloadImports;
     private Map<String, Boolean> preloadShapeGraph;
+    private Map<String, Boolean> hideDownloadShapes;
 
     /**
      * Check to see if the shapes report can be cached.
@@ -119,6 +120,26 @@ public class DomainConfig extends WebDomainConfig {
      */
     public void setPreloadImports(Map<String, Boolean> preloadImports) {
         this.preloadImports = preloadImports;
+    }
+
+    /**
+     * Check to see whether the download shapes button should be hidden for the provided (full) validation type.
+     *
+     * @param validationType The validation type.
+     * @return Whether the download shapes button should be hidden.
+     */
+    public boolean hideDownloadShapesForType(String validationType) {
+        if (hideDownloadShapes != null) {
+            return hideDownloadShapes.getOrDefault(validationType, false);
+        }
+        return false;
+    }
+
+    /**
+     * @param hideDownloadShapes Set the configuration of validation types to whether the download shapes UI button is displayed.
+     */
+    public void setHideDownloadShapes(Map<String, Boolean> hideDownloadShapes) {
+        this.hideDownloadShapes = hideDownloadShapes;
     }
 
     /**

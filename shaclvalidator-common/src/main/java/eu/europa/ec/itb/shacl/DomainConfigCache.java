@@ -32,6 +32,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import static eu.europa.ec.itb.validation.commons.config.ParseUtils.*;
 
@@ -156,6 +157,16 @@ public class DomainConfigCache extends WebDomainConfigCache<DomainConfig> {
         domainConfig.setPreloadImports(preloadImportsMap);
         domainConfig.setPreloadShapeGraph(preloadShapeGraphMap);
         // Preload imports and SHACL shape graphs - end
+        // Hide download shapes button - start
+        boolean defaultHideDownloadShapes = config.getBoolean("validator.hideDownloadShapes", false);
+        Map<String, Boolean> hideDownloadShapesMap = parseBooleanMap("validator.hideDownloadShapes", config, domainConfig.getType(), defaultHideDownloadShapes);
+        hideDownloadShapesMap = hideDownloadShapesMap.entrySet().stream().filter(Map.Entry::getValue).collect(Collectors.toMap(
+                Map.Entry::getKey, entry -> true
+        ));
+        if (!hideDownloadShapesMap.isEmpty()) {
+            domainConfig.setHideDownloadShapes(hideDownloadShapesMap);
+        }
+        // Hide download shapes button - end
     }
 
 }

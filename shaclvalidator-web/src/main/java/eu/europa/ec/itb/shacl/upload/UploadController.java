@@ -338,6 +338,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                             result.setMessageIsError(false);
                         }
                     }
+                    result.setHideDownloadShapes(domainConfig.hideDownloadShapesForType(validationType));
                     // All ok - collect data for the UI.
                     result.populateCommon(localisationHelper, validationType, domainConfig, parentFolder.getName(),
                             fileName, tarReport.getDetailedReport(), tarReport.getAggregateReport(),

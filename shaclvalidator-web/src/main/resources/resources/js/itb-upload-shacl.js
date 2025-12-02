@@ -345,6 +345,10 @@ function onResultsLoaded(event, data) {
     });
     // Register event listeners
     $(".downloadReport").off().on("click", function(event) { downloadReport($(this).attr("data-report-type")); event.preventDefault(); });
-    $(".downloadShapes").off().on("click", function(event) { downloadShapes($(this).attr("data-content-type")); event.preventDefault(); });
     $(".downloadContent").off().on("click", function(event) { downloadContent($(this).attr("data-content-type")); event.preventDefault(); });
+    if (data.data.hideDownloadShapes) {
+      $("#downloadShapesButtonDiv").hide();
+    } else {
+      $(".downloadShapes").off().on("click", function(event) { downloadShapes($(this).attr("data-content-type")); event.preventDefault(); });
+    }
 }

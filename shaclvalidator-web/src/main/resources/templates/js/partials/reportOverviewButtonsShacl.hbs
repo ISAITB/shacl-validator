@@ -21,7 +21,7 @@
             {{/each}}
         </ul>
     </div>
-    <div class="btn-group{{#if config.isMinimalUI}} dropup{{/if}}">
+    <div id="downloadShapesButtonDiv" class="btn-group{{#if config.isMinimalUI}} dropup{{/if}}">
         <button type="button" id="downloadShapesButton" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
             <span id="downloadShapesButtonSpinner" class="hidden"> <i class="fa fa-spinner fa-spin fa-fw"></i></span>
             <span>{{data.translations.downloadShapesButton}}</span> <span class="caret"></span>
