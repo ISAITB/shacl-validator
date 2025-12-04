@@ -639,7 +639,11 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
             Lang lang = RDFLanguages.contentTypeToLang(cs);
             types.add(new KeyWithLabel(lang.getLabel(), lang.getContentType().getContentTypeStr()));
         }
-        return types.stream().sorted(Comparator.comparing(KeyWithLabel::getKey)).toList();
+        if (config.isSortWebContentSyntaxOptions()) {
+            return types.stream().sorted(Comparator.comparing(KeyWithLabel::getKey)).toList();
+        } else {
+            return types;
+        }
     }
 
 }

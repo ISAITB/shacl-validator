@@ -53,6 +53,7 @@ public class DomainConfig extends WebDomainConfig {
     private Map<String, Boolean> preloadImports;
     private Map<String, Boolean> preloadShapeGraph;
     private Map<String, Boolean> hideDownloadShapes;
+    private boolean sortWebContentSyntaxOptions;
 
     /**
      * Check to see if the shapes report can be cached.
@@ -461,4 +462,17 @@ public class DomainConfig extends WebDomainConfig {
 		this.queryContentType = queryContentType;
 	}
 
+    /**
+     * @return Whether the displayed content types on the user interface should be sorted or displayed as configured.
+     */
+    public boolean isSortWebContentSyntaxOptions() {
+        return sortWebContentSyntaxOptions;
+    }
+
+    /**
+     * @param sortWebContentSyntaxOptions Whether the displayed content types on the user interface should be sorted or displayed as configured.
+     */
+    public void setSortWebContentSyntaxOptions(boolean sortWebContentSyntaxOptions) {
+        this.sortWebContentSyntaxOptions = sortWebContentSyntaxOptions;
+    }
 }

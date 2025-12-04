@@ -85,6 +85,7 @@ public class DomainConfigCache extends WebDomainConfigCache<DomainConfig> {
         addValidationArtifactInfo("validator.shaclFile", "validator.externalShapes", null, domainConfig, config);
         domainConfig.setDefaultReportSyntax(config.getString("validator.defaultReportSyntax", appConfig.getDefaultReportSyntax()));
         domainConfig.setWebContentSyntax(Arrays.stream(StringUtils.split(config.getString("validator.contentSyntax", ""), ',')).map(String::trim).toList());
+        domainConfig.setSortWebContentSyntaxOptions(config.getBoolean("validator.contentSyntaxSorted", true));
         // SPARQL query configuration - start
         domainConfig.setQueryEndpoint(config.getString("validator.queryEndpoint"));
         domainConfig.setQueryUsername(config.getString("validator.queryUsername"));
