@@ -26,10 +26,7 @@ import eu.europa.ec.itb.shacl.validation.FileManager;
 import eu.europa.ec.itb.shacl.validation.ReportSpecs;
 import eu.europa.ec.itb.shacl.validation.SHACLValidator;
 import eu.europa.ec.itb.shacl.validation.ThroughputThrottler;
-import eu.europa.ec.itb.validation.commons.FileContent;
-import eu.europa.ec.itb.validation.commons.FileInfo;
-import eu.europa.ec.itb.validation.commons.LocalisationHelper;
-import eu.europa.ec.itb.validation.commons.Utils;
+import eu.europa.ec.itb.validation.commons.*;
 import eu.europa.ec.itb.validation.commons.error.ValidatorException;
 import eu.europa.ec.itb.validation.commons.web.errors.NotFoundException;
 import eu.europa.ec.itb.validation.commons.web.rest.BaseRestController;
@@ -108,6 +105,7 @@ public class RestValidationController extends BaseRestController<DomainConfig, A
     @ApiResponse(responseCode = "500", description = "Error (If a problem occurred with processing the request)", content = @Content)
     @ApiResponse(responseCode = "404", description = "Not found (for an invalid domain value)", content = @Content)
     @PostMapping(value = "/{domain}/api/validate", consumes = {MediaType.APPLICATION_JSON_VALUE, "application/ld+json"}, produces = { "application/ld+json", "application/rdf+xml", "text/turtle", "application/n-triples", MediaType.APPLICATION_XML_VALUE, MediaType.TEXT_XML_VALUE, MediaType.APPLICATION_JSON_VALUE})
+    @RateLimited(policy = RateLimitPolicy.REST_VALIDATE)
     public ResponseEntity<StreamingResponseBody> validate(
             @Parameter(required = true, name = "domain", description = "A fixed value corresponding to the specific validation domain.",
                     examples = {
@@ -371,6 +369,7 @@ public class RestValidationController extends BaseRestController<DomainConfig, A
     @ApiResponse(responseCode = "500", description = "Error (If a problem occurred with processing the request)", content = @Content)
     @ApiResponse(responseCode = "404", description = "Not found (for an invalid domain value)", content = @Content)
     @PostMapping(value = "/{domain}/api/validateMultiple", consumes = {MediaType.APPLICATION_JSON_VALUE, "application/ld+json"}, produces = MediaType.APPLICATION_JSON_VALUE)
+    @RateLimited(policy = RateLimitPolicy.REST_VALIDATE_MULTIPLE)
     public Output[] validateMultiple(
             @Parameter(required = true, name = "domain", description = "A fixed value corresponding to the specific validation domain.",
                     examples = {
