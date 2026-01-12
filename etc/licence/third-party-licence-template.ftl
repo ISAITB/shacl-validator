@@ -26,7 +26,7 @@
 </#function>
 # Notice
 
-Copyright (C) 2025 European Union
+Copyright (C) 2026 European Union
 
 Licensed under the EUPL, Version 1.2 or – as soon they will be approved by the European Commission - subsequent versions
 of the EUPL (the "Licence"); You may not use this work except in compliance with the Licence.
@@ -1874,7 +1874,7 @@ https://www.eclipse.org/legal/epl-2.0
 ### GITB types - Jakarta (eu.europa.ec.itb.gitb-types-jakarta)
 
 ```
-Copyright (C) 2025 European Union
+Copyright (C) 2026 European Union
 
 Licensed under the EUPL, Version 1.2 or – as soon they will be approved by the European Commission - subsequent versions
 of the EUPL (the "Licence"); You may not use this work except in compliance with the Licence.
@@ -1891,7 +1891,7 @@ language governing permissions and limitations under the Licence.
 ### ITB commons (eu.europa.ec.itb.commons.*)
 
 ```
-Copyright (C) 2025 European Union
+Copyright (C) 2026 European Union
 
 Licensed under the EUPL, Version 1.2 or – as soon they will be approved by the European Commission - subsequent versions
 of the EUPL (the "Licence"); You may not use this work except in compliance with the Licence.
