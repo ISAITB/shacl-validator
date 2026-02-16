@@ -35,7 +35,8 @@ jobs:
           key: ${{ runner.os }}-m2-${{ secrets.CACHE_VERSION }}-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2-${{ secrets.CACHE_VERSION }}
       - name: Generate Maven settings
-        uses: whelk-io/maven-settings-xml-action@v22
+        # Version 22
+        uses: whelk-io/maven-settings-xml-action@v9dc09b23833fa9aa7f27b63db287951856f3433d
         with:
           repositories: >
             [
