@@ -34,6 +34,7 @@ This product depends on software developed by third parties as listed in the fol
 | Apache License, Version 2.0 | Woodstox | com.fasterxml.woodstox:woodstox-core | 7.1.1 | https://github.com/FasterXML/woodstox |
 | MIT License | dexx | com.github.andrewoma.dexx:collection | 0.7 | https://github.com/andrewoma/dexx |
 | Apache License, Version 2.0 | Caffeine cache | com.github.ben-manes.caffeine:caffeine | 3.2.3 | https://github.com/ben-manes/caffeine |
+| Apache License, Version 2.0 | JCIP Annotations under Apache License | com.github.stephenc.jcip:jcip-annotations | 1.0-1 | http://stephenc.github.com/jcip-annotations |
 | Apache License, Version 2.0 | FindBugs-jsr305 | com.google.code.findbugs:jsr305 | 3.0.2 | http://findbugs.sourceforge.net/ |
 | Apache License, Version 2.0 | Gson | com.google.code.gson:gson | 2.9.0 | https://github.com/google/gson/gson |
 | Apache License, Version 2.0 | error-prone annotations | com.google.errorprone:error_prone_annotations | 2.3.4 | http://nexus.sonatype.org/oss-repository-hosting.html/error_prone_parent/error_prone_annotations |
@@ -46,6 +47,10 @@ This product depends on software developed by third parties as listed in the fol
 | Apache License, Version 2.0 | OWASP Java HTML Sanitizer | com.googlecode.owasp-java-html-sanitizer:owasp-java-html-sanitizer | 20220608.1 | https://github.com/OWASP/java-html-sanitizer/owasp-java-html-sanitizer |
 | Apache License, Version 2.0 | MaxMind DB Reader | com.maxmind.db:maxmind-db | 2.0.0 | http://dev.maxmind.com/ |
 | Apache License, Version 2.0 | MaxMind GeoIP2 API | com.maxmind.geoip2:geoip2 | 3.0.1 | https://dev.maxmind.com/geoip?lang=en |
+| Apache License, Version 2.0 | Nimbus Content Type | com.nimbusds:content-type | 2.2 | https://bitbucket.org/connect2id/nimbus-content-type |
+| Apache License, Version 2.0 | Nimbus LangTag | com.nimbusds:lang-tag | 1.7 | https://bitbucket.org/connect2id/nimbus-language-tags |
+| Apache License, Version 2.0 | Nimbus JOSE+JWT | com.nimbusds:nimbus-jose-jwt | 9.37.4 | https://bitbucket.org/connect2id/nimbus-jose-jwt |
+| Apache License, Version 2.0 | OAuth 2.0 SDK with OpenID Connect extensions | com.nimbusds:oauth2-oidc-sdk | 9.43.6 | https://bitbucket.org/connect2id/oauth-2.0-sdk-with-openid-connect-extensions |
 | Eclipse Distribution License - v1.0 | istack common utility code runtime | com.sun.istack:istack-commons-runtime | 4.1.2 | https://projects.eclipse.org/projects/ee4j/istack-commons/istack-commons-runtime |
 | Eclipse Distribution License - v1.0 | Old JAXB Core | com.sun.xml.bind:jaxb-core | 4.0.6 | https://eclipse-ee4j.github.io/jaxb-ri/ |
 | Eclipse Distribution License - v1.0 | Old JAXB Runtime | com.sun.xml.bind:jaxb-impl | 4.0.4 | https://eclipse-ee4j.github.io/jaxb-ri/ |
@@ -72,6 +77,8 @@ This product depends on software developed by third parties as listed in the fol
 | Eclipse Distribution License - v1.0 | Jakarta XML Binding API | jakarta.xml.bind:jakarta.xml.bind-api | 4.0.2 | https://github.com/jakartaee/jaxb-api/jakarta.xml.bind-api |
 | Eclipse Distribution License - v1.0 | Jakarta SOAP with Attachments API | jakarta.xml.soap:jakarta.xml.soap-api | 3.0.2 | https://github.com/jakartaee/saaj-api |
 | Eclipse Distribution License - v1.0 | Jakarta XML Web Services API | jakarta.xml.ws:jakarta.xml.ws-api | 4.0.2 | https://github.com/jakartaee/jax-ws-api |
+| Apache License, Version 2.0 | ASM based accessors helper used by json-smart | net.minidev:accessors-smart | 2.5.2 | https://urielch.github.io/ |
+| Apache License, Version 2.0 | JSON Small and Fast Parser | net.minidev:json-smart | 2.5.2 | https://urielch.github.io/ |
 | Mozilla Public License Version 2.0 | Saxon-HE | net.sf.saxon:Saxon-HE | 12.8 | http://www.saxonica.com/ |
 | Apache License, Version 2.0 | Apache Commons Collections | org.apache.commons:commons-collections4 | 4.4 | https://commons.apache.org/proper/commons-collections/ |
 | Apache License, Version 2.0 | Apache Commons Compress | org.apache.commons:commons-compress | 1.28.0 | https://commons.apache.org/proper/commons-compress/ |
@@ -99,10 +106,10 @@ This product depends on software developed by third parties as listed in the fol
 | Apache License, Version 2.0 | Apache Log4j API | org.apache.logging.log4j:log4j-api | 2.24.3 | https://logging.apache.org/log4j/2.x/log4j/log4j-api/ |
 | Apache License, Version 2.0 | Log4j API to SLF4J Adapter | org.apache.logging.log4j:log4j-to-slf4j | 2.24.3 | https://logging.apache.org/log4j/2.x/log4j/log4j-to-slf4j/ |
 | Apache License, Version 2.0 | Apache Neethi | org.apache.neethi:neethi | 3.2.1 | https://ws.apache.org/neethi/ |
-| Apache License, Version 2.0 | Apache FontBox | org.apache.pdfbox:fontbox | 3.0.6 | http://pdfbox.apache.org/ |
-| Apache License, Version 2.0 | Apache PDFBox | org.apache.pdfbox:pdfbox | 3.0.6 | https://www.apache.org/pdfbox-parent/pdfbox/ |
-| Apache License, Version 2.0 | Apache PDFBox io | org.apache.pdfbox:pdfbox-io | 3.0.6 | https://www.apache.org/pdfbox-parent/pdfbox-io/ |
-| Apache License, Version 2.0 | Apache XmpBox | org.apache.pdfbox:xmpbox | 3.0.3 | https://www.apache.org/pdfbox-parent/xmpbox/ |
+| Apache License, Version 2.0 | Apache FontBox | org.apache.pdfbox:fontbox | 3.0.7 | http://pdfbox.apache.org/ |
+| Apache License, Version 2.0 | Apache PDFBox | org.apache.pdfbox:pdfbox | 3.0.7 | https://www.apache.org/pdfbox-parent/pdfbox/ |
+| Apache License, Version 2.0 | Apache PDFBox io | org.apache.pdfbox:pdfbox-io | 3.0.7 | https://www.apache.org/pdfbox-parent/pdfbox-io/ |
+| Apache License, Version 2.0 | Apache XmpBox | org.apache.pdfbox:xmpbox | 3.0.7 | https://www.apache.org/pdfbox-parent/xmpbox/ |
 | Apache License, Version 2.0 | Apache Thrift | org.apache.thrift:libthrift | 0.21.0 | http://thrift.apache.org |
 | Apache License, Version 2.0 | tomcat-embed-core | org.apache.tomcat.embed:tomcat-embed-core | 10.1.52 | https://tomcat.apache.org/ |
 | Apache License, Version 2.0 | tomcat-embed-el | org.apache.tomcat.embed:tomcat-embed-el | 10.1.52 | https://tomcat.apache.org/ |
@@ -142,6 +149,7 @@ This product depends on software developed by third parties as listed in the fol
 | Apache License, Version 2.0 | JBoss Logging 3 | org.jboss.logging:jboss-logging | 3.6.2.Final | https://www.jboss.org |
 | MIT License | jsoup Java HTML Parser | org.jsoup:jsoup | 1.15.4 | https://jsoup.org/ |
 | Apache License, Version 2.0 | JSpecify annotations | org.jspecify:jspecify | 1.0.0 | http://jspecify.org/ |
+| The 3-Clause BSD License | asm | org.ow2.asm:asm | 9.7.1 | http://asm.ow2.io/ |
 | The 3-Clause BSD License | asm | org.ow2.asm:asm | 9.9 | http://asm.ow2.io/ |
 | Apache License, Version 2.0 | org.roaringbitmap:RoaringBitmap | org.roaringbitmap:RoaringBitmap | 1.3.0 | https://github.com/RoaringBitmap/RoaringBitmap |
 | Apache License, Version 2.0 | JCL 1.2 implemented over SLF4J | org.slf4j:jcl-over-slf4j | 2.0.17 | http://www.slf4j.org |
@@ -164,6 +172,7 @@ This product depends on software developed by third parties as listed in the fol
 | Apache License, Version 2.0 | spring-boot-starter-aop | org.springframework.boot:spring-boot-starter-aop | 3.5.11 | https://spring.io/projects/spring-boot |
 | Apache License, Version 2.0 | spring-boot-starter-json | org.springframework.boot:spring-boot-starter-json | 3.5.11 | https://spring.io/projects/spring-boot |
 | Apache License, Version 2.0 | spring-boot-starter-logging | org.springframework.boot:spring-boot-starter-logging | 3.5.11 | https://spring.io/projects/spring-boot |
+| Apache License, Version 2.0 | spring-boot-starter-oauth2-client | org.springframework.boot:spring-boot-starter-oauth2-client | 3.5.11 | https://spring.io/projects/spring-boot |
 | Apache License, Version 2.0 | spring-boot-starter-security | org.springframework.boot:spring-boot-starter-security | 3.5.11 | https://spring.io/projects/spring-boot |
 | Apache License, Version 2.0 | spring-boot-starter-thymeleaf | org.springframework.boot:spring-boot-starter-thymeleaf | 3.5.11 | https://spring.io/projects/spring-boot |
 | Apache License, Version 2.0 | spring-boot-starter-tomcat | org.springframework.boot:spring-boot-starter-tomcat | 3.5.11 | https://spring.io/projects/spring-boot |
@@ -172,6 +181,9 @@ This product depends on software developed by third parties as listed in the fol
 | Apache License, Version 2.0 | spring-security-config | org.springframework.security:spring-security-config | 6.5.8 | https://spring.io/projects/spring-security |
 | Apache License, Version 2.0 | spring-security-core | org.springframework.security:spring-security-core | 6.5.8 | https://spring.io/projects/spring-security |
 | Apache License, Version 2.0 | spring-security-crypto | org.springframework.security:spring-security-crypto | 6.5.8 | https://spring.io/projects/spring-security |
+| Apache License, Version 2.0 | spring-security-oauth2-client | org.springframework.security:spring-security-oauth2-client | 6.5.8 | https://spring.io/projects/spring-security |
+| Apache License, Version 2.0 | spring-security-oauth2-core | org.springframework.security:spring-security-oauth2-core | 6.5.8 | https://spring.io/projects/spring-security |
+| Apache License, Version 2.0 | spring-security-oauth2-jose | org.springframework.security:spring-security-oauth2-jose | 6.5.8 | https://spring.io/projects/spring-security |
 | Apache License, Version 2.0 | spring-security-web | org.springframework.security:spring-security-web | 6.5.8 | https://spring.io/projects/spring-security |
 | Apache License, Version 2.0 | thymeleaf | org.thymeleaf:thymeleaf | 3.1.3.RELEASE | http://www.thymeleaf.org/thymeleaf-lib/thymeleaf |
 | Apache License, Version 2.0 | thymeleaf-spring6 | org.thymeleaf:thymeleaf-spring6 | 3.1.3.RELEASE | http://www.thymeleaf.org/thymeleaf-lib/thymeleaf-spring6 |

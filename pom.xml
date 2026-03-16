@@ -38,7 +38,7 @@
     </modules>
     <properties>
         <validatorBuild.resourceJar>validator-resources</validatorBuild.resourceJar>
-        <version.itbCommons>1.10.0</version.itbCommons>
+        <version.itbCommons>1.11.0-SNAPSHOT</version.itbCommons>
     </properties>
     <packaging>pom</packaging>
 
