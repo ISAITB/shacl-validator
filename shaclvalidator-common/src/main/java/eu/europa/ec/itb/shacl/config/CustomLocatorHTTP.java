@@ -40,6 +40,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import static org.apache.jena.http.HttpEnv.httpClientBuilder;
 
@@ -63,14 +64,18 @@ public class CustomLocatorHTTP extends LocatorHTTP {
      *
      * @param uri The URI.
      * @param httpVersion The HTTP version to use.
+     * @param requestDecorator The request decorator to use for HTTP requests.
      * @return The request.
      */
-    private HttpRequest toRequest(String uri, HttpClient.Version httpVersion) {
-        return HttpLib.requestBuilderFor(uri).uri(HttpLib.toRequestURI(uri))
-            .GET()
-            .version(httpVersion)
-            .header(HttpNames.hAccept, WebContent.defaultRDFAcceptHeader)
-            .build();
+    private HttpRequest toRequest(String uri, HttpClient.Version httpVersion, Consumer<HttpRequest.Builder> requestDecorator) {
+        var builder = HttpLib.requestBuilderFor(uri).uri(HttpLib.toRequestURI(uri))
+                .GET()
+                .version(httpVersion)
+                .header(HttpNames.hAccept, WebContent.defaultRDFAcceptHeader);
+        if (requestDecorator != null) {
+            requestDecorator.accept(builder);
+        }
+        return builder.build();
     }
 
     /**
@@ -97,14 +102,13 @@ public class CustomLocatorHTTP extends LocatorHTTP {
                     HttpResponse<InputStream> response;
                     var attemptedUrls = new HashSet<String>();
                     var uriToUse = uri;
-                    try {
-                        HttpClient client = httpClientBuilder()
-                                .sslContext(SSLContext.getInstance(SSLContext.getDefault().getProtocol()))
-                                .build();
+                    try (HttpClient client = httpClientBuilder()
+                            .sslContext(SSLContext.getInstance(SSLContext.getDefault().getProtocol()))
+                            .build()) {
                         do {
                             LOG.debug("Sending request to [{}]", uriToUse);
                             attemptedUrls.add(uriToUse);
-                            response = client.send(toRequest(uriToUse, params.httpVersion()), HttpResponse.BodyHandlers.ofInputStream());
+                            response = client.send(toRequest(uriToUse, params.httpVersion(), params.requestDecorator()), HttpResponse.BodyHandlers.ofInputStream());
                             if (response.statusCode() >= 300 && response.statusCode() <= 399) {
                                 var nextLocation = response.headers().firstValue("Location");
                                 if (nextLocation.isEmpty()) {
@@ -143,7 +147,8 @@ public class CustomLocatorHTTP extends LocatorHTTP {
      * @param urisToSkip The URIs to skip looking.
      * @param httpVersion The HTTP version to use in the lookups.
      * @param uriMappings The local URI to path mappings to consider.
+     * @param requestDecorator The request decorator to use for HTTP requests.
      */
-    public record LocatorParams(Set<String> urisToSkip, HttpClient.Version httpVersion, Map<String, Path> uriMappings) {}
+    public record LocatorParams(Set<String> urisToSkip, HttpClient.Version httpVersion, Map<String, Path> uriMappings, Consumer<HttpRequest.Builder> requestDecorator) {}
 
 }

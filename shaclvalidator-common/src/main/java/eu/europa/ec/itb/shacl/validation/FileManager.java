@@ -147,7 +147,7 @@ public class FileManager extends BaseFileManager<ApplicationConfig> {
     @Override
     protected FileInfo postProcessDownloadedRemoteFile(RemoteValidationArtifactInfo declaredFileInfo, FileInfo downloadedFile) {
         if (declaredFileInfo.getType() != null && (downloadedFile.getType() == null || !isRdfContentSyntax(downloadedFile.getType()))) {
-            return new FileInfo(downloadedFile.getFile(), declaredFileInfo.getType(), downloadedFile.getSource());
+            return new FileInfo(downloadedFile.getFile(), declaredFileInfo.getType(), downloadedFile.getSource(), downloadedFile.getRequestDecorator());
         } else {
             return downloadedFile;
         }
