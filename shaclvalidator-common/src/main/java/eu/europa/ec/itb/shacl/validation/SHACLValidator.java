@@ -54,7 +54,9 @@ import org.topbraid.shacl.validation.ValidationUtil;
 import org.topbraid.shacl.vocabulary.SH;
 
 import java.io.*;
+import java.net.http.HttpRequest;
 import java.util.*;
+import java.util.function.Consumer;
 
 import static eu.europa.ec.itb.shacl.util.ShaclValidatorUtils.determineRdfLanguage;
 import static eu.europa.ec.itb.shacl.util.ShaclValidatorUtils.handleEquivalentContentSyntaxes;
@@ -417,7 +419,14 @@ public class SHACLValidator {
      */
     private Model getShapesModel(List<FileInfo> shaclFiles) {
         Model aggregateModel = JenaUtil.createMemoryModel();
+        Consumer<HttpRequest.Builder> requestDecorator = null;
         for (FileInfo shaclFile: shaclFiles) {
+            if (requestDecorator == null && shaclFile.getRequestDecorator() != null) {
+                // We do a best effort here to add the first request decorator we come across.
+                // This would not work correctly if we have different resources that need to be loaded
+                // From different locations.
+                requestDecorator = shaclFile.getRequestDecorator();
+            }
             if (specs.isLogProgress()) {
                 LOG.info("Validating against [{}]", shaclFile.getFile().getName());
             }
@@ -438,7 +447,7 @@ public class SHACLValidator {
         
         this.importedShapes = JenaUtil.createMemoryModel();
         specs.track(this.importedShapes);
-        createImportedModels(aggregateModel);
+        createImportedModels(aggregateModel, requestDecorator);
         if (this.importedShapes != null) {
         	aggregateModel.add(importedShapes);
         	this.importedShapes.removeAll();
@@ -450,8 +459,9 @@ public class SHACLValidator {
      * Add imported models to the aggregated shape graph.
      *
      * @param aggregateModel The aggregated model to extend.
+     * @param requestDecorator The request decorator to use.
      */
-    private void createImportedModels(Model aggregateModel) {
+    private void createImportedModels(Model aggregateModel, Consumer<HttpRequest.Builder> requestDecorator) {
     	Set<String> reachedURIs = new HashSet<>();
     	
         ModelMaker modelMaker = ModelFactory.createMemModelMaker();
@@ -459,7 +469,7 @@ public class SHACLValidator {
         spec.setBaseModelMaker(modelMaker);
         spec.setImportModelMaker(modelMaker);
 
-        CustomLocatorHTTP.PARAMS.set(new CustomLocatorHTTP.LocatorParams(specs.getDomainConfig().getUrisToSkipWhenImporting(), specs.getDomainConfig().getHttpVersion(), specs.getDomainConfig().getOwlImportMappings()));
+        CustomLocatorHTTP.PARAMS.set(new CustomLocatorHTTP.LocatorParams(specs.getDomainConfig().getUrisToSkipWhenImporting(), specs.getDomainConfig().getHttpVersion(), specs.getDomainConfig().getOwlImportMappings(), requestDecorator));
         CustomJenaFileManager.PARAMS.set(new CustomJenaFileManager.CacheParams(specs.getDomainConfig().getOwlImportMappings().keySet(), new HashMap<>()));
         CustomReadFailureHandler.IMPORTS_WITH_ERRORS.set(new LinkedHashSet<>());
         Set<Pair<String, String>> importsWithErrors;
@@ -595,7 +605,7 @@ public class SHACLValidator {
                 if (specs.isLogProgress()) {
                     LOG.info("Loading imports...");
                 }
-                createImportedModels(dataModel);
+                createImportedModels(dataModel, null);
                 if (importedShapes != null) {
                     dataModel.add(importedShapes);
                     importedShapes.removeAll();

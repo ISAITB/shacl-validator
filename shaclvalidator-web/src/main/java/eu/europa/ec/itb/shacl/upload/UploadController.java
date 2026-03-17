@@ -57,7 +57,9 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
 import java.util.*;
+import java.util.function.Consumer;
 
 import static eu.europa.ec.itb.shacl.DomainConfig.FILE_NAME_SHAPES;
 import static eu.europa.ec.itb.validation.commons.web.Constants.*;
@@ -291,7 +293,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                 if (inputFile != null) {
                     // Proceed with the validation.
                     if (hasExternalShapes(domainConfig, validationType)) {
-                        userProvidedShapes = getExternalShapes(externalContentType, externalFiles, externalUri, externalString, externalFilesSyntaxType, parentFolder, domainConfig.getHttpVersion());
+                        userProvidedShapes = getExternalShapes(externalContentType, externalFiles, externalUri, externalString, externalFilesSyntaxType, parentFolder, domainConfig.getHttpVersion(), domainConfig, validationType);
                     } else {
                         userProvidedShapes = Collections.emptyList();
                     }
@@ -563,12 +565,15 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
      * @param externalFilesSyntaxType The syntax (mime type) of each shape file.
      * @param parentFolder The temp folder to use for storing the shape files.
      * @param httpVersion The HTTP version to use for remote lookups.
+     * @param domainConfig The domain configuration.
+     * @param validationType The validation type.
      * @return The list of stored shape files to be used.
      * @throws IOException If an IO error occurs.
      */
-    private List<FileInfo> getExternalShapes(String[] externalContentType, MultipartFile[] externalFiles, String[] externalUri, String[] externalString, String[] externalFilesSyntaxType, File parentFolder, HttpClient.Version httpVersion) throws IOException {
+    private List<FileInfo> getExternalShapes(String[] externalContentType, MultipartFile[] externalFiles, String[] externalUri, String[] externalString, String[] externalFilesSyntaxType, File parentFolder, HttpClient.Version httpVersion, DomainConfig domainConfig, String validationType) throws IOException {
         List<FileInfo> shapeFiles = new ArrayList<>();
         if (externalContentType != null) {
+            Consumer<HttpRequest.Builder> requestDecorator = fileManager.createRemoteFileRequestDecorator(domainConfig, domainConfig.getShapeInfo(validationType));
             for (int i=0; i<externalContentType.length; i++) {
                 if (StringUtils.isNotBlank(externalContentType[i])) {
                     File inputFile = null;
@@ -590,7 +595,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                         if (noContentSyntaxProvided) {
                             contentSyntaxType = getExtensionContentTypeForURL(externalUri[i]);
                         }
-                        FileInfo uriResult = this.fileManager.getFileFromURL(parentFolder, externalUri[i], null, null, null, null, null, getAcceptedContentTypes(contentSyntaxType), httpVersion);
+                        FileInfo uriResult = this.fileManager.getFileFromURL(parentFolder, externalUri[i], null, null, null, null, null, getAcceptedContentTypes(contentSyntaxType), httpVersion, requestDecorator);
                         inputFile = uriResult.getFile();
                         if (noContentSyntaxProvided) {
                             // Only override the content syntax if one has not been explicitly provided as part of the input.
@@ -600,7 +605,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                         inputFile = this.fileManager.getFileFromString(parentFolder, externalString[i]);
                     }
                     if (inputFile != null) {
-                        shapeFiles.add(new FileInfo(inputFile, contentSyntaxType));
+                        shapeFiles.add(new FileInfo(inputFile, contentSyntaxType, null, requestDecorator));
                     }
                 }
             }
