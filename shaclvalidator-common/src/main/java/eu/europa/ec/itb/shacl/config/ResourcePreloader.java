@@ -91,22 +91,7 @@ public class ResourcePreloader {
                         emptyModel.write(out, RDFLanguages.TURTLE.getName());
                         out.flush();
                     }
-                    try {
-                        LOG.info("Preloading owl:import references for validation type [{}]", validationType);
-                        ValidationSpecs specs = ValidationSpecs.builder(inputFile.toFile(), validationType, contentType, Collections.emptyList(), false, false, domainConfig, localiser, modelManager)
-                                .withoutPlugins()
-                                .withoutProgressLogging()
-                                .build();
-                        SHACLValidator validator = ctx.getBean(SHACLValidator.class, specs);
-                        validator.validateAll();
-                        if (domainConfig.preloadShapeGraphForType(validationType)) {
-                            LOG.info("Caching aggregated SHACL shapes for validation type [{}]", validationType);
-                            String extension = fileManager.getFileExtension(domainConfig.getDefaultReportSyntax());
-                            fileManager.writeShaclShapes(fileManager.createFile(parentFolder.toFile(), extension, FILE_NAME_SHAPES), validator.getAggregatedShapes(), validationType, domainConfig.getDefaultReportSyntax(), domainConfig);
-                        }
-                    } catch (Exception e) {
-                        LOG.warn("Failure while preloading owl:import references for validation type [{}]", validationType, e);
-                    }
+                    makeValidationForPreloading(domainConfig, validationType, inputFile, contentType, parentFolder, localiser, modelManager);
                 } catch (Exception e) {
                     LOG.warn("Failed to preload OWL imports for domain [{}]", domainConfig.getDomainName(), e);
                 } finally {
@@ -115,6 +100,36 @@ public class ResourcePreloader {
                 }
             });
         });
+    }
+
+    /**
+     * Perform a validation to preload all resources.
+     *
+     * @param domainConfig The domain configuration.
+     * @param validationType The validation type to use.
+     * @param inputFile The input file to validate.
+     * @param contentType The input file's content type.
+     * @param parentFolder The parent folder.
+     * @param localiser The localiser to use.
+     * @param modelManager The model manager to use.
+     */
+    private void makeValidationForPreloading(DomainConfig domainConfig, String validationType, Path inputFile, String contentType, Path parentFolder, LocalisationHelper localiser, ModelManager modelManager) {
+        LOG.info("Preloading owl:import references for validation type [{}]", validationType);
+        try {
+            ValidationSpecs specs = ValidationSpecs.builder(inputFile.toFile(), validationType, contentType, Collections.emptyList(), false, false, domainConfig, localiser, modelManager)
+                    .withoutPlugins()
+                    .withoutProgressLogging()
+                    .build();
+            SHACLValidator validator = ctx.getBean(SHACLValidator.class, specs);
+            validator.validateAll();
+            if (domainConfig.preloadShapeGraphForType(validationType)) {
+                LOG.info("Caching aggregated SHACL shapes for validation type [{}]", validationType);
+                String extension = fileManager.getFileExtension(domainConfig.getDefaultReportSyntax());
+                fileManager.writeShaclShapes(fileManager.createFile(parentFolder.toFile(), extension, FILE_NAME_SHAPES), validator.getAggregatedShapes(), validationType, domainConfig.getDefaultReportSyntax(), domainConfig);
+            }
+        } catch (Exception e) {
+            LOG.warn("Failure while preloading owl:import references for validation type [{}]", validationType, e);
+        }
     }
 
 }

@@ -123,7 +123,7 @@ public class DomainConfigCache extends WebDomainConfigCache<DomainConfig> {
         Boolean defaultPreloadOwlImports = config.getBoolean("validator.preloadOwlImports", null);
         Map<String, Boolean> preloadImportsMap = parseBooleanMap("validator.preloadOwlImports", config, domainConfig.getType(), Objects.requireNonNullElse(defaultPreloadOwlImports, false));
         Boolean defaultShapePreloading = config.getBoolean("validator.preloadShapeGraph", null);
-        Map<String, Boolean> preloadShapeGraphMap = parseBooleanMap("validator.preloadShapeGraph", config, domainConfig.getType(), (type) -> {
+        Map<String, Boolean> preloadShapeGraphMap = parseBooleanMap("validator.preloadShapeGraph", config, domainConfig.getType(), type -> {
             if (domainConfig.canCacheShapes(type)) {
                 // If we are preloading imports and have not explicitly disabled preloading of shapes, set based on preloading of imports.
                 return Objects.requireNonNullElseGet(defaultShapePreloading, () -> preloadImportsMap.getOrDefault(type, false));
@@ -139,7 +139,7 @@ public class DomainConfigCache extends WebDomainConfigCache<DomainConfig> {
         preloadShapeGraphMap.entrySet().stream().filter(Map.Entry::getValue).forEach(entry -> {
             if (domainConfig.canCacheShapes(entry.getKey())) {
                 // Shape preloading is enabled for the validation type. Force that imports are also preloaded.
-                if (!preloadImportsMap.get(entry.getKey())) {
+                if (Boolean.FALSE.equals(preloadImportsMap.get(entry.getKey()))) {
                     if (Boolean.FALSE.equals(defaultPreloadOwlImports)) {
                         // Preloading of imports was disabled as a default setting.
                         LOG.info("Validation type [{}] is set to preload the shapes graph. The preloading of owl:imports will be forced.", entry.getKey());
