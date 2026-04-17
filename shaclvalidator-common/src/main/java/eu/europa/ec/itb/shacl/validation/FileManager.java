@@ -248,7 +248,7 @@ public class FileManager extends BaseFileManager<ApplicationConfig> {
              * Set fallback type for remote contexts to avoid errors for non JSON/JSON-LD Content Types.
              * This allows us to proceed if e.g. the Content Type originally returned is "text/plain".
              */
-            httpLoader.setFallbackContentType(MediaType.JSON);
+            httpLoader.fallbackContentType(MediaType.JSON);
             options.setDocumentLoader(new SchemeRouter()
                     .set("http", httpLoader)
                     .set("https", httpLoader)
