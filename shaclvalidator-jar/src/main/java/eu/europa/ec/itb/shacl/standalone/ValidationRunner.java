@@ -398,15 +398,17 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
                         extension = langExtension.getFileExtensions().get(0);
                     }
                 }
-                FileInfo uriResult = this.fileManager.getFileFromURL(parentFolder, file, extension, filename, null, null, null, appConfig.getAcceptedContentTypes(contentType), domainConfig.getHttpVersion());
-                if (noContentSyntaxProvided) {
-                    // Only override the content syntax if one has not been explicitly provided as part of the input.
-                    contentType = ShaclValidatorUtils.contentSyntaxToUse(contentType, uriResult.getType());
-                }
-                if (isRdfContentSyntax(contentType)) {
-                    inputFile = uriResult.getFile();
-                } else {
-                    throw new IllegalArgumentException("Unknown content syntax [" + contentType + "]");
+                if (appConfig.isUriReadAllowed(file)) {
+                    FileInfo uriResult = this.fileManager.getFileFromURL(parentFolder, file, extension, filename, null, null, null, appConfig.getAcceptedContentTypes(contentType), domainConfig.getHttpVersion());
+                    if (noContentSyntaxProvided) {
+                        // Only override the content syntax if one has not been explicitly provided as part of the input.
+                        contentType = ShaclValidatorUtils.contentSyntaxToUse(contentType, uriResult.getType());
+                    }
+                    if (isRdfContentSyntax(contentType)) {
+                        inputFile = uriResult.getFile();
+                    } else {
+                        throw new IllegalArgumentException("Unknown content syntax [" + contentType + "]");
+                    }
                 }
             } else {
                 inputFile = this.fileManager.getFileFromInputStream(parentFolder, new FileInputStream(inputFile), contentType, FilenameUtils.removeExtension(inputFile.getName()));

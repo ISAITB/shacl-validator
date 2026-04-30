@@ -56,7 +56,8 @@
 			externalArtifacts: externalArtifacts,
             labels: [(${labelConfig})],
 			reportTemplate: 'reportShacl.hbs',
-			reportMinimalTemplate: 'reportMinimalShacl.hbs'
+			reportMinimalTemplate: 'reportMinimalShacl.hbs',
+            allowUriInputs: [[${appConfig.allowUriInputs}]]
 		});
     </script>
     <script th:attr="nonce=${nonce}" th:inline="javascript" th:if="${reportData}">

@@ -275,14 +275,16 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                                 }
                                 break;
                             case CONTENT_TYPE_URI:
-                                if (noContentSyntaxProvided) {
-                                    contentSyntaxType = getExtensionContentTypeForURL(uri);
-                                }
-                                FileInfo uriResult = this.fileManager.getFileFromURL(parentFolder, uri, fileManager.getFileExtension(contentSyntaxType), FILE_NAME_INPUT, null, null, null, getAcceptedContentTypes(contentSyntaxType), domainConfig.getHttpVersion());
-                                inputFile = uriResult.getFile();
-                                if (noContentSyntaxProvided) {
-                                    // Only override the content syntax if one has not been explicitly provided as part of the input.
-                                    contentSyntaxType = ShaclValidatorUtils.contentSyntaxToUse(contentSyntaxType, uriResult.getType());
+                                if (appConfig.isUriReadAllowed(uri)) {
+                                    if (noContentSyntaxProvided) {
+                                        contentSyntaxType = getExtensionContentTypeForURL(uri);
+                                    }
+                                    FileInfo uriResult = this.fileManager.getFileFromURL(parentFolder, uri, fileManager.getFileExtension(contentSyntaxType), FILE_NAME_INPUT, null, null, null, getAcceptedContentTypes(contentSyntaxType), domainConfig.getHttpVersion());
+                                    inputFile = uriResult.getFile();
+                                    if (noContentSyntaxProvided) {
+                                        // Only override the content syntax if one has not been explicitly provided as part of the input.
+                                        contentSyntaxType = ShaclValidatorUtils.contentSyntaxToUse(contentSyntaxType, uriResult.getType());
+                                    }
                                 }
                                 break;
                             default:
@@ -591,15 +593,17 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                             }
                         }
                     } else if (CONTENT_TYPE_URI.equals(externalContentType[i]) && externalUri.length > i && !externalUri[i].isEmpty()) {
-                        boolean noContentSyntaxProvided = StringUtils.isEmpty(contentSyntaxType) || contentSyntaxType.equals(EMPTY);
-                        if (noContentSyntaxProvided) {
-                            contentSyntaxType = getExtensionContentTypeForURL(externalUri[i]);
-                        }
-                        FileInfo uriResult = this.fileManager.getFileFromURL(parentFolder, externalUri[i], null, null, null, null, null, getAcceptedContentTypes(contentSyntaxType), httpVersion, requestDecorator);
-                        inputFile = uriResult.getFile();
-                        if (noContentSyntaxProvided) {
-                            // Only override the content syntax if one has not been explicitly provided as part of the input.
-                            contentSyntaxType = ShaclValidatorUtils.contentSyntaxToUse(contentSyntaxType, uriResult.getType());
+                        if (appConfig.isUriReadAllowed(externalUri[i])) {
+                            boolean noContentSyntaxProvided = StringUtils.isEmpty(contentSyntaxType) || contentSyntaxType.equals(EMPTY);
+                            if (noContentSyntaxProvided) {
+                                contentSyntaxType = getExtensionContentTypeForURL(externalUri[i]);
+                            }
+                            FileInfo uriResult = this.fileManager.getFileFromURL(parentFolder, externalUri[i], null, null, null, null, null, getAcceptedContentTypes(contentSyntaxType), httpVersion, requestDecorator);
+                            inputFile = uriResult.getFile();
+                            if (noContentSyntaxProvided) {
+                                // Only override the content syntax if one has not been explicitly provided as part of the input.
+                                contentSyntaxType = ShaclValidatorUtils.contentSyntaxToUse(contentSyntaxType, uriResult.getType());
+                            }
                         }
                     } else if (CONTENT_TYPE_STRING.equals(externalContentType[i]) && externalString.length > i && !externalString[i].isEmpty()) {
                         inputFile = this.fileManager.getFileFromString(parentFolder, externalString[i]);
