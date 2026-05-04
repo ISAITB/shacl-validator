@@ -50,7 +50,6 @@ public class BeanConfiguration {
         fileManager.getStreamManager().clearLocators();
         fileManager.getStreamManager().addLocator(new LocatorFile()) ;
         fileManager.getStreamManager().addLocator(new CustomLocatorHTTP()) ;
-        fileManager.getStreamManager().addLocator(new LocatorFTP()) ;
         fileManager.getStreamManager().addLocator(new CustomClassLoaderLocator(fileManager.getStreamManager().getClass().getClassLoader())) ;
         fileManager.setModelCaching(true);
         // Setup OntDocumentManager.
