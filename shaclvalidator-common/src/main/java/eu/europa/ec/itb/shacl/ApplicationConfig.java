@@ -55,6 +55,36 @@ public class ApplicationConfig extends eu.europa.ec.itb.validation.commons.confi
     private String defaultRdfReportQueryDescription;
     private String defaultLocaleDescription;
     private Integer maximumConcurrentValidations;
+    private boolean allowUriImportsFromFtpSources = false;
+    private boolean allowUriImportsFromJarSources = false;
+
+    /**
+     * @return Whether URIs for resource imports can use the FTP scheme.
+     */
+    public boolean isAllowUriImportsFromFtpSources() {
+        return allowUriImportsFromFtpSources;
+    }
+
+    /**
+     * @param allowUriImportsFromFtpSources Whether URIs for resource imports can use the FTP scheme.
+     */
+    public void setAllowUriImportsFromFtpSources(boolean allowUriImportsFromFtpSources) {
+        this.allowUriImportsFromFtpSources = allowUriImportsFromFtpSources;
+    }
+
+    /**
+     * @return Whether URIs for resource imports can use the JAR scheme.
+     */
+    public boolean isAllowUriImportsFromJarSources() {
+        return allowUriImportsFromJarSources;
+    }
+
+    /**
+     * @param allowUriImportsFromJarSources Whether URIs for resource imports can use the JAR scheme.
+     */
+    public void setAllowUriImportsFromJarSources(boolean allowUriImportsFromJarSources) {
+        this.allowUriImportsFromJarSources = allowUriImportsFromJarSources;
+    }
 
     /**
      * @return The maximum number of concurrent validations to perform.
