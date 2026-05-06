@@ -15,6 +15,7 @@
 
 package eu.europa.ec.itb.shacl.config;
 
+import eu.europa.ec.itb.validation.commons.ImportedUriAuthorizer;
 import org.apache.commons.io.IOUtils;
 import org.apache.jena.atlas.web.ContentType;
 import org.apache.jena.atlas.web.TypedInputStream;
@@ -31,6 +32,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -38,10 +40,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
 import java.util.function.Consumer;
 
+import static eu.europa.ec.itb.shacl.config.LocatorParams.PARAMS;
 import static org.apache.jena.http.HttpEnv.httpClientBuilder;
 
 /**
@@ -53,10 +54,11 @@ import static org.apache.jena.http.HttpEnv.httpClientBuilder;
  * In addition, this implementation follows deep redirects whereby a URI results in a 301 and then another 30X that leads
  * again to a 301. In the JDK's HTTP client followed redirects stop if another 301 is encountered. The current implementation
  * detects such cases and keeps on following redirects as long as there is no redirect loop.
+ * <p>
+ * Finally, this locator ensures that URIs are allowed to be loaded.
  */
 public class CustomLocatorHTTP extends LocatorHTTP {
 
-    public static final ThreadLocal<LocatorParams> PARAMS = new ThreadLocal<>();
     private static final Logger LOG = LoggerFactory.getLogger(CustomLocatorHTTP.class);
 
     /**
@@ -65,10 +67,13 @@ public class CustomLocatorHTTP extends LocatorHTTP {
      * @param uri The URI.
      * @param httpVersion The HTTP version to use.
      * @param requestDecorator The request decorator to use for HTTP requests.
+     * @param uriAuthorizer The authorizer for imported resource URIs.
      * @return The request.
      */
-    private HttpRequest toRequest(String uri, HttpClient.Version httpVersion, Consumer<HttpRequest.Builder> requestDecorator) {
-        var builder = HttpLib.requestBuilderFor(uri).uri(HttpLib.toRequestURI(uri))
+    private HttpRequest toRequest(String uri, HttpClient.Version httpVersion, Consumer<HttpRequest.Builder> requestDecorator, ImportedUriAuthorizer uriAuthorizer) {
+        URI uriToRead = HttpLib.toRequestURI(uri);
+        if (uriAuthorizer != null) uriAuthorizer.isUriAllowed(uriToRead);
+        var builder = HttpLib.requestBuilderFor(uri).uri(uriToRead)
                 .GET()
                 .version(httpVersion)
                 .header(HttpNames.hAccept, WebContent.defaultRDFAcceptHeader);
@@ -86,9 +91,9 @@ public class CustomLocatorHTTP extends LocatorHTTP {
         TypedInputStream result = null;
         if (uri.startsWith("http://") || uri.startsWith("https://")) {
             var params = PARAMS.get();
-            if (params.uriMappings.containsKey(uri)) {
+            if (params.uriMappings().containsKey(uri)) {
                 LOG.debug("Mapping URI {} to local file", uri);
-                Path file = params.uriMappings.get(uri);
+                Path file = params.uriMappings().get(uri);
                 ContentType contentType = RDFLanguages.guessContentType(file.getFileName().toString());
                 try {
                     return new TypedInputStream(Files.newInputStream(file), contentType);
@@ -109,7 +114,7 @@ public class CustomLocatorHTTP extends LocatorHTTP {
                         do {
                             LOG.debug("Sending request to [{}]", uriToUse);
                             attemptedUrls.add(uriToUse);
-                            response = client.send(toRequest(uriToUse, params.httpVersion(), params.requestDecorator()), HttpResponse.BodyHandlers.ofInputStream());
+                            response = client.send(toRequest(uriToUse, params.httpVersion(), params.requestDecorator(), params.uriAuthorizer()), HttpResponse.BodyHandlers.ofInputStream());
                             if (response.statusCode() >= 300 && response.statusCode() <= 399) {
                                 var nextLocation = response.headers().firstValue("Location");
                                 if (nextLocation.isEmpty()) {
@@ -139,17 +144,7 @@ public class CustomLocatorHTTP extends LocatorHTTP {
 
     @Override
     public String getName() {
-        return "CustomLocatorHTTP" ;
+        return "CustomLocatorHTTP";
     }
-
-    /**
-     * Parameters defining how remote resources are to be handled.
-     *
-     * @param urisToSkip The URIs to skip looking.
-     * @param httpVersion The HTTP version to use in the lookups.
-     * @param uriMappings The local URI to path mappings to consider.
-     * @param requestDecorator The request decorator to use for HTTP requests.
-     */
-    public record LocatorParams(Set<String> urisToSkip, HttpClient.Version httpVersion, Map<String, Path> uriMappings, Consumer<HttpRequest.Builder> requestDecorator) {}
 
 }
