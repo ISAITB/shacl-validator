@@ -48,9 +48,9 @@ public class BeanConfiguration {
         // Setup FileManager.
         var fileManager = CustomJenaFileManager.get();
         fileManager.getStreamManager().clearLocators();
-        fileManager.getStreamManager().addLocator(new LocatorFile()) ;
-        fileManager.getStreamManager().addLocator(new CustomLocatorHTTP()) ;
-        fileManager.getStreamManager().addLocator(new CustomClassLoaderLocator(fileManager.getStreamManager().getClass().getClassLoader())) ;
+        fileManager.getStreamManager().addLocator(new CustomLocatorFile());
+        fileManager.getStreamManager().addLocator(new CustomLocatorHTTP());
+        fileManager.getStreamManager().addLocator(new CustomClassLoaderLocator(fileManager.getStreamManager().getClass().getClassLoader()));
         fileManager.setModelCaching(true);
         // Setup OntDocumentManager.
         var ontDocumentManager = OntDocumentManager.getInstance();

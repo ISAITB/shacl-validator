@@ -20,9 +20,11 @@ import com.gitb.tr.TestAssertionReportType;
 import com.gitb.vs.ValidateRequest;
 import com.gitb.vs.ValidationResponse;
 import eu.europa.ec.itb.shacl.*;
-import eu.europa.ec.itb.shacl.config.CustomLocatorHTTP;
+import eu.europa.ec.itb.shacl.config.LocatorParams;
 import eu.europa.ec.itb.shacl.util.StatementTranslator;
 import eu.europa.ec.itb.validation.commons.FileInfo;
+import eu.europa.ec.itb.validation.commons.ImportedFileAuthorizer;
+import eu.europa.ec.itb.validation.commons.ImportedUriAuthorizer;
 import eu.europa.ec.itb.validation.commons.Utils;
 import eu.europa.ec.itb.validation.commons.config.DomainPluginConfigProvider;
 import eu.europa.ec.itb.validation.commons.config.ErrorResponseTypeEnum;
@@ -70,6 +72,8 @@ public class SHACLValidator {
 
     private static final Logger LOG = LoggerFactory.getLogger(SHACLValidator.class);
 
+    @Autowired
+    private ApplicationConfig appConfig = null;
     @Autowired
     private FileManager fileManager = null;
     @Autowired
@@ -469,7 +473,14 @@ public class SHACLValidator {
         spec.setBaseModelMaker(modelMaker);
         spec.setImportModelMaker(modelMaker);
 
-        CustomLocatorHTTP.PARAMS.set(new CustomLocatorHTTP.LocatorParams(specs.getDomainConfig().getUrisToSkipWhenImporting(), specs.getDomainConfig().getHttpVersion(), specs.getDomainConfig().getOwlImportMappings(), requestDecorator));
+        LocatorParams.PARAMS.set(new LocatorParams(
+                specs.getDomainConfig().getUrisToSkipWhenImporting(),
+                specs.getDomainConfig().getHttpVersion(),
+                specs.getDomainConfig().getOwlImportMappings(),
+                requestDecorator,
+                ImportedUriAuthorizer.from(appConfig, specs.getDomainConfig(), specs.getValidationType()).orElse(null),
+                ImportedFileAuthorizer.from(appConfig, specs.getDomainConfig()
+        )));
         CustomJenaFileManager.PARAMS.set(new CustomJenaFileManager.CacheParams(specs.getDomainConfig().getOwlImportMappings().keySet(), new HashMap<>()));
         CustomReadFailureHandler.IMPORTS_WITH_ERRORS.set(new LinkedHashSet<>());
         Set<Pair<String, String>> importsWithErrors;
@@ -479,7 +490,7 @@ public class SHACLValidator {
             importsWithErrors = CustomReadFailureHandler.IMPORTS_WITH_ERRORS.get();
         } finally {
             CustomReadFailureHandler.IMPORTS_WITH_ERRORS.remove();
-            CustomLocatorHTTP.PARAMS.remove();
+            LocatorParams.PARAMS.remove();
             CustomJenaFileManager.PARAMS.remove();
         }
 
