@@ -15,6 +15,7 @@
 
 package eu.europa.ec.itb.shacl.config;
 
+import eu.europa.ec.itb.shacl.ApplicationConfig;
 import eu.europa.ec.itb.shacl.CustomJenaFileManager;
 import eu.europa.ec.itb.shacl.DomainConfig;
 import eu.europa.ec.itb.shacl.validation.CustomReadFailureHandler;
@@ -23,6 +24,7 @@ import jakarta.annotation.PostConstruct;
 import org.apache.jena.ontology.OntDocumentManager;
 import org.apache.jena.riot.system.stream.LocatorFTP;
 import org.apache.jena.riot.system.stream.LocatorFile;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -32,6 +34,9 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 public class BeanConfiguration {
+
+    @Autowired
+    private ApplicationConfig appConfig;
 
     /**
      * Support the definition of plugins.
@@ -50,7 +55,12 @@ public class BeanConfiguration {
         fileManager.getStreamManager().clearLocators();
         fileManager.getStreamManager().addLocator(new CustomLocatorFile());
         fileManager.getStreamManager().addLocator(new CustomLocatorHTTP());
-        fileManager.getStreamManager().addLocator(new CustomClassLoaderLocator(fileManager.getStreamManager().getClass().getClassLoader()));
+        if (appConfig.isAllowUriImportsFromFtpSources()) {
+            fileManager.getStreamManager().addLocator(new LocatorFTP()) ;
+        }
+        if (appConfig.isAllowUriImportsFromJarSources()) {
+            fileManager.getStreamManager().addLocator(new CustomClassLoaderLocator(fileManager.getStreamManager().getClass().getClassLoader()));
+        }
         fileManager.setModelCaching(true);
         // Setup OntDocumentManager.
         var ontDocumentManager = OntDocumentManager.getInstance();
