@@ -1,9 +1,8 @@
-FROM eclipse-temurin:21-jre-jammy
+FROM eclipse-temurin:25-jre-jammy
 
 RUN mkdir /validator
 COPY validator.jar /validator
-COPY validator-entrypoint.sh /validator
-RUN chmod +x /validator/validator-entrypoint.sh && sh -c 'touch /validator/validator.jar'
+RUN sh -c 'touch /validator/validator.jar'
 EXPOSE 8080
 WORKDIR /validator
-ENTRYPOINT ["/validator/validator-entrypoint.sh"]
+ENTRYPOINT ["java","-XX:+ExitOnOutOfMemoryError", "-Djava.security.egd=file:/dev/./urandom","-jar","/validator/validator.jar"]
