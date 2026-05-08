@@ -17,7 +17,7 @@ package eu.europa.ec.itb.shacl.config;
 
 import org.apache.jena.atlas.web.TypedInputStream;
 import org.apache.jena.irix.IRIs;
-import org.apache.jena.riot.system.stream.LocatorClassLoader;
+import org.apache.jena.riot.system.streammgr.LocatorClassLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

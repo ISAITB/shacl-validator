@@ -40,7 +40,6 @@ import org.apache.jena.ontology.OntModel;
 import org.apache.jena.ontology.OntModelSpec;
 import org.apache.jena.ontology.models.ModelMaker;
 import org.apache.jena.query.QueryExecution;
-import org.apache.jena.query.QueryExecutionFactory;
 import org.apache.jena.rdf.model.*;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFLanguages;
@@ -465,6 +464,7 @@ public class SHACLValidator {
      * @param aggregateModel The aggregated model to extend.
      * @param requestDecorator The request decorator to use.
      */
+    @SuppressWarnings("removal")
     private void createImportedModels(Model aggregateModel, Consumer<HttpRequest.Builder> requestDecorator) {
     	Set<String> reachedURIs = new HashSet<>();
     	
@@ -550,6 +550,7 @@ public class SHACLValidator {
      * @param reachedURIs The URIs that have already been processed.
      * @return The processed URIs.
      */
+    @SuppressWarnings("removal")
     private Set<String> addIncluded(OntModel baseOntModel, Set<String> reachedURIs) {
     	baseOntModel.loadImports();
         Set<String> listImportedURI = baseOntModel.listImportedOntologyURIs();
@@ -661,7 +662,10 @@ public class SHACLValidator {
                     throw new ValidatorException("validator.label.exception.preprocessingError", e, constructQuery);
                 }
                 Model preprocessedModel = JenaUtil.createMemoryModel();
-                try (QueryExecution queryExecution = QueryExecutionFactory.create(constructQuery, inputModel)) {
+                try (QueryExecution queryExecution = QueryExecution.create()
+                        .query(constructQuery)
+                        .model(inputModel)
+                        .build()) {
                     queryExecution.execConstruct(preprocessedModel);
                 }
                 // check that the processed model is not empty

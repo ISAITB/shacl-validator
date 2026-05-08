@@ -27,6 +27,8 @@ import eu.europa.ec.itb.validation.commons.Utils;
 import jakarta.xml.bind.JAXBElement;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jena.rdf.model.*;
+import org.apache.jena.riot.RDFDataMgr;
+import org.apache.jena.riot.RDFFormat;
 import org.topbraid.shacl.vocabulary.SH;
 
 import java.io.StringWriter;
@@ -237,12 +239,12 @@ public class SHACLReportHandler {
     /**
      * Convert the provided SHACL report model to a string.
      *
-     * @param shaclReport The report.
+     * @param model The report.
      * @return The string.
      */
-    private String modelToString(Model shaclReport) {
-		StringWriter writer = new StringWriter();		
-		shaclReport.write(writer);
+    private String modelToString(Model model) {
+		StringWriter writer = new StringWriter();
+        RDFDataMgr.write(writer, model, RDFFormat.RDFXML_PRETTY);
 		return writer.toString();
     }
 

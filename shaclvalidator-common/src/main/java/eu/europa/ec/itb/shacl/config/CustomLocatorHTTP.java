@@ -22,7 +22,7 @@ import org.apache.jena.atlas.web.TypedInputStream;
 import org.apache.jena.http.HttpLib;
 import org.apache.jena.riot.RDFLanguages;
 import org.apache.jena.riot.WebContent;
-import org.apache.jena.riot.system.stream.LocatorHTTP;
+import org.apache.jena.riot.system.streammgr.LocatorHTTP;
 import org.apache.jena.riot.web.HttpNames;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
