@@ -16,7 +16,7 @@
 package eu.europa.ec.itb.shacl.config;
 
 import org.apache.jena.atlas.web.TypedInputStream;
-import org.apache.jena.riot.system.stream.LocatorFile;
+import org.apache.jena.riot.system.streammgr.LocatorFile;
 
 import java.net.URI;
 import java.nio.file.Path;

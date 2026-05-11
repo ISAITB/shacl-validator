@@ -17,7 +17,7 @@ package eu.europa.ec.itb.shacl;
 
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.riot.adapters.AdapterFileManager;
-import org.apache.jena.riot.system.stream.StreamManager;
+import org.apache.jena.riot.system.streammgr.StreamManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
