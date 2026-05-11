@@ -17,10 +17,6 @@ package eu.europa.ec.itb.shacl.standalone;
 
 import eu.europa.ec.itb.validation.commons.jar.CommandLineValidator;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.freemarker.FreeMarkerAutoConfiguration;
-import org.springframework.boot.autoconfigure.gson.GsonAutoConfiguration;
-import org.springframework.boot.autoconfigure.security.oauth2.client.OAuth2ClientAutoConfiguration;
-import org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration;
 import org.springframework.context.annotation.ComponentScan;
 
 import java.io.IOException;
@@ -28,7 +24,14 @@ import java.io.IOException;
 /**
  * Application entry point when running the validator as a command-line tool.
  */
-@SpringBootApplication(exclude = {UserDetailsServiceAutoConfiguration.class, FreeMarkerAutoConfiguration.class, GsonAutoConfiguration.class, OAuth2ClientAutoConfiguration.class})
+@SpringBootApplication(excludeName = {
+        "org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration",
+        "org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration",
+        "org.springframework.boot.autoconfigure.freemarker.FreeMarkerAutoConfiguration",
+        "org.springframework.boot.autoconfigure.gson.GsonAutoConfiguration",
+        "org.springframework.boot.autoconfigure.security.oauth2.client.OAuth2ClientAutoConfiguration",
+        "org.springframework.boot.security.oauth2.client.autoconfigure.OAuth2ClientAutoConfiguration"
+})
 @ComponentScan("eu.europa.ec.itb")
 public class Application {
 
