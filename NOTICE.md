@@ -49,8 +49,6 @@ This product depends on software developed by third parties as listed in the fol
 | Apache License, Version 2.0 | Nimbus JOSE+JWT | com.nimbusds:nimbus-jose-jwt | 10.4 | https://bitbucket.org/connect2id/nimbus-jose-jwt |
 | Apache License, Version 2.0 | OAuth 2.0 SDK with OpenID Connect extensions | com.nimbusds:oauth2-oidc-sdk | 11.26.1 | https://bitbucket.org/connect2id/oauth-2.0-sdk-with-openid-connect-extensions |
 | Eclipse Distribution License - v1.0 | istack common utility code runtime | com.sun.istack:istack-commons-runtime | 4.1.2 | https://projects.eclipse.org/projects/ee4j/istack-commons/istack-commons-runtime |
-| Eclipse Distribution License - v1.0 | Old JAXB Core | com.sun.xml.bind:jaxb-core | 4.0.6 | https://eclipse-ee4j.github.io/jaxb-ri/ |
-| Eclipse Distribution License - v1.0 | Old JAXB Runtime | com.sun.xml.bind:jaxb-impl | 4.0.7 | https://eclipse-ee4j.github.io/jaxb-ri/ |
 | Apache License, Version 2.0 | Apache Commons Codec | commons-codec:commons-codec | 1.19.0 | https://commons.apache.org/proper/commons-codec/ |
 | Apache License, Version 2.0 | Apache Commons IO | commons-io:commons-io | 2.17.0 | https://commons.apache.org/proper/commons-io/ |
 | Apache License, Version 2.0 | Apache Commons Logging | commons-logging:commons-logging | 1.3.6 | https://commons.apache.org/proper/commons-logging/ |
@@ -68,7 +66,7 @@ This product depends on software developed by third parties as listed in the fol
 | Apache License, Version 2.0 | swagger-annotations-jakarta | io.swagger.core.v3:swagger-annotations-jakarta | 2.2.47 | https://github.com/swagger-api/swagger-core/modules/swagger-annotations-jakarta |
 | Apache License, Version 2.0 | swagger-core-jakarta | io.swagger.core.v3:swagger-core-jakarta | 2.2.47 | https://github.com/swagger-api/swagger-core/modules/swagger-core-jakarta |
 | Apache License, Version 2.0 | swagger-models-jakarta | io.swagger.core.v3:swagger-models-jakarta | 2.2.47 | https://github.com/swagger-api/swagger-core/modules/swagger-models-jakarta |
-| Eclipse Distribution License - v1.0 | Jakarta Activation API | jakarta.activation:jakarta.activation-api | 2.1.2 | https://github.com/jakartaee/jaf-api |
+| Eclipse Distribution License - v1.0 | Jakarta Activation API | jakarta.activation:jakarta.activation-api | 2.1.4 | https://github.com/jakartaee/jaf-api |
 | Eclipse Public License - v2.0, GNU General Public License (GPL), Version 2 (with Classpath Exception) | Jakarta Annotations API | jakarta.annotation:jakarta.annotation-api | 2.1.1 | https://projects.eclipse.org/projects/ee4j.ca |
 | Eclipse Distribution License - v1.0 | Jakarta Web Services Metadata API | jakarta.jws:jakarta.jws-api | 3.0.0 | https://github.com/eclipse-ee4j/jws-api |
 | Eclipse Distribution License - v1.0, Eclipse Public License - v2.0, GNU General Public License (GPL), Version 2 (with Classpath Exception) | Jakarta Mail API | jakarta.mail:jakarta.mail-api | 2.1.5 | https://projects.eclipse.org/projects/ee4j/jakarta.mail-api |
@@ -81,10 +79,10 @@ This product depends on software developed by third parties as listed in the fol
 | Mozilla Public License Version 2.0 | Saxon-HE | net.sf.saxon:Saxon-HE | 12.8 | http://www.saxonica.com/ |
 | Apache License, Version 2.0 | Apache Commons Collections | org.apache.commons:commons-collections4 | 4.5.0 | https://commons.apache.org/proper/commons-collections/ |
 | Apache License, Version 2.0 | Apache Commons Compress | org.apache.commons:commons-compress | 1.28.0 | https://commons.apache.org/proper/commons-compress/ |
-| Apache License, Version 2.0 | Apache Commons Configuration | org.apache.commons:commons-configuration2 | 2.11.0 | https://commons.apache.org/proper/commons-configuration/ |
+| Apache License, Version 2.0 | Apache Commons Configuration | org.apache.commons:commons-configuration2 | 2.15.0 | https://commons.apache.org/proper/commons-configuration/ |
 | Apache License, Version 2.0 | Apache Commons CSV | org.apache.commons:commons-csv | 1.12.0 | https://commons.apache.org/proper/commons-csv/ |
 | Apache License, Version 2.0 | Apache Commons Lang | org.apache.commons:commons-lang3 | 3.18.0 | https://commons.apache.org/proper/commons-lang/ |
-| Apache License, Version 2.0 | Apache Commons Text | org.apache.commons:commons-text | 1.12.0 | https://commons.apache.org/proper/commons-text |
+| Apache License, Version 2.0 | Apache Commons Text | org.apache.commons:commons-text | 1.15.0 | https://commons.apache.org/proper/commons-text |
 | Apache License, Version 2.0 | Apache CXF Core | org.apache.cxf:cxf-core | 4.2.0 | https://cxf.apache.org |
 | Apache License, Version 2.0 | Apache CXF Runtime SOAP Binding | org.apache.cxf:cxf-rt-bindings-soap | 4.2.0 | https://cxf.apache.org |
 | Apache License, Version 2.0 | Apache CXF Runtime XML Binding | org.apache.cxf:cxf-rt-bindings-xml | 4.2.0 | https://cxf.apache.org |
@@ -111,9 +109,9 @@ This product depends on software developed by third parties as listed in the fol
 | Apache License, Version 2.0 | Apache PDFBox io | org.apache.pdfbox:pdfbox-io | 3.0.7 | https://www.apache.org/pdfbox-parent/pdfbox-io/ |
 | Apache License, Version 2.0 | Apache XmpBox | org.apache.pdfbox:xmpbox | 3.0.7 | https://www.apache.org/pdfbox-parent/xmpbox/ |
 | Apache License, Version 2.0 | Apache Thrift | org.apache.thrift:libthrift | 0.23.0 | http://thrift.apache.org |
-| Apache License, Version 2.0 | tomcat-embed-core | org.apache.tomcat.embed:tomcat-embed-core | 11.0.21 | https://tomcat.apache.org/ |
-| Apache License, Version 2.0 | tomcat-embed-el | org.apache.tomcat.embed:tomcat-embed-el | 11.0.21 | https://tomcat.apache.org/ |
-| Apache License, Version 2.0 | tomcat-embed-websocket | org.apache.tomcat.embed:tomcat-embed-websocket | 11.0.21 | https://tomcat.apache.org/ |
+| Apache License, Version 2.0 | tomcat-embed-core | org.apache.tomcat.embed:tomcat-embed-core | 11.0.22 | https://tomcat.apache.org/ |
+| Apache License, Version 2.0 | tomcat-embed-el | org.apache.tomcat.embed:tomcat-embed-el | 11.0.22 | https://tomcat.apache.org/ |
+| Apache License, Version 2.0 | tomcat-embed-websocket | org.apache.tomcat.embed:tomcat-embed-websocket | 11.0.22 | https://tomcat.apache.org/ |
 | Apache License, Version 2.0 | XmlSchema Core | org.apache.ws.xmlschema:xmlschema-core | 2.3.2 | https://ws.apache.org/commons/xmlschema20/xmlschema-core/ |
 | Apache License, Version 2.0 | org.apache.xmlgraphics:batik-anim | org.apache.xmlgraphics:batik-anim | 1.17 | http://xmlgraphics.apache.org/batik/batik-anim/ |
 | Apache License, Version 2.0 | org.apache.xmlgraphics:batik-awt-util | org.apache.xmlgraphics:batik-awt-util | 1.17 | http://xmlgraphics.apache.org/batik/batik-awt-util/ |
@@ -141,9 +139,9 @@ This product depends on software developed by third parties as listed in the fol
 | Eclipse Distribution License - v1.0, Eclipse Public License - v2.0, GNU General Public License (GPL), Version 2 (with Classpath Exception) | Angus Mail Provider | org.eclipse.angus:angus-mail | 2.0.5 | http://eclipse-ee4j.github.io/angus-mail/angus-mail |
 | Apache License, Version 2.0 | Apache FreeMarker | org.freemarker:freemarker | 2.3.32 | https://freemarker.apache.org/ |
 | Eclipse Public License - v2.0, GNU General Public License (GPL), Version 2 (with Classpath Exception) | JSON-P Default Provider | org.glassfish:jakarta.json | 2.0.1 | https://github.com/eclipse-ee4j/jsonp |
-| Eclipse Distribution License - v1.0 | JAXB Core | org.glassfish.jaxb:jaxb-core | 4.0.6 | https://eclipse-ee4j.github.io/jaxb-ri/ |
-| Eclipse Distribution License - v1.0 | JAXB Runtime | org.glassfish.jaxb:jaxb-runtime | 4.0.6 | https://eclipse-ee4j.github.io/jaxb-ri/ |
-| Eclipse Distribution License - v1.0 | TXW2 Runtime | org.glassfish.jaxb:txw2 | 4.0.6 | https://eclipse-ee4j.github.io/jaxb-ri/ |
+| Eclipse Distribution License - v1.0 | JAXB Core | org.glassfish.jaxb:jaxb-core | 4.0.8 | https://eclipse-ee4j.github.io/jaxb-ri/ |
+| Eclipse Distribution License - v1.0 | JAXB Runtime | org.glassfish.jaxb:jaxb-runtime | 4.0.8 | https://eclipse-ee4j.github.io/jaxb-ri/ |
+| Eclipse Distribution License - v1.0 | TXW2 Runtime | org.glassfish.jaxb:txw2 | 4.0.8 | https://eclipse-ee4j.github.io/jaxb-ri/ |
 | Apache License, Version 2.0 | Hibernate Validator Engine | org.hibernate.validator:hibernate-validator | 9.0.1.Final | https://hibernate.org/validator |
 | Apache License, Version 2.0 | JBoss Logging 3 | org.jboss.logging:jboss-logging | 3.6.3.Final | https://www.jboss.org |
 | MIT License | jsoup Java HTML Parser | org.jsoup:jsoup | 1.15.4 | https://jsoup.org/ |
