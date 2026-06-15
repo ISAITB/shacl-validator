@@ -31,25 +31,35 @@ import java.util.regex.Pattern;
 class AdditionalInfoTemplate {
 
     private static final String ADDITIONAL_INFO_TEMPLATE_PROPERTY_PREFIX = "validator.reportItemAdditionalInfoTemplate";
+    private static final String ADDITIONAL_INFO_SOURCE_PROPERTY_PREFIX = "validator.reportItemAdditionalInfoTemplateSource";
     private static final Pattern PLACEHOLDER_PATTERN = Pattern.compile("(\\$\\{[\\S]+})");
 
     private final TemplateDefinition defaultDefinition;
     private final Map<String, TemplateDefinition> typeToTemplateMap;
     private final Map<String, Property> propertyCache = new HashMap<>();
     private final Model inputModel;
+    private final Model shapesModel;
     private final boolean enabled;
 
     /**
      * Constructor.
      *
      * @param localiser The localiser to look up template expressions.
-     * @param inputModel The model to make property evaluations on.
+     * @param inputModel The input model to make property evaluations on (for input-sourced values).
+     * @param shapesModel The shapes model to make property evaluations on (for input-sourced values).
      */
-    AdditionalInfoTemplate(LocalisationHelper localiser, Model inputModel) {
+    AdditionalInfoTemplate(LocalisationHelper localiser, Model inputModel, Model shapesModel) {
         this.inputModel = inputModel;
+        this.shapesModel = shapesModel;
         // Parse the default template (if any)
+        AdditionalInfoSource defaultSource;
+        if (localiser.propertyExists(ADDITIONAL_INFO_SOURCE_PROPERTY_PREFIX)) {
+            defaultSource = AdditionalInfoSource.byName(localiser.localise(ADDITIONAL_INFO_SOURCE_PROPERTY_PREFIX));
+        } else {
+            defaultSource = AdditionalInfoSource.INPUT;
+        }
         if (localiser.propertyExists(ADDITIONAL_INFO_TEMPLATE_PROPERTY_PREFIX)) {
-            defaultDefinition = parseTemplateDefinition(localiser.localise(ADDITIONAL_INFO_TEMPLATE_PROPERTY_PREFIX));
+            defaultDefinition = parseTemplateDefinition(localiser.localise(ADDITIONAL_INFO_TEMPLATE_PROPERTY_PREFIX), defaultSource);
         } else {
             defaultDefinition = null;
         }
@@ -62,8 +72,15 @@ class AdditionalInfoTemplate {
             var templateProperty = String.format("%s.%s.template", ADDITIONAL_INFO_TEMPLATE_PROPERTY_PREFIX, templateCounter);
             continueCheck = localiser.propertyExists(uriProperty) && localiser.propertyExists(templateProperty);
             if (continueCheck) {
+                var sourceProperty = String.format("%s.%s.source", ADDITIONAL_INFO_TEMPLATE_PROPERTY_PREFIX, templateCounter);
+                AdditionalInfoSource sourceForType;
+                if (localiser.propertyExists(sourceProperty)) {
+                    sourceForType = AdditionalInfoSource.byName(localiser.localise(sourceProperty));
+                } else {
+                    sourceForType = defaultSource;
+                }
+                typeToTemplateMap.put(localiser.localise(uriProperty), parseTemplateDefinition(localiser.localise(templateProperty), sourceForType));
                 templateCounter += 1;
-                typeToTemplateMap.put(localiser.localise(uriProperty), parseTemplateDefinition(localiser.localise(templateProperty)));
             }
         } while (continueCheck);
         // Determine if additional info is supported overall.
@@ -74,9 +91,10 @@ class AdditionalInfoTemplate {
      * Parse a template definition form a property value.
      *
      * @param templateWithPlaceholders The property value to parse.
+     * @param source type The source to retrieve values from.
      * @return The definition.
      */
-    private TemplateDefinition parseTemplateDefinition(String templateWithPlaceholders) {
+    private TemplateDefinition parseTemplateDefinition(String templateWithPlaceholders, AdditionalInfoSource source) {
         var matcher = PLACEHOLDER_PATTERN.matcher(templateWithPlaceholders);
         var templateProperties = matcher.results().map(match -> {
             var propertyExpression = match.group();
@@ -88,7 +106,7 @@ class AdditionalInfoTemplate {
         } else {
             localisedTemplate = templateWithPlaceholders;
         }
-        return new TemplateDefinition(localisedTemplate, templateProperties);
+        return new TemplateDefinition(localisedTemplate, templateProperties, source);
     }
 
     /**
@@ -102,9 +120,10 @@ class AdditionalInfoTemplate {
      * Get the additional info text for the given focus node.
      *
      * @param focusNodeURI The URI of the focus node.
+     * @param shapeURI The URI of the fired shape.
      * @return The text to use or null if it should be skipped.
      */
-    String apply(String focusNodeURI) {
+    String apply(String focusNodeURI, String shapeURI) {
         if (enabled) {
             var focusNode = inputModel.getResource(focusNodeURI);
             if (focusNode != null) {
@@ -113,10 +132,22 @@ class AdditionalInfoTemplate {
                 if (focusNodeType != null) {
                     focusNodeTypeValue = focusNodeType.toString();
                 }
+                TemplateDefinition definitionToUse = null;
                 if (focusNodeTypeValue != null && typeToTemplateMap.containsKey(focusNodeTypeValue)) {
-                    return applyTemplateDefinition(focusNode, typeToTemplateMap.get(focusNodeTypeValue));
+                    definitionToUse = typeToTemplateMap.get(focusNodeTypeValue);
                 } else if (defaultDefinition != null) {
-                    return applyTemplateDefinition(focusNode, defaultDefinition);
+                    definitionToUse = defaultDefinition;
+                }
+                if (definitionToUse != null) {
+                    Resource sourceToUse;
+                    if (definitionToUse.source() == AdditionalInfoSource.INPUT) {
+                        sourceToUse = focusNode;
+                    } else {
+                        sourceToUse = shapesModel.getResource(shapeURI);
+                    }
+                    if (sourceToUse != null) {
+                        return applyTemplateDefinition(sourceToUse, definitionToUse);
+                    }
                 }
             }
         }
@@ -124,21 +155,21 @@ class AdditionalInfoTemplate {
     }
 
     /**
-     * Apply the provided definition to the given focus node.
+     * Apply the provided definition to the given resource.
      *
-     * @param focusNode The focus node.
+     * @param sourceResource The resource to use as the additional information source.
      * @param definition The template definition.
      * @return The text to use.
      */
-    private String applyTemplateDefinition(Resource focusNode, TemplateDefinition definition) {
-        String[] templateProperties = definition.getTemplateProperties();
+    private String applyTemplateDefinition(Resource sourceResource, TemplateDefinition definition) {
+        String[] templateProperties = definition.templateProperties();
         Object[] propertyValues = new String[templateProperties.length];
         for (int i=0; i < templateProperties.length; i++) {
             String propertyValue = null;
             var propertyURI = templateProperties[i];
             var property = propertyCache.computeIfAbsent(propertyURI, key -> inputModel.createProperty(propertyURI));
             if (property != null) {
-                var nodeProperty = focusNode.getProperty(property);
+                var nodeProperty = sourceResource.getProperty(property);
                 if (nodeProperty != null) {
                     var nodePropertyObject = nodeProperty.getObject();
                     if (nodePropertyObject != null) {
@@ -148,41 +179,38 @@ class AdditionalInfoTemplate {
             }
             propertyValues[i] = ((propertyValue == null)?"":propertyValue);
         }
-        return String.format(definition.getLocalisedTemplate(), propertyValues);
+        return String.format(definition.localisedTemplate(), propertyValues);
     }
 
     /**
-     * Class to hold a template and its properties.
-     */
-    private static class TemplateDefinition {
-
-        private final String[] templateProperties;
-        private final String localisedTemplate;
+         * Class to hold a template and its properties.
+         */
+        private record TemplateDefinition(String localisedTemplate, String[] templateProperties, AdditionalInfoSource source) {
 
         /**
          * Constructor.
          *
-         * @param localisedTemplate The localised template string.
+         * @param localisedTemplate  The localised template string.
          * @param templateProperties The properties to include in the template.
          */
-        private TemplateDefinition(String localisedTemplate, String[] templateProperties) {
-            this.localisedTemplate = localisedTemplate;
-            this.templateProperties = templateProperties;
+        private TemplateDefinition {
         }
 
-        /**
-         * @return The properties.
-         */
-        public String[] getTemplateProperties() {
-            return templateProperties;
-        }
+            /**
+             * @return The properties.
+             */
+            @Override
+            public String[] templateProperties() {
+                return templateProperties;
+            }
 
-        /**
-         * @return The template.
-         */
-        public String getLocalisedTemplate() {
-            return localisedTemplate;
+            /**
+             * @return The template.
+             */
+            @Override
+            public String localisedTemplate() {
+                return localisedTemplate;
+            }
         }
-    }
 
 }

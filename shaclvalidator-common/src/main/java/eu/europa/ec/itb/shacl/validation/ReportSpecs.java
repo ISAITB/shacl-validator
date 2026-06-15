@@ -36,6 +36,7 @@ public class ReportSpecs {
     private Model shapesModel;
     private SHACLReportHandler.ReportLabels reportLabels;
     private LocalisationHelper localisationHelper;
+    private boolean includeShapesInReport;
     private boolean produceAggregateReport;
     private DomainConfig domainConfig;
     private String validationType;
@@ -78,6 +79,13 @@ public class ReportSpecs {
      */
     public String getReportContentToInclude() {
         return reportContentToInclude;
+    }
+
+    /**
+     * @return Whether the shapes should be included in the resulting report as context.
+     */
+    public boolean isIncludeShapesInReport() {
+        return includeShapesInReport;
     }
 
     /**
@@ -127,14 +135,15 @@ public class ReportSpecs {
      *
      * @param inputModel The RDF model for the input that was validated.
      * @param reportModel The RDF model of the SHACL validation report.
+     * @param shapesModel The RDF model of the aggregated SHACL shapes.
      * @param localisationHelper The localisation helper to assist with translations.
      * @param domainConfig The domain configuration.
      * @param validationType The requested validation type.
      *
      * @return The builder to use.
      */
-    public static Builder builder(Model inputModel, Model reportModel, LocalisationHelper localisationHelper, DomainConfig domainConfig, String validationType) {
-        return new Builder(inputModel, reportModel, localisationHelper, domainConfig, validationType);
+    public static Builder builder(Model inputModel, Model reportModel, Model shapesModel, LocalisationHelper localisationHelper, DomainConfig domainConfig, String validationType) {
+        return new Builder(inputModel, reportModel, shapesModel, localisationHelper, domainConfig, validationType);
     }
 
     /**
@@ -149,14 +158,16 @@ public class ReportSpecs {
          *
          * @param inputModel The RDF model for the input that was validated.
          * @param reportModel The RDF model of the SHACL validation report.
+         * @param shapesModel The RDF model of the SHACL shape graph.
          * @param localisationHelper The localisation helper to assist with translations.
          * @param domainConfig The domain configuration.
          * @param validationType The requested validation type.
          */
-        Builder(Model inputModel, Model reportModel, LocalisationHelper localisationHelper, DomainConfig domainConfig, String validationType) {
+        Builder(Model inputModel, Model reportModel, Model shapesModel, LocalisationHelper localisationHelper, DomainConfig domainConfig, String validationType) {
             instance = new ReportSpecs();
             instance.inputModel = inputModel;
             instance.reportModel = reportModel;
+            instance.shapesModel = shapesModel;
             instance.localisationHelper = localisationHelper;
             instance.reportLabels = ShaclValidatorUtils.getReportLabels(localisationHelper);
             instance.domainConfig = domainConfig;
@@ -211,11 +222,10 @@ public class ReportSpecs {
         /**
          * Add the shapes model to include as context in the report.
          *
-         * @param shapesModel The shapes model to include.
          * @return The builder.
          */
-        public Builder withShapesToInclude(Model shapesModel) {
-            instance.shapesModel = shapesModel;
+        public Builder includeShapesInReport() {
+            instance.includeShapesInReport = true;
             return this;
         }
 

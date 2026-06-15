@@ -224,7 +224,7 @@ public class RestValidationController extends BaseRestController<DomainConfig, A
      * @return The report.
      */
     private TAR createTAR(Input in, ValidationResources result, DomainConfig domainConfig, String validationType) {
-        var reportSpecs = ReportSpecs.builder(result.getInput(), result.getReport(),
+        var reportSpecs = ReportSpecs.builder(result.getInput(), result.getReport(), result.getShapes(),
                 new LocalisationHelper(Utils.getSupportedLocale(LocaleUtils.toLocale(in.getLocale()), domainConfig)),
                 domainConfig, validationType);
         if (Objects.requireNonNullElse(in.getAddRdfReportToReport(), false)) {
@@ -237,7 +237,7 @@ public class RestValidationController extends BaseRestController<DomainConfig, A
             reportSpecs = reportSpecs.withInputContentToInclude(result.getInputContent().get());
         }
         if (Objects.requireNonNullElse(in.getAddShapesToReport(), false)) {
-            reportSpecs = reportSpecs.withShapesToInclude(result.getShapes());
+            reportSpecs = reportSpecs.includeShapesInReport();
         }
         return ShaclValidatorUtils.getTAR(reportSpecs.build()).getDetailedReport();
     }

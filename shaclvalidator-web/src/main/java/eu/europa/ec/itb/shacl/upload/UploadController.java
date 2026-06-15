@@ -311,7 +311,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                     SHACLValidator validator = ctx.getBean(SHACLValidator.class, specs);
                     ModelPair models = validator.validateAll();
                     ReportPair tarReport = ShaclValidatorUtils.getTAR(ReportSpecs
-                            .builder(models.getInputModel(), models.getReportModel(), localisationHelper, domainConfig, validator.getValidationType())
+                            .builder(models.getInputModel(), models.getReportModel(), validator.getAggregatedShapes(), localisationHelper, domainConfig, validator.getValidationType())
                             .produceAggregateReport()
                             .build()
                     );

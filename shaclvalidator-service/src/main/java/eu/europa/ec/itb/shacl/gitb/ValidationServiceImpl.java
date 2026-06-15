@@ -175,10 +175,10 @@ public class ValidationServiceImpl implements ValidationService, WebServiceConte
                 ValidationSpecs specs = ValidationSpecs.builder(contentToValidate, validationType, contentSyntax, externalShapes, loadImports, mergeModelsBeforeValidation, domainConfig, localiser, modelManager).build();
                 SHACLValidator validator = ctx.getBean(SHACLValidator.class, specs);
                 ModelPair models = validator.validateAll();
-                var reportSpecs = ReportSpecs.builder(models.getInputModel(), models.getReportModel(), localiser, domainConfig, validator.getValidationType());
+                var reportSpecs = ReportSpecs.builder(models.getInputModel(), models.getReportModel(), validator.getAggregatedShapes(), localiser, domainConfig, validator.getValidationType());
                 if (addRdfReportToReport) reportSpecs = reportSpecs.withReportContentToInclude(getRdfReportToInclude(models.getReportModel(), validateRequest));
                 if (addInputToReport) reportSpecs = reportSpecs.withInputContentToInclude(contentToValidate.toPath());
-                if (addShapesToReport) reportSpecs = reportSpecs.withShapesToInclude(validator.getAggregatedShapes());
+                if (addShapesToReport) reportSpecs = reportSpecs.includeShapesInReport();
                 ReportPair report = ShaclValidatorUtils.getTAR(reportSpecs.build());
                 ValidationResponse result = new ValidationResponse();
                 result.setReport(report.getDetailedReport());
