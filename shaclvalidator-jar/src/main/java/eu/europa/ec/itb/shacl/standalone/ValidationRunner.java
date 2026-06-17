@@ -368,6 +368,7 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
         String message = usageStr
                 .append(detailsStr)
                 .append("\n\nThe summary of each validation will be printed and the detailed report produced in the current directory (as \"report.X.SUFFIX\").")
+                .append("\n\nValidator version ").append(appConfig.getVersionNumber()).append(" built on ").append(appConfig.getVersionBuildTimestamp()).append(".")
                 .toString();
         System.out.println(message);
     }

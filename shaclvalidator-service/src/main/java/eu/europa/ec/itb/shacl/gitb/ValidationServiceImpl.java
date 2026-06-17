@@ -57,6 +57,8 @@ public class ValidationServiceImpl implements ValidationService, WebServiceConte
     private final DomainConfig requestedDomainConfig;
 
     @Autowired
+    ApplicationConfig appConfig;
+    @Autowired
 	InputHelper inputHelper;
     @Autowired
     ApplicationContext ctx;
@@ -89,7 +91,7 @@ public class ValidationServiceImpl implements ValidationService, WebServiceConte
         MDC.put("domain", domainConfig.getDomain());
         GetModuleDefinitionResponse response = new GetModuleDefinitionResponse();
         response.setModule(new ValidationModule());
-        domainConfig.applyWebServiceMetadata(response.getModule());
+        domainConfig.applyWebServiceMetadata(response.getModule(), appConfig);
         response.getModule().setInputs(new TypedParameters());
         UsageEnumeration contentUsage = UsageEnumeration.R;
         if (domainConfig.isSupportsQueries()) {

@@ -106,7 +106,12 @@
         </div>
         <th:block th:if="${!minimalUI}">
             <div id="reportPlaceholder"></div>
-            <div th:replace="~{fragments/common :: localeSelector(${config}, ${localiser.getLocale()})}"/>
+            <div class="validator-ui-footer">
+                <div class="validator-ui-footer-contents">
+                    <div th:if="${config.showVersion}" class="version-div">v<th:block th:text="${appConfig.versionNumber}">1.0.0</th:block></div>
+                    <th:block th:replace="~{fragments/common :: localeSelector(${config}, ${localiser.getLocale()})}"/>
+                </div>
+            </div>
         </th:block>
         <div th:replace="~{fragments/common :: footer(${config}, ${minimalUI})}"/>
     </div>
