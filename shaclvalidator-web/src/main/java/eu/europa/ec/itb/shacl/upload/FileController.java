@@ -20,10 +20,7 @@ import eu.europa.ec.itb.shacl.ApplicationConfig;
 import eu.europa.ec.itb.shacl.DomainConfig;
 import eu.europa.ec.itb.shacl.DomainConfigCache;
 import eu.europa.ec.itb.shacl.validation.FileManager;
-import eu.europa.ec.itb.validation.commons.CsvReportGenerator;
-import eu.europa.ec.itb.validation.commons.LocalisationHelper;
-import eu.europa.ec.itb.validation.commons.Utils;
-import eu.europa.ec.itb.validation.commons.ValidatorChannel;
+import eu.europa.ec.itb.validation.commons.*;
 import eu.europa.ec.itb.validation.commons.report.ReportGeneratorBean;
 import eu.europa.ec.itb.validation.commons.web.errors.NotFoundException;
 import eu.europa.ec.itb.validation.commons.web.locale.CustomLocaleResolver;
@@ -205,7 +202,8 @@ public class FileController {
                     // PDF generation
                     var tar = Utils.toTAR(xmlReport);
                     if (checkOkToProducePDF(tar, domainConfig)) {
-                        pdfReportGenerator.writeReport(tar,targetFile, t -> pdfReportGenerator.getReportLabels(localiser, t), domainConfig.isRichTextReports());
+                        ReportProperties reportProperties = fileManager.loadReportProperties(xmlReport.toPath().resolveSibling(FILE_NAME_REPORT_PROPERTIES+".properties"));
+                        pdfReportGenerator.writeReport(tar,targetFile, t -> pdfReportGenerator.getReportLabels(localiser, t, reportProperties, domainConfig), reportProperties, domainConfig);
                     } else {
                         LOG.error("Unable to produce PDF report because of too many report items");
                         throw new NotFoundException();
