@@ -57,6 +57,8 @@ public class ValidationServiceImpl implements ValidationService, WebServiceConte
     private final DomainConfig requestedDomainConfig;
 
     @Autowired
+    ApplicationConfig appConfig;
+    @Autowired
 	InputHelper inputHelper;
     @Autowired
     ApplicationContext ctx;
@@ -89,7 +91,7 @@ public class ValidationServiceImpl implements ValidationService, WebServiceConte
         MDC.put("domain", domainConfig.getDomain());
         GetModuleDefinitionResponse response = new GetModuleDefinitionResponse();
         response.setModule(new ValidationModule());
-        domainConfig.applyWebServiceMetadata(response.getModule());
+        domainConfig.applyWebServiceMetadata(response.getModule(), appConfig);
         response.getModule().setInputs(new TypedParameters());
         UsageEnumeration contentUsage = UsageEnumeration.R;
         if (domainConfig.isSupportsQueries()) {
@@ -175,10 +177,10 @@ public class ValidationServiceImpl implements ValidationService, WebServiceConte
                 ValidationSpecs specs = ValidationSpecs.builder(contentToValidate, validationType, contentSyntax, externalShapes, loadImports, mergeModelsBeforeValidation, domainConfig, localiser, modelManager).build();
                 SHACLValidator validator = ctx.getBean(SHACLValidator.class, specs);
                 ModelPair models = validator.validateAll();
-                var reportSpecs = ReportSpecs.builder(models.getInputModel(), models.getReportModel(), localiser, domainConfig, validator.getValidationType());
+                var reportSpecs = ReportSpecs.builder(models.getInputModel(), models.getReportModel(), validator.getAggregatedShapes(), localiser, domainConfig, validator.getValidationType());
                 if (addRdfReportToReport) reportSpecs = reportSpecs.withReportContentToInclude(getRdfReportToInclude(models.getReportModel(), validateRequest));
                 if (addInputToReport) reportSpecs = reportSpecs.withInputContentToInclude(contentToValidate.toPath());
-                if (addShapesToReport) reportSpecs = reportSpecs.withShapesToInclude(validator.getAggregatedShapes());
+                if (addShapesToReport) reportSpecs = reportSpecs.includeShapesInReport();
                 ReportPair report = ShaclValidatorUtils.getTAR(reportSpecs.build());
                 ValidationResponse result = new ValidationResponse();
                 result.setReport(report.getDetailedReport());

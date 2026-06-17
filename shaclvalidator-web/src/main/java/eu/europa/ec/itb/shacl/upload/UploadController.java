@@ -89,6 +89,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
     static final String FILE_NAME_CSV_REPORT_AGGREGATED = "csvReportFileAggregated";
     static final String FILE_NAME_TAR = "tarFile";
     static final String FILE_NAME_TAR_AGGREGATE = "tarAggregateFile";
+    static final String FILE_NAME_REPORT_PROPERTIES = "reportProperties";
 
     @Autowired
     private FileManager fileManager;
@@ -311,7 +312,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                     SHACLValidator validator = ctx.getBean(SHACLValidator.class, specs);
                     ModelPair models = validator.validateAll();
                     ReportPair tarReport = ShaclValidatorUtils.getTAR(ReportSpecs
-                            .builder(models.getInputModel(), models.getReportModel(), localisationHelper, domainConfig, validator.getValidationType())
+                            .builder(models.getInputModel(), models.getReportModel(), validator.getAggregatedShapes(), localisationHelper, domainConfig, validator.getValidationType())
                             .produceAggregateReport()
                             .build()
                     );
@@ -326,6 +327,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                         // Query or editor.
                         fileName = "-";
                     }
+                    fileManager.saveReportProperties(new ReportProperties(fileName, specs.getValidationType()), fileManager.createFile(parentFolder, ".properties", FILE_NAME_REPORT_PROPERTIES));
                     String extension = fileManager.getFileExtension(domainConfig.getDefaultReportSyntax());
                     try (FileWriter out = new FileWriter(fileManager.createFile(parentFolder, extension, FILE_NAME_REPORT).toFile())) {
                         fileManager.writeRdfModel(out, models.getReportModel(), domainConfig.getDefaultReportSyntax());

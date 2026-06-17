@@ -55,7 +55,7 @@ public class SHACLReportHandler {
 	public SHACLReportHandler(ReportSpecs reportSpecs) {
 		this.reportSpecs = reportSpecs;
         reportContext = new AnyContent();
-        if (reportSpecs.getInputContentToInclude() != null || reportSpecs.getShapesModel() != null || reportSpecs.getReportContentToInclude() != null) {
+        if (reportSpecs.getInputContentToInclude() != null || (reportSpecs.isIncludeShapesInReport() && reportSpecs.getShapesModel() != null) || reportSpecs.getReportContentToInclude() != null) {
             reportContext.setType("map");
             if (reportSpecs.getInputContentToInclude() != null) {
                 AnyContent inputAttachment = new AnyContent();
@@ -65,7 +65,7 @@ public class SHACLReportHandler {
                 inputAttachment.setValue(reportSpecs.getInputContentToInclude());
                 reportContext.getItem().add(inputAttachment);
             }
-            if (reportSpecs.getShapesModel() != null) {
+            if (reportSpecs.isIncludeShapesInReport() && reportSpecs.getShapesModel() != null) {
                 AnyContent shapeAttachment = new AnyContent();
                 shapeAttachment.setName("shapes");
                 shapeAttachment.setType("string");
@@ -98,7 +98,7 @@ public class SHACLReportHandler {
         int infos = 0;
         int warnings = 0;
         int errors = 0;
-        var additionalInfoTemplate = new AdditionalInfoTemplate(reportSpecs.getLocalisationHelper(), reportSpecs.getInputModel());
+        var additionalInfoTemplate = new AdditionalInfoTemplate(reportSpecs.getLocalisationHelper(), reportSpecs.getInputModel(), reportSpecs.getShapesModel());
         AggregateReportItems aggregateReportItems = null;
         if (reportSpecs.isProduceAggregateReport()) {
             aggregateReportItems = new AggregateReportItems(objectFactory, reportSpecs.getLocalisationHelper());
@@ -141,7 +141,7 @@ public class SHACLReportHandler {
                     }
                 }
                 if (focusNode != null && additionalInfoTemplate.isEnabled()) {
-                    error.setAssertionID(additionalInfoTemplate.apply(focusNode));
+                    error.setAssertionID(additionalInfoTemplate.apply(focusNode, shape));
                 }
                 error.setDescription(getStatementSafe(statementTranslator.getTranslation(reportSpecs.getLocalisationHelper().getLocale()).getMatchedStatement()));
                 error.setLocation(createStringMessageFromParts(new String[] {reportSpecs.getReportLabels().getFocusNode(), reportSpecs.getReportLabels().getResultPath()}, new String[] {focusNode, resultPath}));
@@ -194,7 +194,10 @@ public class SHACLReportHandler {
             aggregateReport = new TAR();
             aggregateReport.setContext(new AnyContent());
             aggregateReport.setResult(report.getResult());
-            aggregateReport.setCounters(report.getCounters());
+            aggregateReport.setCounters(new ValidationCounters());
+            aggregateReport.getCounters().setNrOfAssertions(BigInteger.valueOf(report.getCounters().getNrOfAssertions().longValue()));
+            aggregateReport.getCounters().setNrOfWarnings(BigInteger.valueOf(report.getCounters().getNrOfWarnings().longValue()));
+            aggregateReport.getCounters().setNrOfErrors(BigInteger.valueOf(report.getCounters().getNrOfErrors().longValue()));
             aggregateReport.setOverview(report.getOverview());
             aggregateReport.setDate(report.getDate());
             aggregateReport.setName(report.getName());

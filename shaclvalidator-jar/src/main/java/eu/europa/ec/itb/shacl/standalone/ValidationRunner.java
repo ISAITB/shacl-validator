@@ -255,7 +255,7 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
                             SHACLValidator validator = applicationContext.getBean(SHACLValidator.class, specs);
                             ModelPair models = validator.validateAll();
                             // Output summary results.
-                            ReportPair tarReport = ShaclValidatorUtils.getTAR(ReportSpecs.builder(models.getInputModel(), models.getReportModel(), localiser, domainConfig, validator.getValidationType()).build());
+                            ReportPair tarReport = ShaclValidatorUtils.getTAR(ReportSpecs.builder(models.getInputModel(), models.getReportModel(), validator.getAggregatedShapes(), localiser, domainConfig, validator.getValidationType()).build());
                             FileReport reporter = new FileReport(input.getFileName(), tarReport.getDetailedReport(), requireType, type);
                             summary.append("\n").append(reporter).append("\n");
                             Model report = models.getReportModel();
@@ -368,6 +368,7 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
         String message = usageStr
                 .append(detailsStr)
                 .append("\n\nThe summary of each validation will be printed and the detailed report produced in the current directory (as \"report.X.SUFFIX\").")
+                .append("\n\nValidator version ").append(appConfig.getVersionNumber()).append(" built on ").append(appConfig.getVersionBuildTimestamp()).append(".")
                 .toString();
         System.out.println(message);
     }
