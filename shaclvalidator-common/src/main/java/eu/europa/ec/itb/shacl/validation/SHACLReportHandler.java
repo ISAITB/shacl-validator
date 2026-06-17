@@ -194,7 +194,9 @@ public class SHACLReportHandler {
             aggregateReport = new TAR();
             aggregateReport.setContext(new AnyContent());
             aggregateReport.setResult(report.getResult());
-            aggregateReport.setCounters(report.getCounters());
+            aggregateReport.getCounters().setNrOfAssertions(BigInteger.valueOf(report.getCounters().getNrOfAssertions().longValue()));
+            aggregateReport.getCounters().setNrOfWarnings(BigInteger.valueOf(report.getCounters().getNrOfWarnings().longValue()));
+            aggregateReport.getCounters().setNrOfErrors(BigInteger.valueOf(report.getCounters().getNrOfErrors().longValue()));
             aggregateReport.setOverview(report.getOverview());
             aggregateReport.setDate(report.getDate());
             aggregateReport.setName(report.getName());
