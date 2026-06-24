@@ -146,8 +146,6 @@ This product depends on software developed by third parties as listed in the fol
 | Apache License, Version 2.0 | JBoss Logging 3 | org.jboss.logging:jboss-logging | 3.6.3.Final | https://www.jboss.org |
 | MIT License | jsoup Java HTML Parser | org.jsoup:jsoup | 1.15.4 | https://jsoup.org/ |
 | Apache License, Version 2.0 | JSpecify annotations | org.jspecify:jspecify | 1.0.0 | http://jspecify.org/ |
-| The 3-Clause BSD License | asm | org.ow2.asm:asm | 9.10.1 | http://asm.ow2.io/ |
-| The 3-Clause BSD License | asm | org.ow2.asm:asm | 9.7.1 | http://asm.ow2.io/ |
 | Apache License, Version 2.0 | org.roaringbitmap:RoaringBitmap | org.roaringbitmap:RoaringBitmap | 1.6.14 | https://github.com/RoaringBitmap/RoaringBitmap |
 | Apache License, Version 2.0 | JCL 1.2 implemented over SLF4J | org.slf4j:jcl-over-slf4j | 2.0.18 | http://www.slf4j.org |
 | MIT License | JUL to SLF4J bridge | org.slf4j:jul-to-slf4j | 2.0.18 | http://www.slf4j.org |
