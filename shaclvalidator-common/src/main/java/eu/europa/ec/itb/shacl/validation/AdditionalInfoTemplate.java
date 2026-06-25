@@ -140,13 +140,16 @@ class AdditionalInfoTemplate {
                 }
                 if (definitionToUse != null) {
                     Resource sourceToUse;
+                    Model sourceModel;
                     if (definitionToUse.source() == AdditionalInfoSource.INPUT) {
                         sourceToUse = focusNode;
+                        sourceModel = inputModel;
                     } else {
                         sourceToUse = shapesModel.getResource(shapeURI);
+                        sourceModel = shapesModel;
                     }
                     if (sourceToUse != null) {
-                        return applyTemplateDefinition(sourceToUse, definitionToUse);
+                        return applyTemplateDefinition(sourceToUse, definitionToUse, sourceModel);
                     }
                 }
             }
@@ -159,15 +162,16 @@ class AdditionalInfoTemplate {
      *
      * @param sourceResource The resource to use as the additional information source.
      * @param definition The template definition.
+     * @param sourceModel The source model.
      * @return The text to use.
      */
-    private String applyTemplateDefinition(Resource sourceResource, TemplateDefinition definition) {
+    private String applyTemplateDefinition(Resource sourceResource, TemplateDefinition definition, Model sourceModel) {
         String[] templateProperties = definition.templateProperties();
         Object[] propertyValues = new String[templateProperties.length];
         for (int i=0; i < templateProperties.length; i++) {
             String propertyValue = null;
             var propertyURI = templateProperties[i];
-            var property = propertyCache.computeIfAbsent(propertyURI, key -> inputModel.createProperty(propertyURI));
+            var property = propertyCache.computeIfAbsent(propertyURI, key -> sourceModel.createProperty(propertyURI));
             if (property != null) {
                 var nodeProperty = sourceResource.getProperty(property);
                 if (nodeProperty != null) {
