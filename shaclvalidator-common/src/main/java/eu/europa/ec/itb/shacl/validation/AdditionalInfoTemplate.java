@@ -15,14 +15,18 @@
 
 package eu.europa.ec.itb.shacl.validation;
 
+import eu.europa.ec.itb.shacl.util.ShaclValidatorUtils;
 import eu.europa.ec.itb.validation.commons.LocalisationHelper;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.Property;
 import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.vocabulary.RDF;
 
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 
 /**
@@ -40,6 +44,7 @@ class AdditionalInfoTemplate {
     private final Model inputModel;
     private final Model shapesModel;
     private final boolean enabled;
+    private final Locale locale;
 
     /**
      * Constructor.
@@ -51,6 +56,7 @@ class AdditionalInfoTemplate {
     AdditionalInfoTemplate(LocalisationHelper localiser, Model inputModel, Model shapesModel) {
         this.inputModel = inputModel;
         this.shapesModel = shapesModel;
+        this.locale = localiser.getLocale();
         // Parse the default template (if any)
         AdditionalInfoSource defaultSource;
         if (localiser.propertyExists(ADDITIONAL_INFO_SOURCE_PROPERTY_PREFIX)) {
@@ -165,26 +171,27 @@ class AdditionalInfoTemplate {
      * @param sourceModel The source model.
      * @return The text to use.
      */
-    private String applyTemplateDefinition(Resource sourceResource, TemplateDefinition definition, Model sourceModel) {
-        String[] templateProperties = definition.templateProperties();
-        Object[] propertyValues = new String[templateProperties.length];
-        for (int i=0; i < templateProperties.length; i++) {
-            String propertyValue = null;
-            var propertyURI = templateProperties[i];
-            var property = propertyCache.computeIfAbsent(propertyURI, key -> sourceModel.createProperty(propertyURI));
-            if (property != null) {
-                var nodeProperty = sourceResource.getProperty(property);
-                if (nodeProperty != null) {
-                    var nodePropertyObject = nodeProperty.getObject();
-                    if (nodePropertyObject != null) {
-                        propertyValue = nodePropertyObject.toString();
+        private String applyTemplateDefinition(Resource sourceResource, TemplateDefinition definition, Model sourceModel) {
+            String[] templateProperties = definition.templateProperties();
+            Object[] propertyValues = new String[templateProperties.length];
+            for (int i=0; i < templateProperties.length; i++) {
+                String propertyValue = null;
+                var propertyURI = templateProperties[i];
+                var property = propertyCache.computeIfAbsent(propertyURI, key -> sourceModel.createProperty(propertyURI));
+                Statement nodeProperty = sourceResource.getProperty(property, locale.getLanguage()+"-"+locale.getCountry());
+                if (nodeProperty == null) {
+                    nodeProperty = sourceResource.getProperty(property, locale.getLanguage());
+                    if (nodeProperty == null) {
+                        nodeProperty = sourceResource.getProperty(property);
                     }
                 }
+                if (nodeProperty != null) {
+                    propertyValue = ShaclValidatorUtils.getStatementSafe(nodeProperty);
+                }
+                propertyValues[i] = ((propertyValue == null)?"":propertyValue);
             }
-            propertyValues[i] = ((propertyValue == null)?"":propertyValue);
+            return String.format(definition.localisedTemplate(), propertyValues);
         }
-        return String.format(definition.localisedTemplate(), propertyValues);
-    }
 
     /**
          * Class to hold a template and its properties.
