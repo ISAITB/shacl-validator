@@ -121,7 +121,7 @@ public class CustomLocatorHTTP extends LocatorHTTP {
                                     nextLocation = response.headers().firstValue("location");
                                 }
                                 if (nextLocation.isPresent()) {
-                                    uriToUse = nextLocation.get();
+                                    uriToUse = URI.create(uriToUse).resolve(nextLocation.get()).toString();
                                 }
                             }
                         } while (!attemptedUrls.contains(uriToUse));
