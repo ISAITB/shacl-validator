@@ -117,6 +117,13 @@
         </dependencies>
     </dependencyManagement>
 
+    <distributionManagement>
+        <site>
+            <id>local-staging</id>
+            <url>file://${maven.multiModuleProjectDirectory}/target/staging</url>
+        </site>
+    </distributionManagement>
+
     <build>
         <plugins>
             <plugin>
@@ -137,5 +144,33 @@
             </plugin>
         </plugins>
     </build>
+
+    <reporting>
+        <!--
+            Generate project reports with `mvn install site site:stage`.
+        -->
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>versions-maven-plugin</artifactId>
+                <version>${version.plugin.versionsMavenPlugin}</version>
+                <reportSets>
+                    <!-- Aggregate report: root only, not inherited by submodules -->
+                    <reportSet>
+                        <id>aggregate</id>
+                        <inherited>false</inherited>
+                        <configuration>
+                            <onlyProjectDependencies>true</onlyProjectDependencies>
+                            <processDependencyManagement>false</processDependencyManagement>
+                        </configuration>
+                        <reports>
+                            <report>dependency-updates-aggregate-report</report>
+                            <report>plugin-updates-report</report>
+                        </reports>
+                    </reportSet>
+                </reportSets>
+            </plugin>
+        </plugins>
+    </reporting>
 
 </project>
