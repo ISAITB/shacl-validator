@@ -117,9 +117,6 @@ public class CustomLocatorHTTP extends LocatorHTTP {
                             response = client.send(toRequest(uriToUse, params.httpVersion(), params.requestDecorator(), params.uriAuthorizer()), HttpResponse.BodyHandlers.ofInputStream());
                             if (response.statusCode() >= 300 && response.statusCode() <= 399) {
                                 var nextLocation = response.headers().firstValue("Location");
-                                if (nextLocation.isEmpty()) {
-                                    nextLocation = response.headers().firstValue("location");
-                                }
                                 if (nextLocation.isPresent()) {
                                     uriToUse = URI.create(uriToUse).resolve(nextLocation.get()).toString();
                                 }
