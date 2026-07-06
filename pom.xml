@@ -13,7 +13,7 @@
     <parent>
         <groupId>eu.europa.ec.itb.commons</groupId>
         <artifactId>validator-parent</artifactId>
-        <version>1.13.0-SNAPSHOT</version>
+        <version>1.12.1</version>
         <relativePath/>
     </parent>
 
@@ -49,7 +49,7 @@
 
     <properties>
         <validatorBuild.resourceJar>validator-resources</validatorBuild.resourceJar>
-        <version.itbCommons>1.13.0-SNAPSHOT</version.itbCommons>
+        <version.itbCommons>1.12.1</version.itbCommons>
     </properties>
 
     <dependencyManagement>
@@ -161,7 +161,7 @@
                         <inherited>false</inherited>
                         <configuration>
                             <onlyProjectDependencies>true</onlyProjectDependencies>
-                            <processDependencyManagement>false</processDependencyManagement>
+                            <processDependencyManagement>true</processDependencyManagement>
                         </configuration>
                         <reports>
                             <report>dependency-updates-aggregate-report</report>
