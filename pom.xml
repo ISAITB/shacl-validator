@@ -125,6 +125,21 @@
     </distributionManagement>
 
     <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.owasp</groupId>
+                    <artifactId>dependency-check-maven</artifactId>
+                    <dependencies>
+                        <dependency>
+                            <groupId>eu.europa.ec.itb.commons</groupId>
+                            <artifactId>owasp-suppressions</artifactId>
+                            <version>${version.itbCommons}</version>
+                        </dependency>
+                    </dependencies>
+                </plugin>
+            </plugins>
+        </pluginManagement>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
