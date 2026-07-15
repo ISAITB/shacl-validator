@@ -110,9 +110,9 @@ This product depends on software developed by third parties as listed in the fol
 | Apache License, Version 2.0 | Apache PDFBox io | org.apache.pdfbox:pdfbox-io | 3.0.7 | https://www.apache.org/pdfbox-parent/pdfbox-io/ |
 | Apache License, Version 2.0 | Apache XmpBox | org.apache.pdfbox:xmpbox | 3.0.7 | https://www.apache.org/pdfbox-parent/xmpbox/ |
 | Apache License, Version 2.0 | Apache Thrift | org.apache.thrift:libthrift | 0.23.0 | http://thrift.apache.org |
-| Apache License, Version 2.0 | tomcat-embed-core | org.apache.tomcat.embed:tomcat-embed-core | 11.0.23 | https://tomcat.apache.org/ |
-| Apache License, Version 2.0 | tomcat-embed-el | org.apache.tomcat.embed:tomcat-embed-el | 11.0.23 | https://tomcat.apache.org/ |
-| Apache License, Version 2.0 | tomcat-embed-websocket | org.apache.tomcat.embed:tomcat-embed-websocket | 11.0.23 | https://tomcat.apache.org/ |
+| Apache License, Version 2.0 | tomcat-embed-core | org.apache.tomcat.embed:tomcat-embed-core | 11.0.24 | https://tomcat.apache.org/ |
+| Apache License, Version 2.0 | tomcat-embed-el | org.apache.tomcat.embed:tomcat-embed-el | 11.0.24 | https://tomcat.apache.org/ |
+| Apache License, Version 2.0 | tomcat-embed-websocket | org.apache.tomcat.embed:tomcat-embed-websocket | 11.0.24 | https://tomcat.apache.org/ |
 | Apache License, Version 2.0 | XmlSchema Core | org.apache.ws.xmlschema:xmlschema-core | 2.3.2 | https://ws.apache.org/commons/xmlschema20/xmlschema-core/ |
 | Apache License, Version 2.0 | org.apache.xmlgraphics:batik-anim | org.apache.xmlgraphics:batik-anim | 1.17 | http://xmlgraphics.apache.org/batik/batik-anim/ |
 | Apache License, Version 2.0 | org.apache.xmlgraphics:batik-awt-util | org.apache.xmlgraphics:batik-awt-util | 1.17 | http://xmlgraphics.apache.org/batik/batik-awt-util/ |
