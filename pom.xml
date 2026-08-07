@@ -13,7 +13,7 @@
     <parent>
         <groupId>eu.europa.ec.itb.commons</groupId>
         <artifactId>validator-parent</artifactId>
-        <version>1.12.3</version>
+        <version>1.13.0-SNAPSHOT</version>
         <relativePath/>
     </parent>
 
@@ -49,7 +49,7 @@
 
     <properties>
         <validatorBuild.resourceJar>validator-resources</validatorBuild.resourceJar>
-        <version.itbCommons>1.12.3</version.itbCommons>
+        <version.itbCommons>1.13.0-SNAPSHOT</version.itbCommons>
     </properties>
 
     <dependencyManagement>
