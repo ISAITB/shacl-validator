@@ -64,8 +64,9 @@ import static eu.europa.ec.itb.shacl.util.ShaclValidatorUtils.isRdfContentSyntax
 @Scope("prototype")
 public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
 
-    private static final String FLAG_NO_REPORTS = "-noreports";
-    private static final String FLAG_CLI_REPORTS = "-clireports";
+    private static final String FLAG_NO_REPORTS = "-noReports";
+    private static final String FLAG_CLI_REPORTS = "-cliReports";
+    private static final String FLAG_MERGED_REPORT = "-mergedReport";
     private static final String FLAG_VALIDATION_TYPE = "-validationType";
     private static final String FLAG_REPORT_SYNTAX = "-reportSyntax";
     private static final String FLAG_REPORT_QUERY = "-reportQuery";
@@ -101,6 +102,7 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
         List<FileInfo> externalShapesList = new ArrayList<>();
         boolean noReports = false;
         boolean cliReports = false;
+        boolean mergedReport = false;
         boolean requireType = domainConfig.hasMultipleValidationTypes() && domainConfig.getDefaultType() == null;
         Boolean loadImports = null;
         Boolean mergeModelsBeforeValidation = null;
@@ -203,6 +205,8 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
                             }
                         } else if (FLAG_CLI_REPORTS.equalsIgnoreCase(args[i])) {
                             cliReports = true;
+                        } else if (FLAG_MERGED_REPORT.equalsIgnoreCase(args[i])) {
+                            mergedReport = true;
                         } else if (FLAG_LOCALE.equalsIgnoreCase(args[i])) {
                             if (args.length > i+1) {
                                 locale = args[++i];
@@ -234,6 +238,28 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
                 } catch (Exception e) {
                     LOGGER_FEEDBACK.info("\nInvalid arguments provided: {}\n", e.getMessage());
                     inputs.clear();
+                }
+                if (mergedReport && inputs.size() > 1) {
+                    // Merge all provided inputs into a single aggregated graph, producing a single report.
+                    var mergeModelManager = new ModelManager(fileManager);
+                    try {
+                        List<FileInfo> filesToMerge = new ArrayList<>();
+                        StringBuilder combinedNames = new StringBuilder();
+                        for (ShaclValidationInput mergeInput: inputs) {
+                            filesToMerge.add(new FileInfo(mergeInput.getInputFile(), mergeInput.getContentSyntax()));
+                            if (!combinedNames.isEmpty()) {
+                                combinedNames.append(", ");
+                            }
+                            combinedNames.append(mergeInput.getFileName());
+                        }
+                        FileInfo aggregate = fileManager.aggregateInputs(parentFolder, filesToMerge, "aggregatedInput", mergeModelManager);
+                        inputs = List.of(new ShaclValidationInput(aggregate.getFile(), combinedNames.toString(), aggregate.getType()));
+                    } catch (ValidatorException e) {
+                        LOGGER_FEEDBACK.info("\nAn error occurred while merging the provided inputs: {}\n", e.getMessageForDisplay(new LocalisationHelper(Locale.ENGLISH)));
+                        inputs = List.of();
+                    } finally {
+                        mergeModelManager.close();
+                    }
                 }
                 if (inputs.isEmpty()) {
                     printUsage();
@@ -321,7 +347,7 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
      * Print how to call the validation JAR.
      */
     private void printUsage() {
-        StringBuilder usageStr = new StringBuilder(String.format("%nExpected usage: java -jar validator.jar %s FILE_1/URI_1 CONTENT_SYNTAX_1 ... [%s FILE_N/URI_N CONTENT_SYNTAX_N] [%s] [%s] [%s] [%s REPORT_SYNTAX] [%s REPORT_QUERY] [%s LOCALE]", FLAG_CONTENT_TO_VALIDATE, FLAG_CONTENT_TO_VALIDATE, FLAG_NO_OUTPUT, FLAG_NO_LOG, FLAG_NO_REPORTS, FLAG_REPORT_SYNTAX, FLAG_REPORT_QUERY, FLAG_LOCALE));
+        StringBuilder usageStr = new StringBuilder(String.format("%nExpected usage: java -jar validator.jar %s FILE_1/URI_1 CONTENT_SYNTAX_1 ... [%s FILE_N/URI_N CONTENT_SYNTAX_N] [%s] [%s] [%s] [%s] [%s] [%s REPORT_SYNTAX] [%s REPORT_QUERY] [%s LOCALE]", FLAG_CONTENT_TO_VALIDATE, FLAG_CONTENT_TO_VALIDATE, FLAG_NO_OUTPUT, FLAG_NO_LOG, FLAG_NO_REPORTS, FLAG_CLI_REPORTS, FLAG_MERGED_REPORT, FLAG_REPORT_SYNTAX, FLAG_REPORT_QUERY, FLAG_LOCALE));
         StringBuilder detailsStr = new StringBuilder("\n").append(PAD).append("Where:");
         detailsStr.append("\n").append(PAD).append(PAD).append(String.format("- FILE_X or URI_X is the full file path or URI to the content to validate, optionally followed by CONTENT_SYNTAX_X as the content's mime type (one of %s).", appConfig.getContentSyntax()));
         detailsStr.append("\n").append(PAD).append(PAD).append(String.format("- REPORT_SYNTAX is the mime type for the validation report(s) (one of %s).", appConfig.getContentSyntax()));
@@ -360,11 +386,12 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
                 detailsStr.append("\n").append(PAD).append(PAD).append("- QUERY_PASSWORD is the password to use for authentication against the SPARQL endpoint.");
             }
         }
+        detailsStr.append("\n").append(PAD).append(PAD).append("- LOCALE is the language code to consider for reporting of results. If the provided locale is not supported by the validator the default locale will be used instead (e.g. 'fr', 'fr_FR').");
         detailsStr.append("\n").append(PAD).append(PAD).append(String.format("- %s disables all command-line output (except validation reports, if %s is set).", FLAG_NO_OUTPUT, FLAG_CLI_REPORTS));
         detailsStr.append("\n").append(PAD).append(PAD).append(String.format("- %s disables all log file output.", FLAG_NO_LOG));
         detailsStr.append("\n").append(PAD).append(PAD).append(String.format("- %s disables validation report generation as files.", FLAG_NO_REPORTS));
         detailsStr.append("\n").append(PAD).append(PAD).append(String.format("- %s enables output of validation reports to the command-line.", FLAG_CLI_REPORTS));
-        detailsStr.append("\n").append(PAD).append(PAD).append("- LOCALE is the language code to consider for reporting of results. If the provided locale is not supported by the validator the default locale will be used instead (e.g. 'fr', 'fr_FR').");
+        detailsStr.append("\n").append(PAD).append(PAD).append(String.format("- %s merges all provided inputs into a single aggregated RDF graph before validation.", FLAG_MERGED_REPORT));
         String message = usageStr
                 .append(detailsStr)
                 .append("\n\nThe summary of each validation will be printed and the detailed report produced in the current directory (as \"report.X.SUFFIX\").")

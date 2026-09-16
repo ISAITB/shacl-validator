@@ -23,6 +23,7 @@ import com.apicatalog.jsonld.loader.HttpLoader;
 import com.apicatalog.jsonld.loader.SchemeRouter;
 import eu.europa.ec.itb.shacl.ApplicationConfig;
 import eu.europa.ec.itb.shacl.DomainConfig;
+import eu.europa.ec.itb.shacl.ModelManager;
 import eu.europa.ec.itb.shacl.SparqlQueryConfig;
 import eu.europa.ec.itb.shacl.ValidationSpecs;
 import eu.europa.ec.itb.shacl.util.ShaclValidatorUtils;
@@ -38,6 +39,7 @@ import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryException;
 import org.apache.jena.query.QueryFactory;
 import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFLanguages;
 import org.apache.jena.riot.RDFParserBuilder;
@@ -58,7 +60,10 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
+import static eu.europa.ec.itb.shacl.util.ShaclValidatorUtils.determineRdfLanguage;
 import static eu.europa.ec.itb.shacl.util.ShaclValidatorUtils.handleEquivalentContentSyntaxes;
 import static eu.europa.ec.itb.shacl.util.ShaclValidatorUtils.isRdfContentSyntax;
 import static org.apache.jena.riot.lang.LangJSONLD11.JSONLD_OPTIONS;
@@ -488,6 +493,146 @@ public class FileManager extends BaseFileManager<ApplicationConfig> {
             logger.error("Error getting SPARQL Query", e);
             throw new ValidatorException("validator.label.exception.sparqlQueryParsingError", e, e.getMessage());
         }
+    }
+
+    /**
+     * Aggregate the provided inputs into a single RDF model and store this as a single file, so that the rest of the
+     * validation processing (and reporting) only ever has to deal with one input file and content syntax.
+     * <p>
+     * If a single input is provided (and no explicit file name is requested) it is returned as-is, avoiding an
+     * unnecessary re-serialisation.
+     *
+     * @param parentFolder The temp folder to use for the resulting aggregate file.
+     * @param inputs The inputs to consider (each one an RDF file with its determined or declared content syntax).
+     * @param fileName The name to use for the resulting aggregate file (may be null to let the storage layer decide,
+     *                 only relevant when more than one input is provided).
+     * @param modelManager The model manager used to track (and eventually close) intermediate Jena models.
+     * @return The information for the resulting (aggregated) input file.
+     */
+    public FileInfo aggregateInputs(File parentFolder, List<FileInfo> inputs, String fileName, ModelManager modelManager) {
+        if (inputs == null || inputs.isEmpty()) {
+            throw new ValidatorException("validator.label.exception.noContentProvided", ValidationConstants.INPUT_CONTENT);
+        }
+        if (inputs.size() == 1 && fileName == null) {
+            return inputs.get(0);
+        }
+        String outputSyntax = null;
+        Model aggregateModel = ModelFactory.createDefaultModel();
+        modelManager.track(aggregateModel);
+        for (FileInfo input: inputs) {
+            Lang rdfLanguage = determineRdfLanguage(input);
+            if (rdfLanguage == null) {
+                throw new ValidatorException("validator.label.exception.rdfLanguageCouldNotBeDetermined");
+            }
+            if (outputSyntax == null) {
+                outputSyntax = rdfLanguage.getContentType().getContentTypeStr();
+            }
+            try (InputStream dataStream = Files.newInputStream(input.getFile().toPath())) {
+                Model fileModel = readModel(dataStream, rdfLanguage, null);
+                modelManager.track(fileModel);
+                aggregateModel.add(fileModel);
+            } catch (ValidatorException e) {
+                throw e;
+            } catch (Exception e) {
+                throw new ValidatorException("validator.label.exception.errorWhileReadingProvidedContent", e, e.getMessage());
+            }
+        }
+        Path aggregateFilePath = createFile(parentFolder, getFileExtension(outputSyntax), fileName);
+        try (var out = new OutputStreamWriter(Files.newOutputStream(aggregateFilePath))) {
+            writeRdfModel(out, aggregateModel, outputSyntax);
+        } catch (IOException e) {
+            throw new ValidatorException("validator.label.exception.errorWhileReadingProvidedContent", e, e.getMessage());
+        }
+        return new FileInfo(aggregateFilePath.toFile(), outputSyntax);
+    }
+
+    /**
+     * Check whether the provided file is a ZIP archive (based on its magic bytes rather than its name or declared
+     * content type).
+     *
+     * @param file The file to check.
+     * @return True if the file is a ZIP archive.
+     */
+    public boolean isArchive(File file) {
+        byte[] signature = new byte[4];
+        try (InputStream in = Files.newInputStream(file.toPath())) {
+            int read = in.readNBytes(signature, 0, signature.length);
+            if (read < 4) {
+                return false;
+            }
+        } catch (IOException e) {
+            return false;
+        }
+        // Local file header, empty archive, or spanned archive signatures.
+        return (signature[0] == 0x50 && signature[1] == 0x4B &&
+                ((signature[2] == 0x03 && signature[3] == 0x04) ||
+                 (signature[2] == 0x05 && signature[3] == 0x06) ||
+                 (signature[2] == 0x07 && signature[3] == 0x08)));
+    }
+
+    /**
+     * Extract the entries of the provided ZIP archive to individual files, applying limits to guard against ZIP bomb
+     * attacks (in terms of entry count, uncompressed sizes and compression ratios) and against path traversal (each
+     * entry is guaranteed to be extracted within the resulting temp folder).
+     *
+     * @param parentFolder The temp folder to use for the extracted content.
+     * @param archive The ZIP archive to extract.
+     * @param declaredContentSyntax The content syntax declared by the caller for the archive as a whole (may be null
+     *                              to let each entry's content syntax be determined from its own file name).
+     * @return The information for each extracted file (never empty).
+     */
+    public List<FileInfo> extractArchiveEntries(File parentFolder, File archive, String declaredContentSyntax) {
+        File targetFolder = createTemporaryFolderPath(parentFolder);
+        targetFolder.mkdirs();
+        Path targetFolderPath = targetFolder.toPath().normalize();
+        List<FileInfo> extractedFiles = new ArrayList<>();
+        long totalUncompressedSize = 0;
+        int entryCount = 0;
+        byte[] buffer = new byte[8192];
+        try (ZipInputStream zis = new ZipInputStream(Files.newInputStream(archive.toPath()))) {
+            ZipEntry zipEntry;
+            while ((zipEntry = zis.getNextEntry()) != null) {
+                if (zipEntry.isDirectory()) {
+                    zis.closeEntry();
+                    continue;
+                }
+                entryCount++;
+                if (entryCount > appConfig.getArchiveMaxEntries()) {
+                    throw new ValidatorException("validator.label.exception.archiveLimitsExceeded");
+                }
+                Path entryPath = targetFolderPath.resolve(zipEntry.getName()).normalize();
+                if (!entryPath.startsWith(targetFolderPath)) {
+                    throw new ValidatorException("validator.label.exception.archiveProcessingError");
+                }
+                Files.createDirectories(entryPath.getParent());
+                long entrySize = 0;
+                try (OutputStream out = Files.newOutputStream(entryPath)) {
+                    int len;
+                    while ((len = zis.read(buffer)) > 0) {
+                        entrySize += len;
+                        totalUncompressedSize += len;
+                        if (entrySize > appConfig.getArchiveMaxEntrySize() || totalUncompressedSize > appConfig.getArchiveMaxTotalSize()) {
+                            throw new ValidatorException("validator.label.exception.archiveLimitsExceeded");
+                        }
+                        out.write(buffer, 0, len);
+                    }
+                }
+                long compressedSize = zipEntry.getCompressedSize();
+                if (compressedSize > 0 && (entrySize / compressedSize) > appConfig.getArchiveMaxCompressionRatio()) {
+                    throw new ValidatorException("validator.label.exception.archiveLimitsExceeded");
+                }
+                extractedFiles.add(new FileInfo(entryPath.toFile(), declaredContentSyntax));
+                zis.closeEntry();
+            }
+        } catch (ValidatorException e) {
+            throw e;
+        } catch (IOException e) {
+            throw new ValidatorException("validator.label.exception.archiveProcessingError", e, e.getMessage());
+        }
+        if (extractedFiles.isEmpty()) {
+            throw new ValidatorException("validator.label.exception.archiveIsEmpty");
+        }
+        return extractedFiles;
     }
 
 }

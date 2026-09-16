@@ -15,6 +15,7 @@
 
 package eu.europa.ec.itb.shacl.rest.model;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import eu.europa.ec.itb.shacl.SparqlQueryConfig;
 import eu.europa.ec.itb.validation.commons.FileContent;
@@ -29,12 +30,15 @@ import java.util.List;
 @Schema(description = "The content and metadata specific to input content that is to be validated.")
 public class Input {
 
-    @Schema(description = "The RDF content to validate, provided as a normal string, a URL, or a BASE64-encoded string. Either this must be provided or a SPARQL query (contentQuery).")
-    private String contentToValidate;
-    @Schema(description = "The mime type of the provided RDF content (e.g. \"application/rdf+xml\", \"application/ld+json\", \"text/turtle\"). If not provided the type is determined from the provided content (if possible).")
-    private String contentSyntax;
-    @Schema(description = "The way in which to interpret the contentToValidate. If not provided, the method will be determined from the contentToValidate value.", allowableValues = FileContent.EMBEDDING_STRING+","+FileContent.EMBEDDING_URL+","+FileContent.EMBEDDING_BASE_64)
-    private String embeddingMethod;
+    @JsonFormat(with = JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
+    @Schema(description = "The RDF content to validate, provided as a normal string, a URL, or a BASE64-encoded string. Either this must be provided or a SPARQL query (contentQuery). A single value or an array of values may be provided; if more than one value is provided the resulting RDF graphs are merged into one before validation.", oneOf = {String.class, String[].class})
+    private List<String> contentToValidate;
+    @JsonFormat(with = JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
+    @Schema(description = "The mime type of the provided RDF content (e.g. \"application/rdf+xml\", \"application/ld+json\", \"text/turtle\"). If not provided the type is determined from the provided content (if possible). This can be a single value (applied to all contentToValidate items) or an array matching the number of contentToValidate items.", oneOf = {String.class, String[].class})
+    private List<String> contentSyntax;
+    @JsonFormat(with = JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
+    @Schema(description = "The way in which to interpret the contentToValidate. If not provided, the method will be determined from the contentToValidate value. This can be a single value (applied to all contentToValidate items) or an array matching the number of contentToValidate items.", allowableValues = FileContent.EMBEDDING_STRING+","+FileContent.EMBEDDING_URL+","+FileContent.EMBEDDING_BASE_64, oneOf = {String.class, String[].class})
+    private List<String> embeddingMethod;
     @Schema(description = "The type of validation to perform (e.g. the profile to apply or the version to validate against). This can be skipped if a single validation type is supported by the validator. Otherwise, if multiple are supported, the service should fail with an error.")
     private String validationType;
     @Schema(description = "A SPARQL CONSTRUCT query that will be executed on the resulting SHACL validation report as a post-processing step. If provided, the result of this query will replace the SHACL validation report in the service's output.")
@@ -69,14 +73,14 @@ public class Input {
     private Boolean wrapReportDataInCDATA;
 
     /**
-     * @return The string representing the content to validate (string as-is, URL or base64 content).
+     * @return The strings representing the content(s) to validate (string as-is, URL or base64 content).
      */
-    public String getContentToValidate() { return this.contentToValidate; }
+    public List<String> getContentToValidate() { return this.contentToValidate; }
 
     /**
-     * @return The embedding method to consider to determine how the provided content input is to be processed.
+     * @return The embedding method(s) to consider to determine how the provided content input(s) are to be processed.
      */
-    public String getEmbeddingMethod() { return this.embeddingMethod; }
+    public List<String> getEmbeddingMethod() { return this.embeddingMethod; }
 
     /**
      * @return The validation type to trigger for this domain.
@@ -89,9 +93,9 @@ public class Input {
     public String getReportSyntax() { return this.reportSyntax; }
 
     /**
-     * @return The syntax (mime type) to consider for the provided input to validate.
+     * @return The syntax(es) (mime type) to consider for the provided input(s) to validate.
      */
-    public String getContentSyntax() { return this.contentSyntax; }
+    public List<String> getContentSyntax() { return this.contentSyntax; }
 
     /**
      * @return The set of user-provided SHACL shape files with additional business rules.
@@ -117,23 +121,23 @@ public class Input {
     public Boolean isMergeModelsBeforeValidation(){ return this.mergeModelsBeforeValidation; }
 
     /**
-     * @param contentToValidate The string representing the content to validate (string as-is, URL or base64 content).
+     * @param contentToValidate The string(s) representing the content(s) to validate (string as-is, URL or base64 content).
      */
-    public void setContentToValidate(String contentToValidate) {
+    public void setContentToValidate(List<String> contentToValidate) {
         this.contentToValidate = contentToValidate;
     }
 
     /**
-     * @param contentSyntax The syntax (mime type) to consider for the provided input to validate.
+     * @param contentSyntax The syntax(es) (mime type) to consider for the provided input(s) to validate.
      */
-    public void setContentSyntax(String contentSyntax) {
+    public void setContentSyntax(List<String> contentSyntax) {
         this.contentSyntax = contentSyntax;
     }
 
     /**
-     * @param embeddingMethod  The embedding method to consider to determine how the provided content input is to be processed.
+     * @param embeddingMethod The embedding method(s) to consider to determine how the provided content input(s) are to be processed.
      */
-    public void setEmbeddingMethod(String embeddingMethod) {
+    public void setEmbeddingMethod(List<String> embeddingMethod) {
         this.embeddingMethod = embeddingMethod;
     }
 
@@ -308,7 +312,8 @@ public class Input {
     public SparqlQueryConfig parseQueryConfig() {
         SparqlQueryConfig config = null;
         if (contentQuery != null || contentQueryEndpoint != null || contentQueryPassword != null || contentQueryUsername != null) {
-            config = new SparqlQueryConfig(contentQueryEndpoint, contentQuery, contentQueryUsername, contentQueryPassword, contentSyntax);
+            String preferredContentType = (contentSyntax == null || contentSyntax.isEmpty()) ? null : contentSyntax.get(0);
+            config = new SparqlQueryConfig(contentQueryEndpoint, contentQuery, contentQueryUsername, contentQueryPassword, preferredContentType);
         }
         return config;
     }

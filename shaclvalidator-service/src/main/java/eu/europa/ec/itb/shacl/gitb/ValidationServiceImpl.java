@@ -154,15 +154,17 @@ public class ValidationServiceImpl implements ValidationService, WebServiceConte
             var modelManager = new ModelManager(fileManager);
             try {
                 // Validation of the input data
-                String contentSyntax = validateContentSyntax(validateRequest);
-                ValueEmbeddingEnumeration contentEmbeddingMethod = inputHelper.validateContentEmbeddingMethod(validateRequest, ValidationConstants.INPUT_EMBEDDING_METHOD);
+                List<String> contentSyntaxes = inputHelper.validateContentSyntaxes(validateRequest, ValidationConstants.INPUT_SYNTAX);
+                List<ValueEmbeddingEnumeration> contentEmbeddingMethods = inputHelper.validateContentEmbeddingMethods(validateRequest, ValidationConstants.INPUT_EMBEDDING_METHOD);
                 var queryConfig = parseQueryConfiguration(validateRequest);
+                String contentSyntax;
                 if (queryConfig == null) {
-                    var contentInfo = inputHelper.validateContentToValidate(validateRequest, ValidationConstants.INPUT_CONTENT, contentEmbeddingMethod, contentSyntax, parentFolder, domainConfig.getHttpVersion());
-                    contentToValidate = contentInfo.getFile();
-                    contentSyntax = contentInfo.getType();
+                    List<FileInfo> contentFiles = inputHelper.validateContentsToValidate(validateRequest, ValidationConstants.INPUT_CONTENT, contentEmbeddingMethods, contentSyntaxes, parentFolder, domainConfig.getHttpVersion());
+                    FileInfo aggregate = fileManager.aggregateInputs(parentFolder, contentFiles, null, modelManager);
+                    contentToValidate = aggregate.getFile();
+                    contentSyntax = aggregate.getType();
                 } else {
-                    queryConfig.setPreferredContentType(contentSyntax);
+                    queryConfig.setPreferredContentType(contentSyntaxes.isEmpty() ? null : contentSyntaxes.get(0));
                     queryConfig = inputHelper.validateSparqlConfiguration(domainConfig, queryConfig);
                     contentToValidate = fileManager.getContentFromSparqlEndpoint(queryConfig, parentFolder).toFile();
                     contentSyntax = queryConfig.getPreferredContentType();
@@ -210,22 +212,6 @@ public class ValidationServiceImpl implements ValidationService, WebServiceConte
         String mimeType = getInputAsString(validateRequest, ValidationConstants.INPUT_RDF_REPORT_SYNTAX, domainConfig.getDefaultReportSyntax());
         String reportQuery = getInputAsString(validateRequest, ValidationConstants.INPUT_RDF_REPORT_QUERY, null);
         return ShaclValidatorUtils.getRdfReportToIncludeInTAR(reportModel, mimeType, reportQuery, fileManager);
-    }
-
-    /**
-     * Get the content syntax to use from the provided arguments.
-     *
-     * @param validateRequest The request's parameters.
-     * @return The type of syntax or null if none was provided.
-     */
-    private String validateContentSyntax(ValidateRequest validateRequest) {
-        List<AnyContent> listContentSyntax = Utils.getInputFor(validateRequest, ValidationConstants.INPUT_SYNTAX);
-        if (!listContentSyntax.isEmpty()) {
-        	AnyContent content = listContentSyntax.get(0);
-        	return content.getValue();
-        } else {
-        	return null;
-        }
     }
 
     /**

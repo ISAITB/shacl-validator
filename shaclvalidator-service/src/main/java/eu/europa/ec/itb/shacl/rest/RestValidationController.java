@@ -15,7 +15,6 @@
 
 package eu.europa.ec.itb.shacl.rest;
 
-import com.gitb.core.ValueEmbeddingEnumeration;
 import com.gitb.tr.TAR;
 import eu.europa.ec.itb.shacl.*;
 import eu.europa.ec.itb.shacl.rest.model.Input;
@@ -100,7 +99,10 @@ public class RestValidationController extends BaseRestController<DomainConfig, A
      */
     @Operation(summary = "Validate one RDF instance.", description="Validate a single RDF instance. The content can be provided " +
             "either within the request as a BASE64 encoded string or remotely as a URL. The RDF syntax for the input can be " +
-            "determined in the request as can the syntax to produce the resulting SHACL validation report.")
+            "determined in the request as can the syntax to produce the resulting SHACL validation report. The 'contentToValidate', " +
+            "'contentSyntax' and 'embeddingMethod' inputs may each be provided as a single value or as an array of values; when " +
+            "an array of values is provided for 'contentToValidate' the resulting RDF graphs are merged into a single graph " +
+            "before validation and a single report is produced covering all of them.")
     @ApiResponse(responseCode = "200", description = "Success (for successful validation)", content = { @Content(mediaType = "application/ld+json"), @Content(mediaType = "application/rdf+xml"), @Content(mediaType = "text/turtle"), @Content(mediaType = "application/n-triples"), @Content(mediaType = MediaType.APPLICATION_XML_VALUE), @Content(mediaType = MediaType.APPLICATION_JSON_VALUE) })
     @ApiResponse(responseCode = "500", description = "Error (If a problem occurred with processing the request)", content = @Content)
     @ApiResponse(responseCode = "404", description = "Not found (for an invalid domain value)", content = @Content)
@@ -163,6 +165,17 @@ public class RestValidationController extends BaseRestController<DomainConfig, A
                                                 "ruleSyntax": "text/turtle"
                                             }
                                         ]
+                                    }
+                                    """),
+                                    @ExampleObject(name="order5", summary = "Validate multiple remote URIs merged into one graph", description = "Validate Turtle content provided as two URIs for the 'large' validation type of the 'order' sample validator (see https://www.itb.ec.europe.eu/shacl/order/upload). The two RDF graphs are merged into one before validation and a single report is produced. To try it out select also 'order' for the 'domain' parameter.", value = """
+                                    {
+                                        "contentToValidate": [
+                                            "https://www.itb.ec.europa.eu/files/samples/shacl/sample-invalid.ttl",
+                                            "https://www.itb.ec.europa.eu/files/samples/shacl/sample-valid.ttl"
+                                        ],
+                                        "contentSyntax": "text/turtle",
+                                        "embeddingMethod": "URL",
+                                        "validationType": "large"
                                     }
                                     """)
                             }
@@ -291,17 +304,17 @@ public class RestValidationController extends BaseRestController<DomainConfig, A
         // Start validation of the input file
         File parentFolder = fileManager.createTemporaryFolderPath();
         File inputFile;
-        String contentSyntax = in.getContentSyntax();
+        String contentSyntax;
         try {
             // Prepare input
             String validationType = inputHelper.validateValidationType(domainConfig, in.getValidationType());
             List<FileInfo> externalShapes = getExternalShapes(domainConfig, validationType, in.getExternalRules(), parentFolder);
-            ValueEmbeddingEnumeration embeddingMethod = inputHelper.getEmbeddingMethod(in.getEmbeddingMethod());
             var queryConfig = in.parseQueryConfig();
             if (queryConfig == null) {
-                var fileInfo = inputHelper.validateContentToValidate(in.getContentToValidate(), embeddingMethod, contentSyntax, parentFolder, domainConfig.getHttpVersion());
-                inputFile = fileInfo.getFile();
-                contentSyntax = fileInfo.getType();
+                List<FileInfo> contentFiles = inputHelper.validateContentsToValidate(in.getContentToValidate(), in.getContentSyntax(), in.getEmbeddingMethod(), parentFolder, domainConfig.getHttpVersion());
+                FileInfo aggregate = fileManager.aggregateInputs(parentFolder, contentFiles, null, modelManager);
+                inputFile = aggregate.getFile();
+                contentSyntax = aggregate.getType();
             } else {
                 queryConfig = inputHelper.validateSparqlConfiguration(domainConfig, queryConfig);
                 inputFile = fileManager.getContentFromSparqlEndpoint(queryConfig, parentFolder).toFile();

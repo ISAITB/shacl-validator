@@ -57,6 +57,70 @@ public class ApplicationConfig extends eu.europa.ec.itb.validation.commons.confi
     private Integer maximumConcurrentValidations;
     private boolean allowUriImportsFromFtpSources = false;
     private boolean allowUriImportsFromJarSources = false;
+    private int archiveMaxEntries;
+    private long archiveMaxEntrySize;
+    private long archiveMaxTotalSize;
+    private int archiveMaxCompressionRatio;
+
+    /**
+     * @return The maximum number of entries allowed when extracting a provided ZIP archive.
+     */
+    public int getArchiveMaxEntries() {
+        return archiveMaxEntries;
+    }
+
+    /**
+     * @param archiveMaxEntries The maximum number of entries allowed when extracting a provided ZIP archive.
+     */
+    public void setArchiveMaxEntries(int archiveMaxEntries) {
+        this.archiveMaxEntries = archiveMaxEntries;
+    }
+
+    /**
+     * @return The maximum uncompressed size (in bytes) allowed for a single entry when extracting a provided ZIP archive.
+     */
+    public long getArchiveMaxEntrySize() {
+        return archiveMaxEntrySize;
+    }
+
+    /**
+     * @param archiveMaxEntrySize The maximum uncompressed size (in bytes) allowed for a single entry when extracting a
+     *                            provided ZIP archive.
+     */
+    public void setArchiveMaxEntrySize(long archiveMaxEntrySize) {
+        this.archiveMaxEntrySize = archiveMaxEntrySize;
+    }
+
+    /**
+     * @return The maximum total uncompressed size (in bytes) allowed when extracting a provided ZIP archive.
+     */
+    public long getArchiveMaxTotalSize() {
+        return archiveMaxTotalSize;
+    }
+
+    /**
+     * @param archiveMaxTotalSize The maximum total uncompressed size (in bytes) allowed when extracting a provided ZIP
+     *                            archive.
+     */
+    public void setArchiveMaxTotalSize(long archiveMaxTotalSize) {
+        this.archiveMaxTotalSize = archiveMaxTotalSize;
+    }
+
+    /**
+     * @return The maximum allowed compression ratio (uncompressed/compressed) for a single entry when extracting a
+     * provided ZIP archive.
+     */
+    public int getArchiveMaxCompressionRatio() {
+        return archiveMaxCompressionRatio;
+    }
+
+    /**
+     * @param archiveMaxCompressionRatio The maximum allowed compression ratio (uncompressed/compressed) for a single
+     *                                   entry when extracting a provided ZIP archive.
+     */
+    public void setArchiveMaxCompressionRatio(int archiveMaxCompressionRatio) {
+        this.archiveMaxCompressionRatio = archiveMaxCompressionRatio;
+    }
 
     /**
      * @return Whether URIs for resource imports can use the FTP scheme.

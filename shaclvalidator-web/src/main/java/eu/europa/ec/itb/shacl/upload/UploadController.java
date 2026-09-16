@@ -58,6 +58,9 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.*;
 import java.util.function.Consumer;
 
@@ -268,11 +271,28 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                                 break;
                             case CONTENT_TYPE_FILE:
                                 Objects.requireNonNull(file, "The input file must be provided");
-                                if (noContentSyntaxProvided) {
-                                    contentSyntaxType = getExtensionContentTypeForFileName(file.getOriginalFilename());
-                                }
+                                // Stage the upload under a random name first so we can check whether it is a ZIP archive.
+                                Path stagedPath = fileManager.createFile(parentFolder, null, null);
                                 try (var stream = file.getInputStream()) {
-                                    inputFile = fileManager.getFileFromInputStream(parentFolder, stream, contentSyntaxType, FILE_NAME_INPUT);
+                                    Files.copy(stream, stagedPath, StandardCopyOption.REPLACE_EXISTING);
+                                }
+                                File stagedFile = stagedPath.toFile();
+                                if (fileManager.isArchive(stagedFile)) {
+                                    // The content syntax (if explicitly provided) applies to every archived file; otherwise each file's own name is used.
+                                    String declaredContentSyntax = noContentSyntaxProvided ? null : contentSyntaxType;
+                                    List<FileInfo> archiveEntries = fileManager.extractArchiveEntries(parentFolder, stagedFile, declaredContentSyntax);
+                                    FileInfo aggregate = fileManager.aggregateInputs(parentFolder, archiveEntries, FILE_NAME_INPUT, modelManager);
+                                    inputFile = aggregate.getFile();
+                                    contentSyntaxType = aggregate.getType();
+                                    fileManager.removeContentToValidate(null, archiveEntries);
+                                    FileUtils.deleteQuietly(stagedFile);
+                                } else {
+                                    if (noContentSyntaxProvided) {
+                                        contentSyntaxType = getExtensionContentTypeForFileName(file.getOriginalFilename());
+                                    }
+                                    Path finalPath = fileManager.createFile(parentFolder, fileManager.getFileExtension(contentSyntaxType), FILE_NAME_INPUT);
+                                    Files.move(stagedPath, finalPath, StandardCopyOption.REPLACE_EXISTING);
+                                    inputFile = finalPath.toFile();
                                 }
                                 break;
                             case CONTENT_TYPE_URI:
