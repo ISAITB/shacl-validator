@@ -2,8 +2,8 @@ publiccodeYmlVersion: 0.4.0
 name: Interoperability Test Bed - SHACL validator
 applicationSuite: ""
 url: https://github.com/ISAITB/shacl-validator
-softwareVersion: 1.12.4
-releaseDate: 2026-08-31
+softwareVersion: 1.13.0
+releaseDate: 2026-09-25
 logo: https://www.itb.ec.europa.eu/files/itb_logo_simple.png?v=1
 platforms:
   - web
