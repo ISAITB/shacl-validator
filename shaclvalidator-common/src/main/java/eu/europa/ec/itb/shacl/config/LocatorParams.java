@@ -18,6 +18,7 @@ package eu.europa.ec.itb.shacl.config;
 import eu.europa.ec.itb.validation.commons.ImportedFileAuthorizer;
 import eu.europa.ec.itb.validation.commons.ImportedUriAuthorizer;
 
+import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.nio.file.Path;
@@ -32,10 +33,12 @@ import java.util.function.Consumer;
  * @param httpVersion The HTTP version to use in the lookups.
  * @param uriMappings The local URI to path mappings to consider.
  * @param requestDecorator The request decorator to use for HTTP requests.
+ * @param decoratorOrigin The URI the shapes that the request decorator applies to were retrieved from. The decorator
+ *                        (e.g. configured credentials) is only applied to requests to the same host (null if never).
  * @param uriAuthorizer The authorizer for imported resource URIs.
  * @param fileAuthorizer The authorizer for imported resource files.
  */
-public record LocatorParams(Set<String> urisToSkip, HttpClient.Version httpVersion, Map<String, Path> uriMappings, Consumer<HttpRequest.Builder> requestDecorator, ImportedUriAuthorizer uriAuthorizer, ImportedFileAuthorizer fileAuthorizer) {
+public record LocatorParams(Set<String> urisToSkip, HttpClient.Version httpVersion, Map<String, Path> uriMappings, Consumer<HttpRequest.Builder> requestDecorator, URI decoratorOrigin, ImportedUriAuthorizer uriAuthorizer, ImportedFileAuthorizer fileAuthorizer) {
 
     /**
      * ThreadLocal to access the locator parameters.

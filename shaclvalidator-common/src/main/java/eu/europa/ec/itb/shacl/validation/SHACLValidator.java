@@ -57,6 +57,7 @@ import org.topbraid.shacl.validation.ValidationUtil;
 import org.topbraid.shacl.vocabulary.SH;
 
 import java.io.*;
+import java.net.URI;
 import java.net.http.HttpRequest;
 import java.util.*;
 import java.util.function.Consumer;
@@ -438,12 +439,14 @@ public class SHACLValidator {
         Model aggregateModel = JenaUtil.createMemoryModel();
         var accessPolicy = ResourceAccessPolicy.forValidationArtefacts(appConfig, specs.getDomainConfig(), getValidationType());
         Consumer<HttpRequest.Builder> requestDecorator = null;
+        URI requestDecoratorOrigin = null;
         for (FileInfo shaclFile: shaclFiles) {
             if (requestDecorator == null && shaclFile.getRequestDecorator() != null) {
                 // We do a best effort here to add the first request decorator we come across.
                 // This would not work correctly if we have different resources that need to be loaded
-                // From different locations.
+                // From different locations. The decorator is only ever applied to the host it was retrieved from.
                 requestDecorator = shaclFile.getRequestDecorator();
+                requestDecoratorOrigin = shaclFile.getSource();
             }
             if (specs.isLogProgress()) {
                 LOG.info("Validating against [{}]", shaclFile.getFile().getName());
@@ -465,7 +468,7 @@ public class SHACLValidator {
         
         this.importedShapes = JenaUtil.createMemoryModel();
         specs.track(this.importedShapes);
-        createImportedModels(aggregateModel, requestDecorator, accessPolicy.uriAuthorizer());
+        createImportedModels(aggregateModel, requestDecorator, requestDecoratorOrigin, accessPolicy.uriAuthorizer());
         if (this.importedShapes != null) {
         	aggregateModel.add(importedShapes);
         	this.importedShapes.removeAll();
@@ -478,10 +481,11 @@ public class SHACLValidator {
      *
      * @param aggregateModel The aggregated model to extend.
      * @param requestDecorator The request decorator to use.
+     * @param requestDecoratorOrigin The URI the shapes were retrieved from, to whose host the decorator is restricted.
      * @param uriAuthorizer The authorizer for the URIs of the imports (null if the source of the imports is trusted).
      */
     @SuppressWarnings("removal")
-    private void createImportedModels(Model aggregateModel, Consumer<HttpRequest.Builder> requestDecorator, ImportedUriAuthorizer uriAuthorizer) {
+    private void createImportedModels(Model aggregateModel, Consumer<HttpRequest.Builder> requestDecorator, URI requestDecoratorOrigin, ImportedUriAuthorizer uriAuthorizer) {
     	Set<String> reachedURIs = new HashSet<>();
     	
         ModelMaker modelMaker = ModelFactory.createMemModelMaker();
@@ -494,6 +498,7 @@ public class SHACLValidator {
                 specs.getDomainConfig().getHttpVersion(),
                 specs.getDomainConfig().getOwlImportMappings(),
                 requestDecorator,
+                requestDecoratorOrigin,
                 uriAuthorizer,
                 ImportedFileAuthorizer.from(appConfig, specs.getDomainConfig()
         )));
@@ -635,7 +640,7 @@ public class SHACLValidator {
                 if (specs.isLogProgress()) {
                     LOG.info("Loading imports...");
                 }
-                createImportedModels(dataModel, null, accessPolicy.uriAuthorizer());
+                createImportedModels(dataModel, null, null, accessPolicy.uriAuthorizer());
                 if (importedShapes != null) {
                     dataModel.add(importedShapes);
                     importedShapes.removeAll();

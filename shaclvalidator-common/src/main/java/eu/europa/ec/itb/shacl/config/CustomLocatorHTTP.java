@@ -16,6 +16,7 @@
 package eu.europa.ec.itb.shacl.config;
 
 import eu.europa.ec.itb.validation.commons.ImportedUriAuthorizer;
+import eu.europa.ec.itb.validation.commons.RemoteRequestGuard;
 import org.apache.commons.io.IOUtils;
 import org.apache.jena.atlas.web.ContentType;
 import org.apache.jena.atlas.web.TypedInputStream;
@@ -84,6 +85,23 @@ public class CustomLocatorHTTP extends LocatorHTTP {
     }
 
     /**
+     * Get the request decorator (e.g. configured credentials) that may be applied to a request for the provided URI.
+     * <p>
+     * The decorator is only applied to requests to the host that the shapes it was configured for were retrieved from,
+     * and not to any other host (e.g. an import, or the target of a redirect, that points elsewhere).
+     *
+     * @param params The current parameters.
+     * @param uri The URI of the request.
+     * @return The decorator to apply (or null).
+     */
+    private static Consumer<HttpRequest.Builder> decoratorFor(LocatorParams params, String uri) {
+        if (params.requestDecorator() == null) {
+            return null;
+        }
+        return RemoteRequestGuard.forArtefact(null, params.decoratorOrigin()).mayDecorate(HttpLib.toRequestURI(uri)) ? params.requestDecorator() : null;
+    }
+
+    /**
      * {@inheritDoc}
      */
     @Override
@@ -114,7 +132,7 @@ public class CustomLocatorHTTP extends LocatorHTTP {
                         do {
                             LOG.debug("Sending request to [{}]", uriToUse);
                             attemptedUrls.add(uriToUse);
-                            response = client.send(toRequest(uriToUse, params.httpVersion(), params.requestDecorator(), params.uriAuthorizer()), HttpResponse.BodyHandlers.ofInputStream());
+                            response = client.send(toRequest(uriToUse, params.httpVersion(), decoratorFor(params, uriToUse), params.uriAuthorizer()), HttpResponse.BodyHandlers.ofInputStream());
                             if (response.statusCode() >= 300 && response.statusCode() <= 399) {
                                 var nextLocation = response.headers().firstValue("Location");
                                 if (nextLocation.isPresent()) {

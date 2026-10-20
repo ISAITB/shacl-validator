@@ -91,7 +91,7 @@ class GuardedJsonLdReaderFactoryTest {
         var appConfig = mock(ApplicationConfig.class);
         var allowed = "http://127.0.0.1:%d/ctx.jsonld".formatted(server.getAddress().getPort());
         when(appConfig.getNormalizedAllowedUriImports()).thenReturn(List.of(NormalizedURI.of(URI.create(allowed))));
-        LocatorParams.PARAMS.set(new LocatorParams(Set.of(), HttpClient.Version.HTTP_1_1, Map.of(), null, ImportedUriAuthorizer.forUserContent(appConfig), null));
+        LocatorParams.PARAMS.set(new LocatorParams(Set.of(), HttpClient.Version.HTTP_1_1, Map.of(), null, null, ImportedUriAuthorizer.forUserContent(appConfig), null));
         assertEquals(1, read("JSON-LD"));
         assertEquals(1, requestCount.get());
     }
