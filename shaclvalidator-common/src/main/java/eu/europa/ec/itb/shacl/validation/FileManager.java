@@ -15,20 +15,17 @@
 
 package eu.europa.ec.itb.shacl.validation;
 
-import com.apicatalog.jsonld.JsonLdOptions;
-import com.apicatalog.jsonld.http.DefaultHttpClient;
-import com.apicatalog.jsonld.http.media.MediaType;
-import com.apicatalog.jsonld.loader.FileLoader;
-import com.apicatalog.jsonld.loader.HttpLoader;
-import com.apicatalog.jsonld.loader.SchemeRouter;
 import eu.europa.ec.itb.shacl.ApplicationConfig;
 import eu.europa.ec.itb.shacl.DomainConfig;
 import eu.europa.ec.itb.shacl.ModelManager;
 import eu.europa.ec.itb.shacl.SparqlQueryConfig;
 import eu.europa.ec.itb.shacl.ValidationSpecs;
+import eu.europa.ec.itb.shacl.config.GuardedJsonLdDocumentLoader;
+import eu.europa.ec.itb.shacl.config.ResourceAccessPolicy;
 import eu.europa.ec.itb.shacl.util.ShaclValidatorUtils;
 import eu.europa.ec.itb.validation.commons.BaseFileManager;
 import eu.europa.ec.itb.validation.commons.FileInfo;
+import eu.europa.ec.itb.validation.commons.ImportedUriAuthorizer;
 import eu.europa.ec.itb.validation.commons.artifact.RemoteValidationArtifactInfo;
 import eu.europa.ec.itb.validation.commons.error.ValidatorException;
 import org.apache.commons.io.FileUtils;
@@ -43,6 +40,7 @@ import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFLanguages;
 import org.apache.jena.riot.RDFParserBuilder;
+import org.apache.jena.riot.RiotException;
 import org.apache.jena.riot.system.PrefixMap;
 import org.apache.jena.riot.system.PrefixMapStd;
 import org.apache.jena.sparql.exec.http.QueryExecutionHTTP;
@@ -53,9 +51,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.*;
+import java.net.ProxySelector;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
@@ -233,9 +233,11 @@ public class FileManager extends BaseFileManager<ApplicationConfig> {
      *
      * @param dataStream The stream to read from.
      * @param rdfLanguage The content type of the stream's data.
+     * @param nsPrefixes The namespace prefixes to set on the model before parsing (may be null).
+     * @param accessPolicy The restrictions on the resources that the parsed content may refer to (e.g. a JSON-LD context).
      * @return The parsed model.
      */
-    public Model readModel(InputStream dataStream, Lang rdfLanguage, Map<String, String> nsPrefixes) {
+    public Model readModel(InputStream dataStream, Lang rdfLanguage, Map<String, String> nsPrefixes, ResourceAccessPolicy accessPolicy) {
         var builder = RDFParserBuilder
                 .create()
                 .lang(rdfLanguage)
@@ -246,21 +248,21 @@ public class FileManager extends BaseFileManager<ApplicationConfig> {
             prefixes.putAll(nsPrefixes);
             builder = builder.prefixes(prefixes);
         }
+        GuardedJsonLdDocumentLoader jsonLdLoader = null;
         if (Lang.JSONLD11.equals(rdfLanguage) || Lang.JSONLD.equals(rdfLanguage)) {
-            var options = new JsonLdOptions();
-            var httpLoader = new HttpLoader(DefaultHttpClient.defaultInstance());
-            /*
-             * Set fallback type for remote contexts to avoid errors for non JSON/JSON-LD Content Types.
-             * This allows us to proceed if e.g. the Content Type originally returned is "text/plain".
-             */
-            httpLoader.fallbackContentType(MediaType.JSON);
-            options.setDocumentLoader(new SchemeRouter()
-                    .set("http", httpLoader)
-                    .set("https", httpLoader)
-                    .set("file", new FileLoader()));
-            builder = builder.context(Context.create().set(JSONLD_OPTIONS, options));
+            // Never load remote contexts without authorization (the options must not be shared between parsing operations).
+            jsonLdLoader = GuardedJsonLdDocumentLoader.forPolicy(accessPolicy);
+            builder = builder.context(Context.create().set(JSONLD_OPTIONS, GuardedJsonLdDocumentLoader.newOptions(jsonLdLoader)));
         }
-        return builder.build().toModel();
+        try {
+            return builder.build().toModel();
+        } catch (RiotException e) {
+            if (jsonLdLoader != null) {
+                // Report the actual reason if the parsing failed because of a resource that is not permitted.
+                throw jsonLdLoader.toReportedError(e);
+            }
+            throw e;
+        }
     }
 
     /**
@@ -314,7 +316,8 @@ public class FileManager extends BaseFileManager<ApplicationConfig> {
                     Path modelPath = shaclModelCache.get(cacheKey);
                     if (modelPath != null) {
                         try (InputStream dataStream = Files.newInputStream(modelPath)) {
-                            materialisedModel = readModel(dataStream, RDFLanguages.contentTypeToLang(specs.getDomainConfig().getDefaultReportSyntax()), null);
+                            materialisedModel = readModel(dataStream, RDFLanguages.contentTypeToLang(specs.getDomainConfig().getDefaultReportSyntax()), null,
+                                    ResourceAccessPolicy.forValidationArtefacts(appConfig, specs.getDomainConfig(), specs.getValidationType()));
                         } catch (IOException e) {
                             throw new ValidatorException("validator.label.exception.errorReadingShaclFile", e);
                         }
@@ -441,11 +444,21 @@ public class FileManager extends BaseFileManager<ApplicationConfig> {
      */
     public Path getContentFromSparqlEndpoint(SparqlQueryConfig queryConfig, File parentFolder, String fileName) {
         Model resultModel;
+        java.net.http.HttpClient httpClient = null;
+        if (queryConfig.isUserProvidedEndpoint()) {
+            /*
+             * An endpoint provided by the user is untrusted. We must not connect to internal addresses (unless these are
+             * whitelisted) and must also not follow redirects (that could lead to such addresses).
+             */
+            ImportedUriAuthorizer.forUserContent(appConfig).isUriAllowed(queryConfig.getEndpoint());
+            httpClient = java.net.http.HttpClient.newBuilder()
+                    .followRedirects(java.net.http.HttpClient.Redirect.NEVER)
+                    .connectTimeout(Duration.ofSeconds(10))
+                    .proxy(ProxySelector.getDefault())
+                    .build();
+        }
         AuthEnv.get().registerUsernamePassword(URI.create(queryConfig.getEndpoint()), queryConfig.getUsername(), queryConfig.getPassword());
-        try (var query = QueryExecutionHTTP.service(queryConfig.getEndpoint())
-                .query(getQuery(queryConfig.getQuery()))
-                .acceptHeader(queryConfig.getPreferredContentType())
-                .build()) {
+        try (var query = newSparqlExecution(queryConfig, httpClient)) {
             resultModel = query.execConstruct();
         } catch (Exception e) {
             throw new ValidatorException("validator.label.exception.sparqlQueryError", e, e.getMessage());
@@ -460,6 +473,23 @@ public class FileManager extends BaseFileManager<ApplicationConfig> {
             }
         }
         return modelPath;
+    }
+
+    /**
+     * Create the execution of the configured SPARQL query.
+     *
+     * @param queryConfig The SPARQL query configuration to use.
+     * @param httpClient The HTTP client to use (null to use the default one).
+     * @return The execution to run.
+     */
+    private QueryExecutionHTTP newSparqlExecution(SparqlQueryConfig queryConfig, java.net.http.HttpClient httpClient) {
+        var builder = QueryExecutionHTTP.service(queryConfig.getEndpoint())
+                .query(getQuery(queryConfig.getQuery()))
+                .acceptHeader(queryConfig.getPreferredContentType());
+        if (httpClient != null) {
+            builder = builder.httpClient(httpClient);
+        }
+        return builder.build();
     }
 
     /**
@@ -507,9 +537,10 @@ public class FileManager extends BaseFileManager<ApplicationConfig> {
      * @param fileName The name to use for the resulting aggregate file (may be null to let the storage layer decide,
      *                 only relevant when more than one input is provided).
      * @param modelManager The model manager used to track (and eventually close) intermediate Jena models.
+     * @param domainConfig The current domain configuration.
      * @return The information for the resulting (aggregated) input file.
      */
-    public FileInfo aggregateInputs(File parentFolder, List<FileInfo> inputs, String fileName, ModelManager modelManager) {
+    public FileInfo aggregateInputs(File parentFolder, List<FileInfo> inputs, String fileName, ModelManager modelManager, DomainConfig domainConfig) {
         if (inputs == null || inputs.isEmpty()) {
             throw new ValidatorException("validator.label.exception.noContentProvided", ValidationConstants.INPUT_CONTENT);
         }
@@ -519,6 +550,7 @@ public class FileManager extends BaseFileManager<ApplicationConfig> {
         String outputSyntax = null;
         Model aggregateModel = ModelFactory.createDefaultModel();
         modelManager.track(aggregateModel);
+        var accessPolicy = ResourceAccessPolicy.forUserContent(appConfig, domainConfig);
         for (FileInfo input: inputs) {
             Lang rdfLanguage = determineRdfLanguage(input);
             if (rdfLanguage == null) {
@@ -528,7 +560,7 @@ public class FileManager extends BaseFileManager<ApplicationConfig> {
                 outputSyntax = rdfLanguage.getContentType().getContentTypeStr();
             }
             try (InputStream dataStream = Files.newInputStream(input.getFile().toPath())) {
-                Model fileModel = readModel(dataStream, rdfLanguage, null);
+                Model fileModel = readModel(dataStream, rdfLanguage, null, accessPolicy);
                 modelManager.track(fileModel);
                 aggregateModel.add(fileModel);
             } catch (ValidatorException e) {

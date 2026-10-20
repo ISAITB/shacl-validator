@@ -281,7 +281,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                                     // The content syntax (if explicitly provided) applies to every archived file; otherwise each file's own name is used.
                                     String declaredContentSyntax = noContentSyntaxProvided ? null : contentSyntaxType;
                                     List<FileInfo> archiveEntries = fileManager.extractArchiveEntries(parentFolder, stagedFile, declaredContentSyntax);
-                                    FileInfo aggregate = fileManager.aggregateInputs(parentFolder, archiveEntries, FILE_NAME_INPUT, modelManager);
+                                    FileInfo aggregate = fileManager.aggregateInputs(parentFolder, archiveEntries, FILE_NAME_INPUT, modelManager, domainConfig);
                                     inputFile = aggregate.getFile();
                                     contentSyntaxType = aggregate.getType();
                                     fileManager.removeContentToValidate(null, archiveEntries);

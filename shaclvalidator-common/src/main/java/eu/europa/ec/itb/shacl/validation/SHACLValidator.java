@@ -21,6 +21,8 @@ import com.gitb.vs.ValidateRequest;
 import com.gitb.vs.ValidationResponse;
 import eu.europa.ec.itb.shacl.*;
 import eu.europa.ec.itb.shacl.config.LocatorParams;
+import eu.europa.ec.itb.shacl.config.ResourceAccessPolicy;
+import eu.europa.ec.itb.shacl.config.ServiceBlockingExecutor;
 import eu.europa.ec.itb.shacl.util.StatementTranslator;
 import eu.europa.ec.itb.validation.commons.FileInfo;
 import eu.europa.ec.itb.validation.commons.ImportedFileAuthorizer;
@@ -180,7 +182,7 @@ public class SHACLValidator {
         } else {
             // Make a converted copy.
             try (FileInputStream in = new FileInputStream(getInputFileToUse()); FileWriter out = new FileWriter(pluginInputFile)) {
-                Model fileModel = fileManager.readModel(in, contentSyntaxToUse, null);
+                Model fileModel = fileManager.readModel(in, contentSyntaxToUse, null, ResourceAccessPolicy.forUserContent(appConfig, specs.getDomainConfig()));
                 fileManager.writeRdfModel(out, fileModel, Lang.RDFXML.getContentType().getContentTypeStr());
             } catch (IOException e) {
                 throw new IllegalStateException("Unable to convert input file for plugin", e);
@@ -391,7 +393,19 @@ public class SHACLValidator {
             // Get data to validate from file
             this.dataModel = getDataModel(getInputFileToUse(), this.aggregatedShapes);
             // Perform the validation of data, using the shapes model. Do not validate any shapes inside the data model.
-            Resource resource = ValidationUtil.validateModel(dataModel, this.aggregatedShapes, false);
+            Resource resource;
+            boolean blockServiceCalls = !specs.getExternalShaclFiles().isEmpty();
+            if (blockServiceCalls) {
+                // User-provided shapes must not be allowed to make SPARQL SERVICE calls to arbitrary locations.
+                ServiceBlockingExecutor.block();
+            }
+            try {
+                resource = ValidationUtil.validateModel(dataModel, this.aggregatedShapes, false);
+            } finally {
+                if (blockServiceCalls) {
+                    ServiceBlockingExecutor.unblock();
+                }
+            }
             reportModel = resource.getModel();
         }
         specs.track(this.dataModel);
@@ -422,6 +436,7 @@ public class SHACLValidator {
      */
     private Model getShapesModel(List<FileInfo> shaclFiles) {
         Model aggregateModel = JenaUtil.createMemoryModel();
+        var accessPolicy = ResourceAccessPolicy.forValidationArtefacts(appConfig, specs.getDomainConfig(), getValidationType());
         Consumer<HttpRequest.Builder> requestDecorator = null;
         for (FileInfo shaclFile: shaclFiles) {
             if (requestDecorator == null && shaclFile.getRequestDecorator() != null) {
@@ -438,7 +453,7 @@ public class SHACLValidator {
                 throw new ValidatorException("validator.label.exception.unableToDetermineShaclContentType");
             }
             try (InputStream dataStream = new FileInputStream(shaclFile.getFile())) {
-                aggregateModel.add(fileManager.readModel(dataStream, rdfLanguage, null));
+                aggregateModel.add(fileManager.readModel(dataStream, rdfLanguage, null, accessPolicy));
             } catch (IOException e) {
                 throw new ValidatorException("validator.label.exception.errorReadingShaclFile", e);
             }
@@ -450,7 +465,7 @@ public class SHACLValidator {
         
         this.importedShapes = JenaUtil.createMemoryModel();
         specs.track(this.importedShapes);
-        createImportedModels(aggregateModel, requestDecorator);
+        createImportedModels(aggregateModel, requestDecorator, accessPolicy.uriAuthorizer());
         if (this.importedShapes != null) {
         	aggregateModel.add(importedShapes);
         	this.importedShapes.removeAll();
@@ -463,9 +478,10 @@ public class SHACLValidator {
      *
      * @param aggregateModel The aggregated model to extend.
      * @param requestDecorator The request decorator to use.
+     * @param uriAuthorizer The authorizer for the URIs of the imports (null if the source of the imports is trusted).
      */
     @SuppressWarnings("removal")
-    private void createImportedModels(Model aggregateModel, Consumer<HttpRequest.Builder> requestDecorator) {
+    private void createImportedModels(Model aggregateModel, Consumer<HttpRequest.Builder> requestDecorator, ImportedUriAuthorizer uriAuthorizer) {
     	Set<String> reachedURIs = new HashSet<>();
     	
         ModelMaker modelMaker = ModelFactory.createMemModelMaker();
@@ -478,7 +494,7 @@ public class SHACLValidator {
                 specs.getDomainConfig().getHttpVersion(),
                 specs.getDomainConfig().getOwlImportMappings(),
                 requestDecorator,
-                ImportedUriAuthorizer.from(appConfig, specs.getDomainConfig(), specs.getValidationType()).orElse(null),
+                uriAuthorizer,
                 ImportedFileAuthorizer.from(appConfig, specs.getDomainConfig()
         )));
         CustomJenaFileManager.PARAMS.set(new CustomJenaFileManager.CacheParams(specs.getDomainConfig().getOwlImportMappings().keySet(), new HashMap<>()));
@@ -612,12 +628,14 @@ public class SHACLValidator {
         // Upload the data in the Model.
         Model dataModel;
         try (InputStream dataStream = new FileInputStream(dataFile)) {
-            dataModel = fileManager.readModel(dataStream, contextSyntaxToUse(), shapesModel == null ? null : shapesModel.getNsPrefixMap());
+            // The data to validate is always untrusted.
+            var accessPolicy = ResourceAccessPolicy.forUserContent(appConfig, specs.getDomainConfig());
+            dataModel = fileManager.readModel(dataStream, contextSyntaxToUse(), shapesModel == null ? null : shapesModel.getNsPrefixMap(), accessPolicy);
             if (specs.isLoadImports()) {
                 if (specs.isLogProgress()) {
                     LOG.info("Loading imports...");
                 }
-                createImportedModels(dataModel, null);
+                createImportedModels(dataModel, null, accessPolicy.uriAuthorizer());
                 if (importedShapes != null) {
                     dataModel.add(importedShapes);
                     importedShapes.removeAll();
@@ -655,7 +673,7 @@ public class SHACLValidator {
                 // preprocessing: execute the CONSTRUCT query
                 Model inputModel;
                 try (InputStream dataStream = new FileInputStream(specs.getInputFileToValidate())) {
-                    inputModel = fileManager.readModel(dataStream, contextSyntaxToUse(), null);
+                    inputModel = fileManager.readModel(dataStream, contextSyntaxToUse(), null, ResourceAccessPolicy.forUserContent(appConfig, specs.getDomainConfig()));
                 } catch (IOException e) {
                     throw new ValidatorException("validator.label.exception.errorWhileReadingProvidedContent", e, e.getMessage());
                 } catch (JenaException e) {

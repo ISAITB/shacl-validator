@@ -127,8 +127,11 @@ public class CustomLocatorHTTP extends LocatorHTTP {
                         IOUtils.copy(response.body(), bos);
                         HttpLib.handleHttpStatusCode(response);
                         result = new TypedInputStream(new ByteArrayInputStream(bos.toByteArray()), HttpLib.responseHeader(response, HttpNames.hContentType));
-                    } catch (IOException | InterruptedException | NoSuchAlgorithmException e) {
+                    } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
+                        throw new IllegalStateException(String.format("Unexpected error while reading URI [%s]", uri), e);
+                    } catch (IOException | NoSuchAlgorithmException e) {
+                        // Only restore the interrupted status if we were actually interrupted (otherwise subsequent requests on this thread fail).
                         throw new IllegalStateException(String.format("Unexpected error while reading URI [%s]", uri), e);
                     } finally {
                         LOG.debug("Received response from [{}]", uri);

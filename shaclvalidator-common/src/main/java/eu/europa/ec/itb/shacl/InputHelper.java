@@ -125,6 +125,7 @@ public class InputHelper extends BaseInputHelper<ApplicationConfig, FileManager,
                 throw new ValidatorException("validator.label.exception.sparqlEndpointNeeded");
             } else {
                 config.setEndpoint(inputConfig.getEndpoint());
+                config.setUserProvidedEndpoint(true);
             }
         } else {
             if (!StringUtils.isEmpty(inputConfig.getEndpoint())) {

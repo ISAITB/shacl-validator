@@ -312,7 +312,7 @@ public class RestValidationController extends BaseRestController<DomainConfig, A
             var queryConfig = in.parseQueryConfig();
             if (queryConfig == null) {
                 List<FileInfo> contentFiles = inputHelper.validateContentsToValidate(in.getContentToValidate(), in.getContentSyntax(), in.getEmbeddingMethod(), parentFolder, domainConfig.getHttpVersion());
-                FileInfo aggregate = fileManager.aggregateInputs(parentFolder, contentFiles, null, modelManager);
+                FileInfo aggregate = fileManager.aggregateInputs(parentFolder, contentFiles, null, modelManager, domainConfig);
                 inputFile = aggregate.getFile();
                 contentSyntax = aggregate.getType();
             } else {

@@ -25,6 +25,7 @@ public class SparqlQueryConfig {
     private String username;
     private String password;
     private String preferredContentType;
+    private boolean userProvidedEndpoint;
 
     /**
      * Constructor.
@@ -118,5 +119,19 @@ public class SparqlQueryConfig {
      */
     public void setPreferredContentType(String preferredContentType) {
         this.preferredContentType = preferredContentType;
+    }
+
+    /**
+     * @return True if the endpoint was provided by the user (as opposed to being configured for the domain).
+     */
+    public boolean isUserProvidedEndpoint() {
+        return userProvidedEndpoint;
+    }
+
+    /**
+     * @param userProvidedEndpoint True if the endpoint was provided by the user (as opposed to being configured for the domain).
+     */
+    public void setUserProvidedEndpoint(boolean userProvidedEndpoint) {
+        this.userProvidedEndpoint = userProvidedEndpoint;
     }
 }

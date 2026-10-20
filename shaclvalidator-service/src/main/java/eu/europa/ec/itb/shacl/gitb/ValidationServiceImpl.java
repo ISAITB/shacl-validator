@@ -160,7 +160,7 @@ public class ValidationServiceImpl implements ValidationService, WebServiceConte
                 String contentSyntax;
                 if (queryConfig == null) {
                     List<FileInfo> contentFiles = inputHelper.validateContentsToValidate(validateRequest, ValidationConstants.INPUT_CONTENT, contentEmbeddingMethods, contentSyntaxes, parentFolder, domainConfig.getHttpVersion());
-                    FileInfo aggregate = fileManager.aggregateInputs(parentFolder, contentFiles, null, modelManager);
+                    FileInfo aggregate = fileManager.aggregateInputs(parentFolder, contentFiles, null, modelManager, domainConfig);
                     contentToValidate = aggregate.getFile();
                     contentSyntax = aggregate.getType();
                 } else {

@@ -19,6 +19,7 @@ import eu.europa.ec.itb.shacl.ApplicationConfig;
 import eu.europa.ec.itb.shacl.CustomJenaFileManager;
 import eu.europa.ec.itb.shacl.DomainConfig;
 import eu.europa.ec.itb.shacl.validation.CustomReadFailureHandler;
+import eu.europa.ec.itb.validation.commons.ImportedUriAuthorizer;
 import eu.europa.ec.itb.validation.commons.config.DomainPluginConfigProvider;
 import jakarta.annotation.PostConstruct;
 import org.apache.jena.ontology.OntDocumentManager;
@@ -65,6 +66,10 @@ public class BeanConfiguration {
         var ontDocumentManager = OntDocumentManager.getInstance();
         ontDocumentManager.setFileManager(fileManager);
         ontDocumentManager.setReadFailureHandler(new CustomReadFailureHandler());
+        // Ensure that parsing of JSON-LD never loads remote contexts without authorization (including for loaded imports).
+        GuardedJsonLdReaderFactory.install(ImportedUriAuthorizer.forUserContent(appConfig));
+        // Never allow SPARQL SERVICE calls from user-provided SHACL shapes.
+        ServiceBlockingExecutor.install();
     }
 
 }
