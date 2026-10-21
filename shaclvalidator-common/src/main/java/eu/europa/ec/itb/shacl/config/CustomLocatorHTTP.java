@@ -15,6 +15,7 @@
 
 package eu.europa.ec.itb.shacl.config;
 
+import eu.europa.ec.itb.validation.commons.BudgetedHttpClient;
 import eu.europa.ec.itb.validation.commons.ImportedUriAuthorizer;
 import eu.europa.ec.itb.validation.commons.RemoteRequestGuard;
 import org.apache.commons.io.IOUtils;
@@ -61,6 +62,11 @@ import static org.apache.jena.http.HttpEnv.httpClientBuilder;
 public class CustomLocatorHTTP extends LocatorHTTP {
 
     private static final Logger LOG = LoggerFactory.getLogger(CustomLocatorHTTP.class);
+
+    /**
+     * The maximum number of redirects followed for a single resource.
+     */
+    static final int MAX_REDIRECTS = 20;
 
     /**
      * Convert URI string to an HTTP request.
@@ -126,20 +132,34 @@ public class CustomLocatorHTTP extends LocatorHTTP {
                     var attemptedUrls = new HashSet<String>();
                     var uriToUse = uri;
                     try {
-                        HttpClient client = httpClientBuilder()
+                        /*
+                         * Redirects are followed by us (and not the client) so that every hop is checked by the URI authorizer,
+                         * has the request decorator applied only where permitted, and counts towards the limits of the validation.
+                         */
+                        HttpClient client = new BudgetedHttpClient(httpClientBuilder()
                                 .sslContext(SSLContext.getInstance(SSLContext.getDefault().getProtocol()))
-                                .build();
+                                .followRedirects(HttpClient.Redirect.NEVER)
+                                .build());
+                        int redirects = 0;
+                        boolean redirected;
                         do {
                             LOG.debug("Sending request to [{}]", uriToUse);
                             attemptedUrls.add(uriToUse);
                             response = client.send(toRequest(uriToUse, params.httpVersion(), decoratorFor(params, uriToUse), params.uriAuthorizer()), HttpResponse.BodyHandlers.ofInputStream());
+                            redirected = false;
                             if (response.statusCode() >= 300 && response.statusCode() <= 399) {
                                 var nextLocation = response.headers().firstValue("Location");
                                 if (nextLocation.isPresent()) {
-                                    uriToUse = URI.create(uriToUse).resolve(nextLocation.get()).toString();
+                                    var nextUri = URI.create(uriToUse).resolve(nextLocation.get()).toString();
+                                    if (!attemptedUrls.contains(nextUri) && ++redirects <= MAX_REDIRECTS) {
+                                        // Release the redirect response before following it.
+                                        response.body().close();
+                                        uriToUse = nextUri;
+                                        redirected = true;
+                                    }
                                 }
                             }
-                        } while (!attemptedUrls.contains(uriToUse));
+                        } while (redirected);
                         // Ensure we fully consume the response to avoid any blocked threads.
                         var bos = new ByteArrayOutputStream();
                         IOUtils.copy(response.body(), bos);

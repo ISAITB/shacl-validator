@@ -24,6 +24,8 @@ import eu.europa.ec.itb.shacl.config.GuardedJsonLdDocumentLoader;
 import eu.europa.ec.itb.shacl.config.ResourceAccessPolicy;
 import eu.europa.ec.itb.shacl.util.ShaclValidatorUtils;
 import eu.europa.ec.itb.validation.commons.BaseFileManager;
+import eu.europa.ec.itb.validation.commons.BudgetedHttpClient;
+import eu.europa.ec.itb.validation.commons.RemoteResourceBudget;
 import eu.europa.ec.itb.validation.commons.FileInfo;
 import eu.europa.ec.itb.validation.commons.ImportedUriAuthorizer;
 import eu.europa.ec.itb.validation.commons.artifact.RemoteValidationArtifactInfo;
@@ -451,16 +453,18 @@ public class FileManager extends BaseFileManager<ApplicationConfig> {
              * whitelisted) and must also not follow redirects (that could lead to such addresses).
              */
             ImportedUriAuthorizer.forUserContent(appConfig).isUriAllowed(queryConfig.getEndpoint());
-            httpClient = java.net.http.HttpClient.newBuilder()
+            httpClient = new BudgetedHttpClient(java.net.http.HttpClient.newBuilder()
                     .followRedirects(java.net.http.HttpClient.Redirect.NEVER)
                     .connectTimeout(Duration.ofSeconds(10))
                     .proxy(ProxySelector.getDefault())
-                    .build();
+                    .build());
         }
         AuthEnv.get().registerUsernamePassword(URI.create(queryConfig.getEndpoint()), queryConfig.getUsername(), queryConfig.getPassword());
         try (var query = newSparqlExecution(queryConfig, httpClient)) {
             resultModel = query.execConstruct();
         } catch (Exception e) {
+            // If a limit on remote resources was exceeded this is the reason to report.
+            RemoteResourceBudget.rethrowIfExceeded();
             throw new ValidatorException("validator.label.exception.sparqlQueryError", e, e.getMessage());
         }
         Path modelPath = null;

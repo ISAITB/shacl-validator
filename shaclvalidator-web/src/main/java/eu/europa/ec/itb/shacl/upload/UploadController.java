@@ -300,7 +300,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                                     if (noContentSyntaxProvided) {
                                         contentSyntaxType = getExtensionContentTypeForURL(uri);
                                     }
-                                    FileInfo uriResult = this.fileManager.getFileFromURL(parentFolder, uri, fileManager.getFileExtension(contentSyntaxType), FILE_NAME_INPUT, null, null, null, getAcceptedContentTypes(contentSyntaxType), domainConfig.getHttpVersion());
+                                    FileInfo uriResult = this.fileManager.getFileFromURL(parentFolder, uri, fileManager.getFileExtension(contentSyntaxType), FILE_NAME_INPUT, null, null, null, getAcceptedContentTypes(contentSyntaxType), domainConfig.getHttpVersion(), null, this.fileManager.userInputGuard(uri));
                                     inputFile = uriResult.getFile();
                                     if (noContentSyntaxProvided) {
                                         // Only override the content syntax if one has not been explicitly provided as part of the input.
@@ -620,7 +620,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                             if (noContentSyntaxProvided) {
                                 contentSyntaxType = getExtensionContentTypeForURL(externalUri[i]);
                             }
-                            FileInfo uriResult = this.fileManager.getFileFromURL(parentFolder, externalUri[i], null, null, null, null, null, getAcceptedContentTypes(contentSyntaxType), httpVersion, requestDecorator);
+                            FileInfo uriResult = this.fileManager.getFileFromURL(parentFolder, externalUri[i], null, null, null, null, null, getAcceptedContentTypes(contentSyntaxType), httpVersion, requestDecorator, this.fileManager.userInputGuard(externalUri[i]));
                             inputFile = uriResult.getFile();
                             if (noContentSyntaxProvided) {
                                 // Only override the content syntax if one has not been explicitly provided as part of the input.

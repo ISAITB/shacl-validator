@@ -19,6 +19,7 @@ import com.apicatalog.jsonld.JsonLdError;
 import com.apicatalog.jsonld.http.DefaultHttpClient;
 import com.apicatalog.jsonld.http.HttpClient;
 import com.apicatalog.jsonld.http.HttpResponse;
+import eu.europa.ec.itb.validation.commons.BudgetedHttpClient;
 import eu.europa.ec.itb.validation.commons.ImportedUriAuthorizer;
 
 import java.net.ProxySelector;
@@ -48,11 +49,12 @@ public class AuthorizingJsonLdHttpClient implements HttpClient {
      */
     public AuthorizingJsonLdHttpClient(ImportedUriAuthorizer uriAuthorizer) {
         this.uriAuthorizer = uriAuthorizer;
-        this.delegate = new DefaultHttpClient(java.net.http.HttpClient.newBuilder()
+        // Requests count towards the limits of the validation (each redirect or link followed by the processor is a new request).
+        this.delegate = new DefaultHttpClient(new BudgetedHttpClient(java.net.http.HttpClient.newBuilder()
                 .followRedirects(Redirect.NEVER)
                 .connectTimeout(CONNECT_TIMEOUT)
                 .proxy(ProxySelector.getDefault())
-                .build()).timeout(REQUEST_TIMEOUT);
+                .build())).timeout(REQUEST_TIMEOUT);
     }
 
     /**

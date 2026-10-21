@@ -26,6 +26,7 @@ import com.apicatalog.jsonld.loader.FileLoader;
 import com.apicatalog.jsonld.loader.HttpLoader;
 import eu.europa.ec.itb.validation.commons.ImportedFileAuthorizer;
 import eu.europa.ec.itb.validation.commons.ImportedUriAuthorizer;
+import eu.europa.ec.itb.validation.commons.RemoteResourceBudget;
 import eu.europa.ec.itb.validation.commons.error.ValidatorException;
 
 import org.slf4j.Logger;
@@ -97,6 +98,8 @@ public class GuardedJsonLdDocumentLoader implements DocumentLoader {
      * @return The exception to throw in place of the parsing error.
      */
     public RuntimeException toReportedError(RuntimeException parsingError) {
+        // Exceeding the limits on remote resources takes precedence (the parser may have wrapped the failure).
+        RemoteResourceBudget.rethrowIfExceeded();
         return blocked == null ? parsingError : blocked;
     }
 

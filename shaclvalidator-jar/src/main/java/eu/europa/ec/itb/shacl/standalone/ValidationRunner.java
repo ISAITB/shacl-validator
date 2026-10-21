@@ -276,7 +276,7 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
                         LOGGER_FEEDBACK.info("\nValidating [{}]...", input.getFileName());
                         File inputFile = input.getInputFile();
                         var modelManager = new ModelManager(fileManager);
-                        try {
+                        try (var ignored = openRemoteBudget()) {
                             ValidationSpecs specs = ValidationSpecs.builder(inputFile, type, input.getContentSyntax(), externalShapesList, loadImports, mergeModelsBeforeValidation, domainConfig, localiser, modelManager).build();
                             SHACLValidator validator = applicationContext.getBean(SHACLValidator.class, specs);
                             ModelPair models = validator.validateAll();

@@ -4,6 +4,7 @@ import com.sun.net.httpserver.HttpServer;
 import eu.europa.ec.itb.shacl.validation.FileManager;
 import eu.europa.ec.itb.validation.commons.ImportedFileAuthorizer;
 import eu.europa.ec.itb.validation.commons.ImportedUriAuthorizer;
+import eu.europa.ec.itb.validation.commons.RemoteResourceBudget;
 import eu.europa.ec.itb.validation.commons.config.ApplicationConfig;
 import eu.europa.ec.itb.validation.commons.config.DomainConfig;
 import eu.europa.ec.itb.validation.commons.config.NormalizedURI;
@@ -51,6 +52,23 @@ class GuardedJsonLdDocumentLoaderTest {
             requestCount.incrementAndGet();
             exchange.getResponseHeaders().add("Location", "/secret/ctx.jsonld");
             respond(exchange, 302, "");
+        });
+        server.createContext("/allowed/ctx2.jsonld", exchange -> {
+            requestCount.incrementAndGet();
+            respond(exchange, 200, CONTEXT);
+        });
+        server.createContext("/allowed/ctx3.jsonld", exchange -> {
+            requestCount.incrementAndGet();
+            respond(exchange, 200, CONTEXT);
+        });
+        server.createContext("/allowed/large.jsonld", exchange -> {
+            requestCount.incrementAndGet();
+            // A (valid) context with many terms.
+            var large = new StringBuilder("{\"@context\":{\"name\":\"http://example.org/name\"");
+            for (int i = 0; i < 6000; i++) {
+                large.append(",\"term").append(i).append("\":\"http://example.org/term").append(i).append('"');
+            }
+            respond(exchange, 200, large.append("}}").toString());
         });
         server.createContext("/secret/ctx.jsonld", exchange -> {
             requestCount.incrementAndGet();
@@ -161,4 +179,39 @@ class GuardedJsonLdDocumentLoaderTest {
         assertEquals(1, model.size());
     }
 
+    private static ApplicationConfig.RemoteLimits limits(int maxResourceKb, int maxRequests) {
+        var limits = new ApplicationConfig.RemoteLimits();
+        limits.setMaxResourceSize(org.springframework.util.unit.DataSize.ofKilobytes(maxResourceKb));
+        limits.setMaxRequests(maxRequests);
+        return limits;
+    }
+
+    @Test
+    void testContextAboveResourceSizeLimitIsRejected() {
+        var policy = policy(List.of(baseUrl() + "/allowed"));
+        // Without limits the large context is loaded.
+        assertEquals(1, parse(baseUrl() + "/allowed/large.jsonld", policy));
+        try (var ignored = RemoteResourceBudget.open(limits(50, 100))) {
+            var error = assertThrows(ValidatorException.class, () -> parse(baseUrl() + "/allowed/large.jsonld", policy));
+            assertTrue(error.getMessage().contains("exceeds the maximum allowed size"), error.getMessage());
+        }
+    }
+
+    @Test
+    void testContextWithinResourceSizeLimitIsLoaded() {
+        try (var ignored = RemoteResourceBudget.open(limits(50, 100))) {
+            assertEquals(1, parse(baseUrl() + "/allowed/ctx.jsonld", policy(List.of(baseUrl() + "/allowed"))));
+        }
+    }
+
+    @Test
+    void testNumberOfContextsLoadedIsLimited() {
+        var policy = policy(List.of(baseUrl() + "/allowed"));
+        var document = "{\"@context\":[\"%1$s/allowed/ctx.jsonld\",\"%1$s/allowed/ctx2.jsonld\",\"%1$s/allowed/ctx3.jsonld\"],\"@id\":\"http://example.org/a\",\"name\":\"value\"}".formatted(baseUrl());
+        try (var ignored = RemoteResourceBudget.open(limits(1024, 2))) {
+            var error = assertThrows(ValidatorException.class, () -> fileManager.readModel(new ByteArrayInputStream(document.getBytes(StandardCharsets.UTF_8)), Lang.JSONLD11, null, policy));
+            assertTrue(error.getMessage().contains("maximum allowed number of remote requests"), error.getMessage());
+        }
+        assertEquals(2, requestCount.get(), "Requests over the limit must not be made");
+    }
 }

@@ -27,6 +27,7 @@ import eu.europa.ec.itb.shacl.util.StatementTranslator;
 import eu.europa.ec.itb.validation.commons.FileInfo;
 import eu.europa.ec.itb.validation.commons.ImportedFileAuthorizer;
 import eu.europa.ec.itb.validation.commons.ImportedUriAuthorizer;
+import eu.europa.ec.itb.validation.commons.RemoteResourceBudget;
 import eu.europa.ec.itb.validation.commons.Utils;
 import eu.europa.ec.itb.validation.commons.config.DomainPluginConfigProvider;
 import eu.europa.ec.itb.validation.commons.config.ErrorResponseTypeEnum;
@@ -509,11 +510,17 @@ public class SHACLValidator {
             OntModel baseOntModel = ModelFactory.createOntologyModel(spec, aggregateModel);
             addIncluded(baseOntModel, reachedURIs);
             importsWithErrors = CustomReadFailureHandler.IMPORTS_WITH_ERRORS.get();
+        } catch (RuntimeException e) {
+            // Exceeding the limits on remote resources is the reason to report (the failure may have been wrapped).
+            RemoteResourceBudget.rethrowIfExceeded();
+            throw e;
         } finally {
             CustomReadFailureHandler.IMPORTS_WITH_ERRORS.remove();
             LocatorParams.PARAMS.remove();
             CustomJenaFileManager.PARAMS.remove();
         }
+        // A limit that was exceeded must not be treated as just another import that failed to load.
+        RemoteResourceBudget.rethrowIfExceeded();
 
         if (!importsWithErrors.isEmpty()) {
             // Make sure the relevant models are closed, otherwise they are cached and don't result in additional failures, nor retries.
