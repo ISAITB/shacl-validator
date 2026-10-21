@@ -19,6 +19,7 @@ import com.gitb.tr.TAR;
 import eu.europa.ec.itb.shacl.ApplicationConfig;
 import eu.europa.ec.itb.shacl.DomainConfig;
 import eu.europa.ec.itb.shacl.DomainConfigCache;
+import eu.europa.ec.itb.shacl.config.ResourceAccessPolicy;
 import eu.europa.ec.itb.shacl.validation.FileManager;
 import eu.europa.ec.itb.validation.commons.*;
 import eu.europa.ec.itb.validation.commons.report.ReportGeneratorBean;
@@ -39,7 +40,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
-import org.topbraid.jenax.util.JenaUtil;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -129,10 +129,9 @@ public class FileController {
                 LOG.error("Unable to determine RDF language from existing file [{}]", existingFileOfRequestedType.getName());
                 throw new NotFoundException();
             }
-            String existingSyntax = lang.getContentType().getContentTypeStr();
-            Model fileModel = JenaUtil.createMemoryModel();
             try (FileInputStream in = new FileInputStream(existingFileOfRequestedType); FileWriter out = new FileWriter(reportFileInfo.file())) {
-                fileModel.read(in, null, existingSyntax);
+                // The stored content may be user-provided and must never be allowed to cause requests to arbitrary resources.
+                Model fileModel = fileManager.readModel(in, lang, null, ResourceAccessPolicy.forUserContent(appConfig, domainConfig));
                 fileManager.writeRdfModel(out, fileModel, syntax);
             } catch (IOException e) {
                 // Delete the target file (if produced) to make sure we don't cache it for future requests.

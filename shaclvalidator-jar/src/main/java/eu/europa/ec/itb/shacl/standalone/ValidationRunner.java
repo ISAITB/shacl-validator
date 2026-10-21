@@ -252,7 +252,7 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
                             }
                             combinedNames.append(mergeInput.getFileName());
                         }
-                        FileInfo aggregate = fileManager.aggregateInputs(parentFolder, filesToMerge, "aggregatedInput", mergeModelManager);
+                        FileInfo aggregate = fileManager.aggregateInputs(parentFolder, filesToMerge, "aggregatedInput", mergeModelManager, domainConfig);
                         inputs = List.of(new ShaclValidationInput(aggregate.getFile(), combinedNames.toString(), aggregate.getType()));
                     } catch (ValidatorException e) {
                         LOGGER_FEEDBACK.info("\nAn error occurred while merging the provided inputs: {}\n", e.getMessageForDisplay(new LocalisationHelper(Locale.ENGLISH)));
@@ -276,7 +276,7 @@ public class ValidationRunner extends BaseValidationRunner<DomainConfig> {
                         LOGGER_FEEDBACK.info("\nValidating [{}]...", input.getFileName());
                         File inputFile = input.getInputFile();
                         var modelManager = new ModelManager(fileManager);
-                        try {
+                        try (var ignored = openRemoteBudget()) {
                             ValidationSpecs specs = ValidationSpecs.builder(inputFile, type, input.getContentSyntax(), externalShapesList, loadImports, mergeModelsBeforeValidation, domainConfig, localiser, modelManager).build();
                             SHACLValidator validator = applicationContext.getBean(SHACLValidator.class, specs);
                             ModelPair models = validator.validateAll();

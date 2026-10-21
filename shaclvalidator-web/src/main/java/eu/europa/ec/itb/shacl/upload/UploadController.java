@@ -281,7 +281,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                                     // The content syntax (if explicitly provided) applies to every archived file; otherwise each file's own name is used.
                                     String declaredContentSyntax = noContentSyntaxProvided ? null : contentSyntaxType;
                                     List<FileInfo> archiveEntries = fileManager.extractArchiveEntries(parentFolder, stagedFile, declaredContentSyntax);
-                                    FileInfo aggregate = fileManager.aggregateInputs(parentFolder, archiveEntries, FILE_NAME_INPUT, modelManager);
+                                    FileInfo aggregate = fileManager.aggregateInputs(parentFolder, archiveEntries, FILE_NAME_INPUT, modelManager, domainConfig);
                                     inputFile = aggregate.getFile();
                                     contentSyntaxType = aggregate.getType();
                                     fileManager.removeContentToValidate(null, archiveEntries);
@@ -300,7 +300,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                                     if (noContentSyntaxProvided) {
                                         contentSyntaxType = getExtensionContentTypeForURL(uri);
                                     }
-                                    FileInfo uriResult = this.fileManager.getFileFromURL(parentFolder, uri, fileManager.getFileExtension(contentSyntaxType), FILE_NAME_INPUT, null, null, null, getAcceptedContentTypes(contentSyntaxType), domainConfig.getHttpVersion());
+                                    FileInfo uriResult = this.fileManager.getFileFromURL(parentFolder, uri, fileManager.getFileExtension(contentSyntaxType), FILE_NAME_INPUT, null, null, null, getAcceptedContentTypes(contentSyntaxType), domainConfig.getHttpVersion(), null, this.fileManager.userInputGuard(uri));
                                     inputFile = uriResult.getFile();
                                     if (noContentSyntaxProvided) {
                                         // Only override the content syntax if one has not been explicitly provided as part of the input.
@@ -620,7 +620,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                             if (noContentSyntaxProvided) {
                                 contentSyntaxType = getExtensionContentTypeForURL(externalUri[i]);
                             }
-                            FileInfo uriResult = this.fileManager.getFileFromURL(parentFolder, externalUri[i], null, null, null, null, null, getAcceptedContentTypes(contentSyntaxType), httpVersion, requestDecorator);
+                            FileInfo uriResult = this.fileManager.getFileFromURL(parentFolder, externalUri[i], null, null, null, null, null, getAcceptedContentTypes(contentSyntaxType), httpVersion, requestDecorator, this.fileManager.userInputGuard(externalUri[i]));
                             inputFile = uriResult.getFile();
                             if (noContentSyntaxProvided) {
                                 // Only override the content syntax if one has not been explicitly provided as part of the input.
