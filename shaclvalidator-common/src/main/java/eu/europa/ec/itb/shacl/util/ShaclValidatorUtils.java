@@ -34,6 +34,7 @@ import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFLanguages;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.InvalidMimeTypeException;
 import org.springframework.util.MimeType;
 import org.springframework.util.MimeTypeUtils;
 
@@ -117,6 +118,37 @@ public class ShaclValidatorUtils {
             return "%s/%s".formatted(resolvedType.getType(), resolvedType.getSubtype());
         }
         return contentSyntax;
+    }
+
+    /**
+     * Preprocess the RDF language to use (ensuring JSONLD1.1 support).
+     *
+     * @param inputLanguage The current language.
+     * @return The language to use.
+     */
+    public static Lang normaliseRdfLanguage(Lang inputLanguage) {
+        if (Lang.JSONLD.equals(inputLanguage)) {
+            return Lang.JSONLD11;
+        } else {
+            return inputLanguage;
+        }
+    }
+
+    /**
+     * Convert a mime type to the normalised RDF language to use for it (considering equivalent content syntaxes).
+     *
+     * @param contentSyntax The mime type.
+     * @return The language, or null if the mime type is blank, invalid or not a known RDF syntax.
+     */
+    public static Lang toNormalisedRdfLanguage(String contentSyntax) {
+        if (StringUtils.isNotBlank(contentSyntax)) {
+            try {
+                return normaliseRdfLanguage(RDFLanguages.contentTypeToLang(handleEquivalentContentSyntaxes(contentSyntax)));
+            } catch (InvalidMimeTypeException e) {
+                logger.warn("Invalid mime type [{}]", contentSyntax);
+            }
+        }
+        return null;
     }
 
     /**

@@ -28,8 +28,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -84,7 +86,6 @@ public class DomainConfigCache extends WebDomainConfigCache<DomainConfig> {
         super.addDomainConfiguration(domainConfig, config);
         addValidationArtifactInfo("validator.shaclFile", "validator.externalShapes", null, domainConfig, config);
         domainConfig.setDefaultReportSyntax(config.getString("validator.defaultReportSyntax", appConfig.getDefaultReportSyntax()));
-        domainConfig.setWebContentSyntax(Arrays.stream(StringUtils.split(config.getString("validator.contentSyntax", ""), ',')).map(String::trim).toList());
         domainConfig.setSortWebContentSyntaxOptions(config.getBoolean("validator.contentSyntaxSorted", true));
         // SPARQL query configuration - start
         domainConfig.setQueryEndpoint(config.getString("validator.queryEndpoint"));
@@ -168,6 +169,34 @@ public class DomainConfigCache extends WebDomainConfigCache<DomainConfig> {
             domainConfig.setHideDownloadShapes(hideDownloadShapesMap);
         }
         // Hide download shapes button - end
+        // Syntaxes to present on the UI - start
+        addWebContentSyntax(domainConfig, config);
+        // Syntaxes to present on the UI - end
+    }
+
+    /**
+     * Determine the RDF syntaxes to present on the user interface.
+     * <p>
+     * These are the domain's configured syntaxes (or the application's defaults if none are configured), excluding
+     * any that are not accepted by the application's whitelist or blacklist settings. The application-level restrictions
+     * cannot be overridden by the domain.
+     *
+     * @param domainConfig The domain configuration to enrich.
+     * @param config The configuration properties to consider.
+     */
+    void addWebContentSyntax(DomainConfig domainConfig, Configuration config) {
+        List<String> configuredSyntaxes = Arrays.stream(StringUtils.split(config.getString("validator.contentSyntax", ""), ',')).map(String::trim).toList();
+        if (configuredSyntaxes.isEmpty()) {
+            configuredSyntaxes = new ArrayList<>(appConfig.getContentSyntax());
+        }
+        List<String> webContentSyntax = configuredSyntaxes.stream().filter(appConfig::isContentSyntaxAccepted).toList();
+        if (webContentSyntax.isEmpty()) {
+            LOG.warn("No content syntaxes are available for selection for domain [{}].", domainConfig.getDomainName());
+        }
+        domainConfig.setWebContentSyntax(webContentSyntax);
+        if (domainConfig.getQueryContentType() != null && !appConfig.isContentSyntaxAccepted(domainConfig.getQueryContentType())) {
+            LOG.warn("The preferred content type for SPARQL queries [{}] is not accepted for domain [{}].", domainConfig.getQueryContentType(), domainConfig.getDomainName());
+        }
     }
 
 }
