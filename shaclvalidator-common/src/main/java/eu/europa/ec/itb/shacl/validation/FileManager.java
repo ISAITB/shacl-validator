@@ -560,6 +560,9 @@ public class FileManager extends BaseFileManager<ApplicationConfig> {
             if (rdfLanguage == null) {
                 throw new ValidatorException("validator.label.exception.rdfLanguageCouldNotBeDetermined");
             }
+            if (!appConfig.isContentSyntaxAccepted(rdfLanguage)) {
+                throw new ValidatorException("validator.label.exception.contentSyntaxNotAccepted", rdfLanguage.getContentType().getContentTypeStr());
+            }
             if (outputSyntax == null) {
                 outputSyntax = rdfLanguage.getContentType().getContentTypeStr();
             }

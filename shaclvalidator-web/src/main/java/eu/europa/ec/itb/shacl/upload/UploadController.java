@@ -662,12 +662,8 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
      * @return The list of options.
      */
     private List<KeyWithLabel> getContentSyntax(DomainConfig config) {
-        List<String> contentSyntax = config.getWebContentSyntax();
-        if (contentSyntax.isEmpty()) {
-            contentSyntax = new ArrayList<>(appConfig.getContentSyntax());
-        }
         List<KeyWithLabel> types = new ArrayList<>();
-        for (String cs : contentSyntax) {
+        for (String cs : config.getWebContentSyntax()) {
             Lang lang = RDFLanguages.contentTypeToLang(cs);
             types.add(new KeyWithLabel(lang.getLabel(), lang.getContentType().getContentTypeStr()));
         }

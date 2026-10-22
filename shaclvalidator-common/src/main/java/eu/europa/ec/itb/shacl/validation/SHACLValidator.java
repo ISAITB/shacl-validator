@@ -65,6 +65,7 @@ import java.util.function.Consumer;
 
 import static eu.europa.ec.itb.shacl.util.ShaclValidatorUtils.determineRdfLanguage;
 import static eu.europa.ec.itb.shacl.util.ShaclValidatorUtils.handleEquivalentContentSyntaxes;
+import static eu.europa.ec.itb.shacl.util.ShaclValidatorUtils.normaliseRdfLanguage;
 
 /**
  * Component used to validate RDF content against SHACL shapes.
@@ -127,6 +128,7 @@ public class SHACLValidator {
             LOG.info("Starting validation..");
         }
         try {
+            checkContentSyntaxes();
             Model validationReport = validateAgainstShacl();
             if (specs.isUsePlugins()) {
                 validateAgainstPlugins(validationReport);
@@ -137,6 +139,29 @@ public class SHACLValidator {
         } finally {
             if (specs.isLogProgress()) {
                 LOG.info("Completed validation.");
+            }
+        }
+    }
+
+    /**
+     * Ensure that the RDF syntaxes of the user-provided content and shapes are accepted by the application's configuration.
+     * <p>
+     * This is checked upfront as the data would otherwise not be parsed at all if there are no shapes to validate against.
+     *
+     * @throws ValidatorException If a syntax is not accepted.
+     */
+    private void checkContentSyntaxes() {
+        Lang dataSyntax = contextSyntaxToUse();
+        if (!appConfig.isContentSyntaxAccepted(dataSyntax)) {
+            throw new ValidatorException("validator.label.exception.contentSyntaxNotAccepted", dataSyntax.getContentType().getContentTypeStr());
+        }
+        for (FileInfo shaclFile: specs.getExternalShaclFiles()) {
+            Lang shapeSyntax = normaliseRdfLanguage(determineRdfLanguage(shaclFile));
+            if (shapeSyntax == null) {
+                throw new ValidatorException("validator.label.exception.unableToDetermineShaclContentType");
+            }
+            if (!appConfig.isContentSyntaxAccepted(shapeSyntax)) {
+                throw new ValidatorException("validator.label.exception.contentSyntaxNotAccepted", shapeSyntax.getContentType().getContentTypeStr());
             }
         }
     }
@@ -418,20 +443,6 @@ public class SHACLValidator {
     }
 
     /**
-     * Preprocess the RDF language to use (ensuring JSONLD1.1 support).
-     *
-     * @param inputLanguage The current language.
-     * @return The language to use.
-     */
-    private Lang processRdfLanguage(Lang inputLanguage) {
-        if (Lang.JSONLD.equals(inputLanguage)) {
-            return Lang.JSONLD11;
-        } else {
-            return inputLanguage;
-        }
-    }
-
-    /**
      * Return the aggregated model of a list of SHACL shape files.
      *
      * @return The aggregated model.
@@ -452,7 +463,7 @@ public class SHACLValidator {
             if (specs.isLogProgress()) {
                 LOG.info("Validating against [{}]", shaclFile.getFile().getName());
             }
-            Lang rdfLanguage = processRdfLanguage(determineRdfLanguage(shaclFile));
+            Lang rdfLanguage = normaliseRdfLanguage(determineRdfLanguage(shaclFile));
             if (rdfLanguage == null) {
                 throw new ValidatorException("validator.label.exception.unableToDetermineShaclContentType");
             }
@@ -624,7 +635,7 @@ public class SHACLValidator {
             if (lang == null) {
                 throw new ValidatorException("validator.label.exception.rdfLanguageCouldNotBeDetermined");
             }
-            contentSyntaxLang = processRdfLanguage(lang);
+            contentSyntaxLang = normaliseRdfLanguage(lang);
         }
         return contentSyntaxLang;
     }

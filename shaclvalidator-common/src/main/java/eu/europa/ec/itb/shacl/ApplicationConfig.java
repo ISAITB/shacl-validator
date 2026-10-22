@@ -15,14 +15,19 @@
 
 package eu.europa.ec.itb.shacl;
 
+import eu.europa.ec.itb.shacl.util.ShaclValidatorUtils;
 import eu.europa.ec.itb.shacl.validation.ValidationConstants;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.jena.riot.Lang;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * The validator application's configuration.
@@ -31,9 +36,15 @@ import java.util.*;
 @ConfigurationProperties("validator")
 public class ApplicationConfig extends eu.europa.ec.itb.validation.commons.config.ApplicationConfig {
 
+    private static final Logger LOG = LoggerFactory.getLogger(ApplicationConfig.class);
+
     private Set<String> acceptedShaclExtensions;
     private String defaultReportSyntax;
     private Set<String> contentSyntax;
+    private Set<String> contentSyntaxWhitelist;
+    private Set<String> contentSyntaxBlacklist;
+    private Set<Lang> acceptedLanguages;
+    private Set<Lang> rejectedLanguages;
     private final Map<String, String> defaultLabels = new HashMap<>();
     private String defaultContentToValidateDescription;
     private String defaultEmbeddingMethodDescription;
@@ -457,6 +468,119 @@ public class ApplicationConfig extends eu.europa.ec.itb.validation.commons.confi
 	}
 
     /**
+     * @return The RDF syntax mime types that are the only ones accepted for user-provided content (null if not restricted).
+     */
+    public Set<String> getContentSyntaxWhitelist() {
+        return contentSyntaxWhitelist;
+    }
+
+    /**
+     * @param contentSyntaxWhitelist The RDF syntax mime types that are the only ones accepted for user-provided content.
+     */
+    public void setContentSyntaxWhitelist(Set<String> contentSyntaxWhitelist) {
+        this.contentSyntaxWhitelist = contentSyntaxWhitelist;
+    }
+
+    /**
+     * @return The RDF syntax mime types that are not accepted for user-provided content (ignored if a whitelist is set).
+     */
+    public Set<String> getContentSyntaxBlacklist() {
+        return contentSyntaxBlacklist;
+    }
+
+    /**
+     * @param contentSyntaxBlacklist The RDF syntax mime types that are not accepted for user-provided content (ignored
+     *                               if a whitelist is set).
+     */
+    public void setContentSyntaxBlacklist(Set<String> contentSyntaxBlacklist) {
+        this.contentSyntaxBlacklist = contentSyntaxBlacklist;
+    }
+
+    /**
+     * Check whether the provided RDF syntax is accepted for user-provided content (content to validate or shapes).
+     * <p>
+     * If a whitelist is defined only its syntaxes are accepted (the blacklist is then ignored). Otherwise all syntaxes
+     * are accepted except those in the blacklist. If neither is defined everything is accepted.
+     *
+     * @param lang The language to check (null is accepted only if there are no restrictions).
+     * @return The check result.
+     */
+    public boolean isContentSyntaxAccepted(Lang lang) {
+        if (acceptedLanguages == null && rejectedLanguages == null) {
+            return true;
+        }
+        if (lang == null) {
+            return false;
+        }
+        lang = ShaclValidatorUtils.normaliseRdfLanguage(lang);
+        if (acceptedLanguages != null) {
+            return acceptedLanguages.contains(lang);
+        }
+        return !rejectedLanguages.contains(lang);
+    }
+
+    /**
+     * Check whether the provided RDF syntax mime type is accepted for user-provided content.
+     *
+     * @param mimeType The mime type to check.
+     * @return The check result.
+     * @see #isContentSyntaxAccepted(Lang)
+     */
+    public boolean isContentSyntaxAccepted(String mimeType) {
+        return isContentSyntaxAccepted(ShaclValidatorUtils.toNormalisedRdfLanguage(mimeType));
+    }
+
+    /**
+     * Resolve the whitelist and blacklist settings, and use them to narrow down the syntaxes offered by default.
+     *
+     * @throws IllegalStateException If a listed mime type is not a known RDF syntax.
+     */
+    void resolveContentSyntaxRestrictions() {
+        acceptedLanguages = toLanguages("validator.contentSyntaxWhitelist", contentSyntaxWhitelist);
+        rejectedLanguages = toLanguages("validator.contentSyntaxBlacklist", contentSyntaxBlacklist);
+        if (acceptedLanguages != null && rejectedLanguages != null) {
+            LOG.warn("Both [validator.contentSyntaxWhitelist] and [validator.contentSyntaxBlacklist] are set. The blacklist will be ignored.");
+            rejectedLanguages = null;
+        }
+        if (contentSyntax != null) {
+            contentSyntax = contentSyntax.stream().filter(this::isContentSyntaxAccepted).collect(Collectors.toCollection(LinkedHashSet::new));
+            if (contentSyntax.isEmpty()) {
+                LOG.warn("No default content syntaxes remain after applying the configured whitelist and blacklist.");
+            }
+        }
+        if (acceptedLanguages != null) {
+            LOG.info("A content type whitelist is in force for user-provided content allowing only: {}", acceptedLanguages.stream().map(Lang::getName).toList());
+        }
+        if (rejectedLanguages != null) {
+            LOG.info("A content type blacklist is in force for user-provided content blocking: {}", rejectedLanguages.stream().map(Lang::getName).toList());
+        }
+    }
+
+    /**
+     * Convert a set of mime types to their (normalised) RDF languages.
+     *
+     * @param propertyName The name of the property the values came from.
+     * @param mimeTypes The mime types.
+     * @return The languages, or null if no mime types were provided.
+     */
+    private Set<Lang> toLanguages(String propertyName, Set<String> mimeTypes) {
+        if (mimeTypes == null || mimeTypes.stream().allMatch(StringUtils::isBlank)) {
+            return null;
+        }
+        Set<Lang> languages = new HashSet<>();
+        for (var mimeType: mimeTypes) {
+            if (StringUtils.isNotBlank(mimeType)) {
+                Lang lang = ShaclValidatorUtils.toNormalisedRdfLanguage(mimeType.trim());
+                if (lang == null) {
+                    throw new IllegalStateException("Property [%s] contains the value [%s] which is not a supported RDF content type".formatted(propertyName, mimeType));
+                }
+                languages.add(lang);
+            }
+        }
+        return languages;
+    }
+
+    /**
      * @return The default labels to use for the description of SOAP web service inputs.
      */
     public Map<String, String> getDefaultLabels() {
@@ -486,6 +610,7 @@ public class ApplicationConfig extends eu.europa.ec.itb.validation.commons.confi
 	@PostConstruct
     public void init() {
         super.init();
+        resolveContentSyntaxRestrictions();
         setSupportsAdditionalInformationInReportItems(true);
         setSupportsTestDefinitionInReportItems(true);
         // Default labels.
