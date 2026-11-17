@@ -214,8 +214,10 @@ public class InputHelper extends BaseInputHelper<ApplicationConfig, FileManager,
         List<String> alignedEmbeddingMethods = alignInputList(contents.size(), embeddingMethods, ValidationConstants.INPUT_EMBEDDING_METHOD, ValidationConstants.INPUT_CONTENT);
         List<FileInfo> result = new ArrayList<>(contents.size());
         for (int i = 0; i < contents.size(); i++) {
-            ValueEmbeddingEnumeration embeddingMethod = getEmbeddingMethod(alignedEmbeddingMethods.get(i));
-            result.add(validateContentToValidate(contents.get(i), embeddingMethod, alignedSyntaxes.get(i), parentFolder, httpVersion));
+            String inputReference = ValidationConstants.INPUT_CONTENT + "[" + i + "]";
+            final String embeddingMethodValue = alignedEmbeddingMethods.get(i);
+            ValueEmbeddingEnumeration embeddingMethod = ValidatorException.forInput(inputReference, ValidatorException.MESSAGE_DEFAULT, () -> getEmbeddingMethod(embeddingMethodValue));
+            result.add(validateContentToValidate(contents.get(i), embeddingMethod, alignedSyntaxes.get(i), parentFolder, httpVersion, inputReference));
         }
         return result;
     }
@@ -293,12 +295,14 @@ public class InputHelper extends BaseInputHelper<ApplicationConfig, FileManager,
                 // Embedding method not provided as input nor as attribute.
                 throw new ValidatorException("validator.label.exception.embeddingMethodEitherAsInputOrAttribute", inputName);
             }
+            String inputReference = inputName + "[" + i + "]";
             String valueToProcess = leaf.getValue();
             if (leaf.getEmbeddingMethod() == ValueEmbeddingEnumeration.BASE_64 && explicitEmbeddingMethod != ValueEmbeddingEnumeration.BASE_64) {
                 // This is a URI or a plain text string encoded as BASE64.
-                valueToProcess = new String(Utils.decodeBase64String(valueToProcess, true));
+                final String base64Value = valueToProcess;
+                valueToProcess = ValidatorException.forInput(inputReference, "validator.label.exception.base64", () -> new String(Utils.decodeBase64String(base64Value, true)));
             }
-            result.add(validateContentToValidate(valueToProcess, explicitEmbeddingMethod, alignedSyntaxes.get(i), parentFolder, httpVersion));
+            result.add(validateContentToValidate(valueToProcess, explicitEmbeddingMethod, alignedSyntaxes.get(i), parentFolder, httpVersion, inputReference));
         }
         return result;
     }

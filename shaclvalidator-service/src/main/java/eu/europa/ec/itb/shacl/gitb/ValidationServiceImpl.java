@@ -158,11 +158,13 @@ public class ValidationServiceImpl implements ValidationService, WebServiceConte
                 List<ValueEmbeddingEnumeration> contentEmbeddingMethods = inputHelper.validateContentEmbeddingMethods(validateRequest, ValidationConstants.INPUT_EMBEDDING_METHOD);
                 var queryConfig = parseQueryConfiguration(validateRequest);
                 String contentSyntax;
+                String inputReference = null;
                 if (queryConfig == null) {
                     List<FileInfo> contentFiles = inputHelper.validateContentsToValidate(validateRequest, ValidationConstants.INPUT_CONTENT, contentEmbeddingMethods, contentSyntaxes, parentFolder, domainConfig.getHttpVersion());
                     FileInfo aggregate = fileManager.aggregateInputs(parentFolder, contentFiles, null, modelManager, domainConfig);
                     contentToValidate = aggregate.getFile();
                     contentSyntax = aggregate.getType();
+                    inputReference = aggregate.getInputReference();
                 } else {
                     queryConfig.setPreferredContentType(contentSyntaxes.isEmpty() ? null : contentSyntaxes.get(0));
                     queryConfig = inputHelper.validateSparqlConfiguration(domainConfig, queryConfig);
@@ -176,7 +178,7 @@ public class ValidationServiceImpl implements ValidationService, WebServiceConte
                 boolean addInputToReport = getInputAsBoolean(validateRequest, ValidationConstants.INPUT_ADD_INPUT_TO_REPORT, false);
                 boolean addShapesToReport = getInputAsBoolean(validateRequest, ValidationConstants.INPUT_ADD_RULES_TO_REPORT, false);
                 boolean addRdfReportToReport = getInputAsBoolean(validateRequest, ValidationConstants.INPUT_ADD_RDF_REPORT_TO_REPORT, false);
-                ValidationSpecs specs = ValidationSpecs.builder(contentToValidate, validationType, contentSyntax, externalShapes, loadImports, mergeModelsBeforeValidation, domainConfig, localiser, modelManager).build();
+                ValidationSpecs specs = ValidationSpecs.builder(contentToValidate, validationType, contentSyntax, externalShapes, loadImports, mergeModelsBeforeValidation, domainConfig, localiser, modelManager).withInputReference(inputReference).build();
                 SHACLValidator validator = ctx.getBean(SHACLValidator.class, specs);
                 ModelPair models = validator.validateAll();
                 var reportSpecs = ReportSpecs.builder(models.getInputModel(), models.getReportModel(), validator.getAggregatedShapes(), localiser, domainConfig, validator.getValidationType());

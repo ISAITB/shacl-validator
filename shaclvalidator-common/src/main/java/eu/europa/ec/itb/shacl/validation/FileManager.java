@@ -558,10 +558,10 @@ public class FileManager extends BaseFileManager<ApplicationConfig> {
         for (FileInfo input: inputs) {
             Lang rdfLanguage = determineRdfLanguage(input);
             if (rdfLanguage == null) {
-                throw new ValidatorException("validator.label.exception.rdfLanguageCouldNotBeDetermined");
+                throw new ValidatorException("validator.label.exception.rdfLanguageCouldNotBeDetermined").withInputReference(input.getInputReference());
             }
             if (!appConfig.isContentSyntaxAccepted(rdfLanguage)) {
-                throw new ValidatorException("validator.label.exception.contentSyntaxNotAccepted", rdfLanguage.getContentType().getContentTypeStr());
+                throw new ValidatorException("validator.label.exception.contentSyntaxNotAccepted", rdfLanguage.getContentType().getContentTypeStr()).withInputReference(input.getInputReference());
             }
             if (outputSyntax == null) {
                 outputSyntax = rdfLanguage.getContentType().getContentTypeStr();
@@ -571,9 +571,9 @@ public class FileManager extends BaseFileManager<ApplicationConfig> {
                 modelManager.track(fileModel);
                 aggregateModel.add(fileModel);
             } catch (ValidatorException e) {
-                throw e;
+                throw e.withInputReference(input.getInputReference());
             } catch (Exception e) {
-                throw new ValidatorException("validator.label.exception.errorWhileReadingProvidedContent", e, e.getMessage());
+                throw new ValidatorException("validator.label.exception.errorWhileReadingProvidedContent", e, e.getMessage()).withInputReference(input.getInputReference());
             }
         }
         Path aggregateFilePath = createFile(parentFolder, getFileExtension(outputSyntax), fileName);
@@ -660,7 +660,8 @@ public class FileManager extends BaseFileManager<ApplicationConfig> {
                 if (compressedSize > 0 && (entrySize / compressedSize) > appConfig.getArchiveMaxCompressionRatio()) {
                     throw new ValidatorException("validator.label.exception.archiveLimitsExceeded");
                 }
-                extractedFiles.add(new FileInfo(entryPath.toFile(), declaredContentSyntax));
+                // The entry's name is used to identify the file in case of errors.
+                extractedFiles.add(new FileInfo(entryPath.toFile(), declaredContentSyntax, null, null, zipEntry.getName()));
                 zis.closeEntry();
             }
         } catch (ValidatorException e) {

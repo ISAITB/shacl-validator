@@ -233,6 +233,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
             var result = new UploadResult();
             result.setContentSyntax(getContentSyntax(domainConfig));
             File inputFile = null;
+            String inputReference = null;
             List<FileInfo> userProvidedShapes = null;
             boolean forceCleanup = false;
             var modelManager = new ModelManager(fileManager);
@@ -284,6 +285,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                                     FileInfo aggregate = fileManager.aggregateInputs(parentFolder, archiveEntries, FILE_NAME_INPUT, modelManager, domainConfig);
                                     inputFile = aggregate.getFile();
                                     contentSyntaxType = aggregate.getType();
+                                    inputReference = aggregate.getInputReference();
                                     fileManager.removeContentToValidate(null, archiveEntries);
                                     FileUtils.deleteQuietly(stagedFile);
                                 } else {
@@ -328,7 +330,7 @@ public class UploadController extends BaseUploadController<DomainConfig, DomainC
                     }
                     loadImportsValue = inputHelper.validateLoadInputs(domainConfig, loadImportsValue, validationType);
                     mergeModelsValue = inputHelper.validateMergeModelsBeforeValidation(domainConfig, mergeModelsValue, validationType);
-                    ValidationSpecs specs = ValidationSpecs.builder(inputFile, validationType, contentSyntaxType, userProvidedShapes, loadImportsValue, mergeModelsValue, domainConfig, localisationHelper, modelManager).build();
+                    ValidationSpecs specs = ValidationSpecs.builder(inputFile, validationType, contentSyntaxType, userProvidedShapes, loadImportsValue, mergeModelsValue, domainConfig, localisationHelper, modelManager).withInputReference(inputReference).build();
                     SHACLValidator validator = ctx.getBean(SHACLValidator.class, specs);
                     ModelPair models = validator.validateAll();
                     ReportPair tarReport = ShaclValidatorUtils.getTAR(ReportSpecs
