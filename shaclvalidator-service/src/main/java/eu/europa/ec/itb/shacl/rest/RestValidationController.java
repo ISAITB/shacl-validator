@@ -25,6 +25,7 @@ import eu.europa.ec.itb.shacl.validation.FileManager;
 import eu.europa.ec.itb.shacl.validation.ReportSpecs;
 import eu.europa.ec.itb.shacl.validation.SHACLValidator;
 import eu.europa.ec.itb.shacl.validation.ThroughputThrottler;
+import eu.europa.ec.itb.shacl.validation.ValidationConstants;
 import eu.europa.ec.itb.validation.commons.*;
 import eu.europa.ec.itb.validation.commons.error.ValidatorException;
 import eu.europa.ec.itb.validation.commons.web.errors.NotFoundException;
@@ -186,6 +187,7 @@ public class RestValidationController extends BaseRestController<DomainConfig, A
     ) {
         return throttler.proceed(() -> {
             DomainConfig domainConfig = validateDomain(domain);
+            recordErrorLocaliser(domainConfig, in.getLocale());
             // Consider the case that we have a cross-domain alias and resolve the validation type accordingly.
             in.setValidationType(inputHelper.determineValidationType(in.getValidationType(), domain, domainConfig));
             var reportSyntax = getValidationReportSyntax(in.getReportSyntax(), getAcceptHeader(request, domainConfig.getDefaultReportSyntax()));
@@ -305,6 +307,7 @@ public class RestValidationController extends BaseRestController<DomainConfig, A
         File parentFolder = fileManager.createTemporaryFolderPath();
         File inputFile;
         String contentSyntax;
+        String inputReference = null;
         try {
             // Prepare input
             String validationType = inputHelper.validateValidationType(domainConfig, in.getValidationType());
@@ -315,6 +318,7 @@ public class RestValidationController extends BaseRestController<DomainConfig, A
                 FileInfo aggregate = fileManager.aggregateInputs(parentFolder, contentFiles, null, modelManager, domainConfig);
                 inputFile = aggregate.getFile();
                 contentSyntax = aggregate.getType();
+                inputReference = aggregate.getInputReference();
             } else {
                 queryConfig = inputHelper.validateSparqlConfiguration(domainConfig, queryConfig);
                 inputFile = fileManager.getContentFromSparqlEndpoint(queryConfig, parentFolder).toFile();
@@ -323,7 +327,7 @@ public class RestValidationController extends BaseRestController<DomainConfig, A
             Boolean loadImports = inputHelper.validateLoadInputs(domainConfig, in.isLoadImports(), validationType);
             Boolean mergeModelsBeforeValidation = inputHelper.validateMergeModelsBeforeValidation(domainConfig, in.isMergeModelsBeforeValidation(), validationType);
             // Execute validation
-            ValidationSpecs specs = ValidationSpecs.builder(inputFile, validationType, contentSyntax, externalShapes, loadImports, mergeModelsBeforeValidation, domainConfig, new LocalisationHelper(domainConfig, Utils.getSupportedLocale(LocaleUtils.toLocale(in.getLocale()), domainConfig)), modelManager).build();
+            ValidationSpecs specs = ValidationSpecs.builder(inputFile, validationType, contentSyntax, externalShapes, loadImports, mergeModelsBeforeValidation, domainConfig, new LocalisationHelper(domainConfig, Utils.getSupportedLocale(LocaleUtils.toLocale(in.getLocale()), domainConfig)), modelManager).withInputReference(inputReference).build();
             SHACLValidator validator = ctx.getBean(SHACLValidator.class, specs);
             ModelPair models = validator.validateAll();
             if (in.getReportQuery() != null && !in.getReportQuery().isBlank()) {
@@ -362,7 +366,14 @@ public class RestValidationController extends BaseRestController<DomainConfig, A
     private List<FileInfo> getExternalShapes(DomainConfig domainConfig, String validationType, List<RuleSet> externalRules, File parentFolder) {
         List<FileContent> shapeContents = null;
         if (externalRules != null) {
-            shapeContents = externalRules.stream().map(RuleSet::toFileContent).toList();
+            shapeContents = new ArrayList<>();
+            for (int i = 0; i < externalRules.size(); i++) {
+                var reference = ValidationConstants.INPUT_EXTERNAL_RULES + "[" + i + "]";
+                var ruleSet = externalRules.get(i);
+                var content = ValidatorException.forInput(reference, ValidatorException.MESSAGE_DEFAULT, ruleSet::toFileContent);
+                content.setInputReference(reference);
+                shapeContents.add(content);
+            }
         }
         return inputHelper.validateExternalArtifacts(domainConfig, shapeContents, validationType, null, parentFolder);
     }
@@ -456,6 +467,7 @@ public class RestValidationController extends BaseRestController<DomainConfig, A
         try {
             int i = 0;
             for (Input input: inputs) {
+                recordErrorLocaliser(domainConfig, input.getLocale());
                 Output output = new Output();
                 // Consider the case that we have a cross-domain alias and resolve the validation type accordingly.
                 input.setValidationType(inputHelper.determineValidationType(input.getValidationType(), domain, domainConfig));
@@ -465,7 +477,13 @@ public class RestValidationController extends BaseRestController<DomainConfig, A
                     reportSyntax = MediaType.APPLICATION_XML;
                 }
                 // Start validation process of the Input
-                var result = executeValidationProcess(input, domainConfig, modelManager);
+                ValidationResources result;
+                try {
+                    result = executeValidationProcess(input, domainConfig, modelManager);
+                } catch (ValidatorException e) {
+                    // Identify which of the provided inputs failed.
+                    throw e.withInputReferencePrefix("[" + i + "]");
+                }
                 if (MediaType.APPLICATION_XML.equals(reportSyntax) || MediaType.TEXT_XML.equals(reportSyntax)) {
                     // GITB TRL report (XML format).
                     try (var bos = new ByteArrayOutputStream()) {

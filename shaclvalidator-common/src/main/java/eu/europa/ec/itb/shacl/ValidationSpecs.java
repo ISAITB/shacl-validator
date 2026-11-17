@@ -39,11 +39,20 @@ public class ValidationSpecs {
     private boolean logProgress;
     private boolean usePlugins;
     private ModelManager modelManager;
+    private String inputReference;
 
     /**
      * Private constructor to prevent direct initialisation.
      */
     private ValidationSpecs() {}
+
+    /**
+     * @return The reference of the request input the content to validate originates from (e.g. "contentToValidate[0]"),
+     * used to identify the input in case of errors. Null if not known.
+     */
+    public String getInputReference() {
+        return inputReference;
+    }
 
     /**
      * @return The input RDF (or other) content to validate.
@@ -178,6 +187,18 @@ public class ValidationSpecs {
             this.instance.logProgress = true;
             this.instance.usePlugins = true;
             this.instance.modelManager = modelManager;
+        }
+
+        /**
+         * Record the reference of the request input the content to validate originates from, to be used to identify
+         * the input in error messages.
+         *
+         * @param inputReference The input reference (e.g. "contentToValidate[0]").
+         * @return The builder instance.
+         */
+        public Builder withInputReference(String inputReference) {
+            this.instance.inputReference = inputReference;
+            return this;
         }
 
         /**

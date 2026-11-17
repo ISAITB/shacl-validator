@@ -465,12 +465,20 @@ public class SHACLValidator {
             }
             Lang rdfLanguage = normaliseRdfLanguage(determineRdfLanguage(shaclFile));
             if (rdfLanguage == null) {
-                throw new ValidatorException("validator.label.exception.unableToDetermineShaclContentType");
+                throw new ValidatorException("validator.label.exception.unableToDetermineShaclContentType").withInputReference(shaclFile.getInputReference());
             }
             try (InputStream dataStream = new FileInputStream(shaclFile.getFile())) {
                 aggregateModel.add(fileManager.readModel(dataStream, rdfLanguage, null, accessPolicy));
-            } catch (IOException e) {
-                throw new ValidatorException("validator.label.exception.errorReadingShaclFile", e);
+            } catch (ValidatorException e) {
+                throw e.withInputReference(shaclFile.getInputReference());
+            } catch (IOException | RuntimeException e) {
+                if (shaclFile.getInputReference() == null) {
+                    // Shapes from the domain configuration.
+                    throw new ValidatorException("validator.label.exception.errorReadingShaclFile", e);
+                } else {
+                    // User-provided shapes (e.g. a syntax error).
+                    throw new ValidatorException("validator.label.exception.errorWhileReadingProvidedShapes", e, e.getMessage()).withInputReference(shaclFile.getInputReference());
+                }
             }
         }
         if (this.importedShapes!=null) {
@@ -665,9 +673,9 @@ public class SHACLValidator {
                 }
             }
         } catch (ValidatorException e) {
-            throw e;
+            throw e.withInputReference(specs.getInputReference());
         } catch (Exception e) {
-            throw new ValidatorException("validator.label.exception.errorWhileReadingProvidedContent", e, e.getMessage());
+            throw new ValidatorException("validator.label.exception.errorWhileReadingProvidedContent", e, e.getMessage()).withInputReference(specs.getInputReference());
         }
         /*
          * Add the aggregated shapes' model to the input data model. This is done so that any vocabulary definitions
@@ -698,9 +706,9 @@ public class SHACLValidator {
                 try (InputStream dataStream = new FileInputStream(specs.getInputFileToValidate())) {
                     inputModel = fileManager.readModel(dataStream, contextSyntaxToUse(), null, ResourceAccessPolicy.forUserContent(appConfig, specs.getDomainConfig()));
                 } catch (IOException e) {
-                    throw new ValidatorException("validator.label.exception.errorWhileReadingProvidedContent", e, e.getMessage());
+                    throw new ValidatorException("validator.label.exception.errorWhileReadingProvidedContent", e, e.getMessage()).withInputReference(specs.getInputReference());
                 } catch (JenaException e) {
-                    throw new ValidatorException("validator.label.exception.preprocessingError", e, constructQuery);
+                    throw new ValidatorException("validator.label.exception.preprocessingError", e, constructQuery).withInputReference(specs.getInputReference());
                 }
                 Model preprocessedModel = JenaUtil.createMemoryModel();
                 try (QueryExecution queryExecution = QueryExecution.create()
