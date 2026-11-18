@@ -48,7 +48,7 @@ This product depends on software developed by third parties as listed in the fol
 | Apache License, Version 2.0 | Nimbus JOSE+JWT | com.nimbusds:nimbus-jose-jwt | 10.9.1 | https://bitbucket.org/connect2id/nimbus-jose-jwt |
 | Apache License, Version 2.0 | OAuth 2.0 SDK with OpenID Connect and Federation extensions | com.nimbusds:oauth2-oidc-sdk | 11.38.2 | https://bitbucket.org/connect2id/oauth-2.0-sdk-with-openid-connect-extensions |
 | Eclipse Distribution License - v1.0 | istack common utility code runtime | com.sun.istack:istack-commons-runtime | 4.1.2 | https://projects.eclipse.org/projects/ee4j/istack-commons/istack-commons-runtime |
-| Apache License, Version 2.0 | Apache Commons Codec | commons-codec:commons-codec | 1.21.0 | https://commons.apache.org/proper/commons-codec/ |
+| Apache License, Version 2.0 | Apache Commons Codec | commons-codec:commons-codec | 1.23.0 | https://commons.apache.org/proper/commons-codec/ |
 | Apache License, Version 2.0 | Apache Commons IO | commons-io:commons-io | 2.22.0 | https://commons.apache.org/proper/commons-io/ |
 | Apache License, Version 2.0 | Apache Commons Logging | commons-logging:commons-logging | 1.3.6 | https://commons.apache.org/proper/commons-logging/ |
 | Apache License, Version 2.0 | PDFBox-Graphics2d | de.rototor.pdfbox:graphics2d | 3.0.1 | https://github.com/rototor/pdfbox-graphics2d/graphics2d |
