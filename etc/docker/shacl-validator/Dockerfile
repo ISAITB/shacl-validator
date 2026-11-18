@@ -5,4 +5,4 @@ COPY validator.jar /validator
 RUN sh -c 'touch /validator/validator.jar'
 EXPOSE 8080
 WORKDIR /validator
-ENTRYPOINT ["java","-XX:+ExitOnOutOfMemoryError", "-Djava.security.egd=file:/dev/./urandom","-jar","/validator/validator.jar"]
+ENTRYPOINT ["java","-XX:-UseBASE64Intrinsics","-XX:+ExitOnOutOfMemoryError", "-Djava.security.egd=file:/dev/./urandom","-jar","/validator/validator.jar"]
