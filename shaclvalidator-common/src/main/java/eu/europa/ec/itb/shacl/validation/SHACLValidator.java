@@ -54,6 +54,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 import org.topbraid.jenax.util.JenaUtil;
+import org.topbraid.shacl.validation.ValidationEngine;
+import org.topbraid.shacl.validation.ValidationEngineConfiguration;
 import org.topbraid.shacl.validation.ValidationUtil;
 import org.topbraid.shacl.vocabulary.SH;
 
@@ -427,7 +429,7 @@ public class SHACLValidator {
                 ServiceBlockingExecutor.block();
             }
             try {
-                resource = ValidationUtil.validateModel(dataModel, this.aggregatedShapes, false);
+                resource = validateModelWithConsistentLabels(dataModel, this.aggregatedShapes);
             } finally {
                 if (blockServiceCalls) {
                     ServiceBlockingExecutor.unblock();
@@ -440,6 +442,31 @@ public class SHACLValidator {
         specs.track(reportModel);
         reportModel.setNsPrefix("sh", SH.getURI());
         return reportModel;
+    }
+
+    /**
+     * Validate a data model against a shapes model, ensuring that URIs in result messages are rendered consistently.
+     * <p>
+     * This is equivalent to {@link ValidationUtil#validateModel(Model, Model, boolean)} (without validating the shapes),
+     * but replaces the engine's label function so that URIs are consistently abbreviated using the prefixes of the
+     * data model.
+     *
+     * @param dataModel The data to validate.
+     * @param shapesModel The shapes to validate against.
+     * @return The validation report resource.
+     */
+    static Resource validateModelWithConsistentLabels(Model dataModel, Model shapesModel) {
+        var configuration = new ValidationEngineConfiguration().setValidateShapes(false);
+        ValidationEngine engine = ValidationUtil.createValidationEngine(dataModel, shapesModel, configuration);
+        engine.setConfiguration(configuration);
+        engine.setLabelFunction(new ResultMessageLabelFunction(dataModel));
+        try {
+            engine.applyEntailments();
+            return engine.validateAll();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted while validating against SHACL shapes", e);
+        }
     }
 
     /**
