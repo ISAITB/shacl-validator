@@ -44,12 +44,8 @@ jobs:
           VERSION="$PARENT_VERSION"
           REPO=~/.m2/repository/eu/europa/ec/itb/commons
           if [[ "$VERSION" == *-SNAPSHOT ]]; then
-            # Snapshot: use the itb-commons branch matching the current one, otherwise development.
-            if git ls-remote --exit-code --heads https://github.com/ISAITB/itb-commons.git "$GITHUB_REF_NAME" > /dev/null; then
-              REF="$GITHUB_REF_NAME"
-            else
-              REF="development"
-            fi
+            # Snapshot: always use the itb-commons development branch.
+            REF="development"
             INSTALL=true
           else
             # Stable release: use the itb-commons tag, and skip the build if it is already in the Maven cache.
