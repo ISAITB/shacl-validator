@@ -305,12 +305,16 @@ function doDownload(downloadType, syntaxType, buttonId) {
                 clearMessages();
                 var responseData;
                 var fileName = xhr.getResponseHeader('Content-Disposition').split("filename=")[1];
-                if (syntaxType === "pdfType") {
-                    responseData = new Blob([xhr.response], {type: "application/octet-stream"});
+                if (syntaxType.indexOf("pdfType") === 0) {
+                    responseData = new Blob([xhr.response], {type: "application/pdf"});
+                } else if (syntaxType.indexOf("csvType") === 0) {
+                    responseData = new Blob([xhr.response], {type: "text/csv"});
                 } else {
                     responseData = new Blob([xhr.response], {type: syntaxType});
                 }
                 saveAs(responseData, fileName);
+            } else if (xhr.status === 410) {
+                raiseAlert(labelDownloadExpiredMessage, isFinal);
             } else {
                 raiseAlert(labelDownloadErrorMessage, isFinal);
             }
