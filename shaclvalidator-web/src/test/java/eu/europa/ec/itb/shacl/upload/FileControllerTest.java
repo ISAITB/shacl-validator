@@ -8,6 +8,8 @@ import eu.europa.ec.itb.validation.commons.test.BaseTest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -17,6 +19,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 class FileControllerTest extends BaseTest {
@@ -65,6 +68,20 @@ class FileControllerTest extends BaseTest {
         assertNotNull(result);
         assertNotNull(result.getFile());
         assertEquals(testFile, result.getFile().toPath());
+    }
+
+    @Test
+    void testGetReportExpired() throws Exception {
+        var domainConfig = mock(DomainConfig.class);
+        doReturn(domainConfig).when(domainConfigCache).getConfigForDomainName(any());
+        doReturn(Set.of(ValidatorChannel.FORM)).when(domainConfig).getChannels();
+        doReturn(tmpFolder.toFile()).when(fileManager).getWebTmpFolder();
+        var httpRequest = mock(HttpServletRequest.class);
+        var httpResponse = mock(HttpServletResponse.class);
+        var controller = createFileController();
+        var ex = assertThrows(ResponseStatusException.class, () ->
+                controller.getReport("domain1", "missingId", UploadController.DOWNLOAD_TYPE_REPORT, "pdfTypeDetailed", httpRequest, httpResponse));
+        assertEquals(HttpStatus.GONE, ex.getStatusCode());
     }
 
 }

@@ -38,8 +38,10 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.FileSystemResource;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -106,6 +108,11 @@ public class FileController {
         File tmpFolder = new File(fileManager.getWebTmpFolder(), id);
         if (!tmpFolder.toPath().normalize().startsWith(fileManager.getWebTmpFolder().toPath())) {
             throw new IllegalStateException("Invalid value provided for parameter [id]");
+        }
+        if (!tmpFolder.isDirectory()) {
+            // The results have expired or were lost (e.g. cleanup or restart). Signal this specifically to the UI.
+            LOG.warn("Requested report data [{}] is no longer available", id);
+            throw new ResponseStatusException(HttpStatus.GONE);
         }
         syntax = syntax.replace("_", "/");
         ReportFileInfo reportFileInfo;
